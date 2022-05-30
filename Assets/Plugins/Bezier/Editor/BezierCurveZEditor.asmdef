@@ -1,0 +1,20 @@
+{
+    "name": "BezierCurveEditor",
+    "rootNamespace": "",
+    "references": [
+        "GUID:6da1aebc48fccd44bb8ccdb8510cdfc1",
+        "GUID:7af1beae0348edc48a56709e3ef6a963",
+        "GUID:73c70a6eb6b6f444c878926f743350f6"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
