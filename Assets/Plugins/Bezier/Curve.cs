@@ -141,7 +141,7 @@ namespace BezierCurveZ
 			if (this.points == null || this.points.Count == 0)
 				this.points = new List<Point>(newLength);
 			var newPoints = new Point[newLength];
-			var t = Point.Type.LeftHandle;
+			var t = IsClosed ? Point.Type.LeftHandle : Point.Type.Control;
 			for (int i = 0; i < newLength; i++)
 			{
 				newPoints[i] = new Point(points[i], t);

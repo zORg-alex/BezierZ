@@ -15,6 +15,8 @@ namespace BezierCurveZ
 	public class CurvePropertyDrawer : PropertyDrawer
 	{
 		private Component targetObject;
+		private Transform targetTransform;
+
 		private Curve curve;
 		[NonSerialized]
 		private static CurvePropertyDrawer currentPropertyDrawer;
@@ -33,7 +35,10 @@ namespace BezierCurveZ
 		public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
 		{
 			if (targetObject == null)
+			{
 				targetObject = (Component)property.serializedObject.targetObject;
+				targetTransform = targetObject.transform;
+			}
 			curve = fieldInfo.GetValue(targetObject) as Curve;
 
 			var rootRows = IsCurrentlyEditedDrawer ?
@@ -211,10 +216,10 @@ namespace BezierCurveZ
 				for (int i = 0; i < curve.Points.Count; i++)
 				{
 					Vector3 point = curve.Points[i];
-					var dist = Camera.current.WorldToScreenPoint(Handles.matrix * point).DistanceTo(mousePos);
+					var dist = Camera.current.WorldToScreenPoint(targetTransform.TransformPoint(point)).DistanceTo(mousePos);
 					if (dist < minDist) { minDist = dist; closestIndex = i; }
 				}
-				closestPoint = curve.Points[closestIndex];
+				closestPoint = targetTransform.TransformPoint(curve.Points[closestIndex]);
 			}
 			if (Event.current.type == EventType.MouseUp)
 			{
@@ -227,34 +232,45 @@ namespace BezierCurveZ
 			EditorGUI.BeginChangeCheck();
 
 			var m = Handles.matrix;
-			Handles.matrix = targetObject.transform.localToWorldMatrix;
+			//Handles.matrix = targetTransform.localToWorldMatrix;
+			Handles.matrix = Matrix4x4.identity;
 			var c = Handles.color;
 			Handles.color = Color.white.MultiplyAlpha(.66f);
 
-			//TODO pick point, and edit it, stop picking while mouse down
-
-			Handles.color = Color.white.MultiplyAlpha(.66f);
+			//Draw points
 			for (int i = 0; i < curve.Points.Count; i++)
 			{
-				var point = curve.Points[i];
-				GUIUtils.DrawCircle(point, -Camera.current.transform.forward, .1f * HandleUtility.GetHandleSize(point));
+				var globalPointPos = transform(curve.Points[i]);
+				var dir = curve.Points[i].type == Curve.Point.Type.Control ? getHandleFromDirection(i) : Vector3.up;
+				var normal = curve.Points[i].type == Curve.Point.Type.Control ? -Camera.current.transform.forward : Vector3.Cross(dir, Vector3.Cross(dir, globalPointPos - Camera.current.transform.position)).normalized;
+				GUIUtils.DrawCircle(globalPointPos, normal, .2f * HandleUtility.GetHandleSize(globalPointPos),
+					false, curve.Points[i].type == Curve.Point.Type.Control ? 12 : 4, dir);
 			}
-			//var newPoint = Handles.DoPositionHandle(closestPoint, CurveEditorTransformOrientation.rotation);
+
+			//Draw tool
 			var newPoint = Handles.PositionHandle(closestPoint, CurveEditorTransformOrientation.rotation);
+
+			//Do undo
 			if (EditorGUI.EndChangeCheck())
 			{
 				Undo.RecordObject(targetObject, "Point position changed");
-				curve.SetPoint(closestIndex, newPoint);
+				curve.SetPoint(closestIndex, targetTransform.InverseTransformPoint(newPoint));
 			}
 
 			Handles.matrix = m;
 			Handles.color = c;
+
+			Vector3 transform(Vector3 pos) => targetTransform.TransformPoint(pos);
+
+			Vector3 getHandleFromDirection(int i) =>
+				curve.Points[i].type == Curve.Point.Type.LeftHandle ? targetTransform.TransformDirection(curve.Points[i+1] - curve.Points[i]) :
+				curve.Points[i].type == Curve.Point.Type.RightHandle ? targetTransform.TransformDirection(curve.Points[i-1] - curve.Points[i]) : default;
 		}
 
 		private void DrawCurveAndPoints(bool Highlight = false)
 		{
 			var m = Handles.matrix;
-			Handles.matrix = targetObject.transform.localToWorldMatrix;
+			Handles.matrix = targetTransform.localToWorldMatrix;
 			var c = Handles.color;
 			Handles.color = Color.white.MultiplyAlpha(.66f);
 			foreach (var seg in curve.Segments)

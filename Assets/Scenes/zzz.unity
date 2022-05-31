@@ -266,17 +266,53 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   curve:
-    points: []
+    points:
+    - point: {x: 0.1, y: 0, z: 0}
+      mode: 0
+      type: 0
+    - point: {x: 1, y: 0, z: 0}
+      mode: 0
+      type: 1
+    - point: {x: 1, y: 3, z: 0}
+      mode: 0
+      type: 2
+    - point: {x: 0, y: 3, z: 0}
+      mode: 0
+      type: 0
+    - point: {x: -1, y: 3, z: 0}
+      mode: 0
+      type: 1
+    - point: {x: -1, y: 3, z: 4}
+      mode: 0
+      type: 2
+    - point: {x: 0, y: 3, z: 4}
+      mode: 0
+      type: 0
+    - point: {x: 1, y: 3, z: 4}
+      mode: 0
+      type: 1
+    - point: {x: 1.0990355, y: 0, z: 5.5640364}
+      mode: 0
+      type: 2
+    - point: {x: 1, y: 0, z: 3}
+      mode: 0
+      type: 0
     _isClosed: 0
     _minSamplingDistance: 0
     _maxAngleError: 0
   useRMFrames: 0
   RMFramesPerSegment: 5
   points:
-  - {x: 0, y: 0, z: 0}
-  - {x: 0, y: 0, z: 0}
-  - {x: 0, y: 0, z: 0}
-  - {x: 0, y: 0, z: 0}
+  - {x: 0.1, y: 0, z: 0}
+  - {x: 1, y: 0, z: 0}
+  - {x: 1, y: 3, z: 0}
+  - {x: 0, y: 3, z: 0}
+  - {x: -1, y: 3, z: 0}
+  - {x: -1, y: 3, z: 4}
+  - {x: 0, y: 3, z: 4}
+  - {x: 1, y: 3, z: 4}
+  - {x: 1, y: 0, z: 4}
+  - {x: 1, y: 0, z: 3}
   gizmoQuality: 50
   normalLength: 1
 --- !u!1 &2089848895

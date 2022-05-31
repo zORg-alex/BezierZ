@@ -18,9 +18,10 @@ namespace Utility.Editor {
 			}
 		}
 
-		public static void DrawCircle(Vector3 center, Vector3 normal, float radius, bool filled = false, int quality = 12)
+		public static void DrawCircle(Vector3 center, Vector3 normal, float radius, bool filled = false, int quality = 12, Vector3 startFrom = default)
 		{
-			Vector3 from = Vector3.Cross(normal, Vector3.up);
+			if (startFrom == default) startFrom = Vector3.up;
+			Vector3 from = Vector3.Cross(normal, Vector3.Cross(normal, startFrom));
 			Quaternion q = Quaternion.AngleAxis(360f / quality, normal);
 			var points = new Vector3[quality + 1];
 			for (int i = 0; i <= quality; i++)
@@ -37,6 +38,5 @@ namespace Utility.Editor {
 				Handles.DrawAAPolyLine(points);
 			}
 		}
-
 	}
 }
