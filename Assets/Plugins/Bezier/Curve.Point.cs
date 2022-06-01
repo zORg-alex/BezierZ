@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace BezierCurveZ
@@ -12,10 +13,17 @@ namespace BezierCurveZ
 			public static implicit operator Vector3(Point cp) => cp.point;
 
 			[Flags]
-			public enum Mode { Linear = 0, Automatic = 1, Manual = 2, Proportional = Automatic & Manual }
+			public enum Mode { None = 0, Linear = 1, Automatic = 2, Manual = 4, Proportional = Automatic | Manual }
 			public Mode mode;
+			public static IEnumerable<Mode> GetModes()
+			{
+				yield return Mode.Automatic;
+				yield return Mode.Manual;
+				yield return Mode.Linear;
+				yield return Mode.Proportional;
+			}
 
-			public enum Type { Control = 0, RightHandle = 1, LeftHandle = 2}
+			public enum Type { Control = 0, RightHandle = 1, LeftHandle = 2 }
 			public Type type;
 
 			public Point(Vector3 position) : this()
@@ -50,7 +58,11 @@ namespace BezierCurveZ
 				return this;
 			}
 
-			public Point SetMode(Mode mode) => new Point(point, mode);
+			public Point SetMode(Mode mode)
+			{
+				this.mode = mode;
+				return this;
+			}
 
 			public static Vector3 operator +(Point a, Point b) => a.point + b.point;
 			public static Vector3 operator -(Point a, Point b) => a.point - b.point;

@@ -23,7 +23,8 @@ namespace BezierCurveZ
 		private bool isInEditMode;
 		private bool isMouseOver;
 		private bool previewAlways;
-		private Vector3 closestPoint;
+		private Vector3 closestPosition;
+		private Curve.Point closestPoint;
 		private int closestIndex;
 
 		#region editor behaviour
@@ -187,6 +188,9 @@ namespace BezierCurveZ
 
 		private float editorHeight = EditorGUIUtility.singleLineHeight * 4;
 		private Tool lastTool;
+		private float mouse0PressedTime;
+		private Vector2 mousePosition;
+		private bool drawContextMenu;
 
 		private void DrawCurveEditor(Rect position)
 		{
@@ -208,6 +212,33 @@ namespace BezierCurveZ
 
 		private void Input()
 		{
+			if (Event.current.type == EventType.MouseDown &&
+				Event.current.button == 1 &&
+				closestPoint.type == Curve.Point.Type.Control &&
+				closestIndex != -1)
+			{
+				mousePosition = Event.current.mousePosition;
+				mouse0PressedTime = Time.time;
+			}
+			else if (mouse0PressedTime > 0 &&
+				Event.current.type == EventType.MouseUp &&
+				Event.current.button == 1 && closestIndex != -1 &&
+				Time.time - mouse0PressedTime < .5f &&
+				(mousePosition - Event.current.mousePosition).magnitude < 5f)
+			{
+				mouse0PressedTime = 0;
+
+				var menu = new GenericMenu();
+				foreach (var val in Curve.Point.GetModes())
+				{
+					var mode = val;
+					menu.AddItem(new GUIContent(mode.ToString()),
+						closestPoint.mode == mode, () => curve.Points[closestIndex] = curve.Points[closestIndex].SetMode(mode));
+				}
+
+				//menu.ShowAsContext();
+				menu.DropDown(new Rect(mousePosition, Vector2.zero));
+			}
 			if (Event.current.type == EventType.MouseMove)
 			{
 				//GUI coordinates starts from top-left of actual view
@@ -220,14 +251,15 @@ namespace BezierCurveZ
 					var dist = HandleUtility.WorldToGUIPoint(targetTransform.TransformPoint(curve.Points[i])).DistanceTo(mousePos);
 					if (dist < minDist) { minDist = dist; closestIndex = i; }
 				}
-				closestPoint = minDist < 100 ? targetTransform.TransformPoint(curve.Points[closestIndex]) : default;
+				closestPoint = curve.Points[closestIndex];
+				if (minDist > 100)
+					closestIndex = -1;
 			}
 		}
 
 		private void DrawHandles()
 		{
 			EditorGUI.BeginChangeCheck();
-
 			var m = Handles.matrix;
 			//Handles.matrix = targetTransform.localToWorldMatrix;
 			Handles.matrix = Matrix4x4.identity;
@@ -245,9 +277,9 @@ namespace BezierCurveZ
 			}
 
 			//Draw tool
-			if (closestPoint != default)
+			if (closestIndex != -1)
 			{
-				var newPoint = Handles.PositionHandle(closestPoint, CurveEditorTransformOrientation.rotation);
+				var newPoint = Handles.PositionHandle(transform(closestPoint), CurveEditorTransformOrientation.rotation);
 
 				//Do undo
 				if (EditorGUI.EndChangeCheck())

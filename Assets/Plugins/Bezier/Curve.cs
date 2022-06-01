@@ -39,11 +39,11 @@ namespace BezierCurveZ
 				_preservedNodeModesWhileClosed[0] = points[0].mode;
 				_preservedNodeModesWhileClosed[1] = points[lastPointInd].mode;
 				points[0] = points[0].SetMode(Point.Mode.Manual);
-				points[lastPointInd] = points[0].SetMode(Point.Mode.Manual);
+				points[lastPointInd] = points[lastPointInd].SetMode(Point.Mode.Manual);
 			}
 			else if (!value && _isClosed) {
 				points[0] = points[0].SetMode(_preservedNodeModesWhileClosed[0]);
-				points[lastPointInd] = points[0].SetMode(_preservedNodeModesWhileClosed[1]);
+				points[lastPointInd] = points[lastPointInd].SetMode(_preservedNodeModesWhileClosed[1]);
 			}
 			_isClosed = value;
 		}
@@ -59,27 +59,28 @@ namespace BezierCurveZ
 			if (thisPoint.type == Point.Type.Control)
 			{
 				var diff = position - points[index];
+				var isLinear = thisPoint.mode == Point.Mode.Linear;
 				if (index > 0)
-					points[index - 1] = points[index - 1].SetPosition(points[index - 1] + diff);
+					points[index - 1] = isLinear ? points[index] : points[index - 1].SetPosition(points[index - 1] + diff);
 				if (index < lastPointInd)
-					points[index + 1] = points[index + 1].SetPosition(points[index + 1] + diff);
+					points[index + 1] = isLinear ? points[index] : points[index + 1].SetPosition(points[index + 1] + diff);
 			}
 			else
 			{
 				var controlPoint = points[index].type == Point.Type.LeftHandle ? points[index + 1] : points[index - 1];
 				var otherHandleIndex = points[index].type == Point.Type.LeftHandle ? index + 2 : index - 2;
 
-				if (!thisPoint.mode.HasFlag(Point.Mode.Automatic) && index > 1 && index < lastPointInd - 1)
+				if (controlPoint.mode.HasFlag(Point.Mode.Automatic) && index > 1 && index < lastPointInd - 1)
 				{
 					var otherHandle = points[otherHandleIndex];
 
-					if (thisPoint.mode.HasFlag(Point.Mode.Manual))
+					if (controlPoint.mode.HasFlag(Point.Mode.Manual))
 					{
 						//Proportional
 						var diff = position - thisPoint;
-						var otherDiff = diff * ((controlPoint - otherHandle).magnitude / (controlPoint - thisPoint).magnitude);
+						var otherRelToControl = (controlPoint - position) * ((controlPoint - otherHandle).magnitude / (controlPoint - thisPoint).magnitude);
 						if (index > 1 && index < lastPointInd - 1)
-							points[otherHandleIndex] = otherHandle.SetPosition(otherHandle - otherDiff);
+							points[otherHandleIndex] = otherHandle.SetPosition(controlPoint + otherRelToControl);
 					}
 					else
 					{
@@ -97,9 +98,18 @@ namespace BezierCurveZ
 		{
 			index = Mathf.Clamp(index, 0, lastPointInd);
 			if (_isClosed && (index == 0 || index == lastPointInd))
-				_preservedNodeModesWhileClosed[Mathf.Clamp(index,0,1)] = mode;
+				_preservedNodeModesWhileClosed[Mathf.Clamp(index, 0, 1)] = mode;
 			else
 				points[index] = points[index].SetMode(mode);
+
+			if (points[index].type == Point.Type.Control)
+			{
+				if (index > 0)
+					points[index - 1] = points[index - 1].SetMode(mode);
+				if (index < lastPointInd)
+					points[index + 1] = points[index + 1].SetMode(mode);
+			}
+
 			_bVersion++;
 		}
 
