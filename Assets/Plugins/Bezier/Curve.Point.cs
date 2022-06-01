@@ -11,7 +11,8 @@ namespace BezierCurveZ
 			public Vector3 point;
 			public static implicit operator Vector3(Point cp) => cp.point;
 
-			public enum Mode { Automatic, Manual, Linear }
+			[Flags]
+			public enum Mode { Linear = 0, Automatic = 1, Manual = 2, Proportional = Automatic & Manual }
 			public Mode mode;
 
 			public enum Type { Control = 0, RightHandle = 1, LeftHandle = 2}

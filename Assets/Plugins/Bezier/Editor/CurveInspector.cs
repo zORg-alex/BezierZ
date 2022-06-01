@@ -210,20 +210,17 @@ namespace BezierCurveZ
 		{
 			if (Event.current.type == EventType.MouseMove)
 			{
-				Vector2 mousePos = new Vector2(Event.current.mousePosition.x, Screen.height - Event.current.mousePosition.y);
+				//GUI coordinates starts from top-left of actual view
+				Vector2 mousePos = Event.current.mousePosition;
 				var minDist = float.MaxValue;
 				closestIndex = -1;
 				for (int i = 0; i < curve.Points.Count; i++)
 				{
 					Vector3 point = curve.Points[i];
-					var dist = Camera.current.WorldToScreenPoint(targetTransform.TransformPoint(point)).DistanceTo(mousePos);
+					var dist = HandleUtility.WorldToGUIPoint(targetTransform.TransformPoint(curve.Points[i])).DistanceTo(mousePos);
 					if (dist < minDist) { minDist = dist; closestIndex = i; }
 				}
-				closestPoint = targetTransform.TransformPoint(curve.Points[closestIndex]);
-			}
-			if (Event.current.type == EventType.MouseUp)
-			{
-
+				closestPoint = minDist < 100 ? targetTransform.TransformPoint(curve.Points[closestIndex]) : default;
 			}
 		}
 
@@ -248,17 +245,22 @@ namespace BezierCurveZ
 			}
 
 			//Draw tool
-			var newPoint = Handles.PositionHandle(closestPoint, CurveEditorTransformOrientation.rotation);
-
-			//Do undo
-			if (EditorGUI.EndChangeCheck())
+			if (closestPoint != default)
 			{
-				Undo.RecordObject(targetObject, "Point position changed");
-				curve.SetPoint(closestIndex, targetTransform.InverseTransformPoint(newPoint));
+				var newPoint = Handles.PositionHandle(closestPoint, CurveEditorTransformOrientation.rotation);
+
+				//Do undo
+				if (EditorGUI.EndChangeCheck())
+				{
+					Undo.RecordObject(targetObject, "Point position changed");
+					curve.SetPoint(closestIndex, targetTransform.InverseTransformPoint(newPoint));
+				}
 			}
 
 			Handles.matrix = m;
 			Handles.color = c;
+
+			//Local methods
 
 			Vector3 transform(Vector3 pos) => targetTransform.TransformPoint(pos);
 

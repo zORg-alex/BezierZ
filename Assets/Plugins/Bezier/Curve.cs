@@ -38,6 +38,8 @@ namespace BezierCurveZ
 			if (value && !_isClosed) {
 				_preservedNodeModesWhileClosed[0] = points[0].mode;
 				_preservedNodeModesWhileClosed[1] = points[lastPointInd].mode;
+				points[0] = points[0].SetMode(Point.Mode.Manual);
+				points[lastPointInd] = points[0].SetMode(Point.Mode.Manual);
 			}
 			else if (!value && _isClosed) {
 				points[0] = points[0].SetMode(_preservedNodeModesWhileClosed[0]);
@@ -52,6 +54,41 @@ namespace BezierCurveZ
 		public void SetPoint(int index, Vector3 position)
 		{
 			index = Mathf.Clamp(index, 0, lastPointInd);
+
+			var thisPoint = points[index];
+			if (thisPoint.type == Point.Type.Control)
+			{
+				var diff = position - points[index];
+				if (index > 0)
+					points[index - 1] = points[index - 1].SetPosition(points[index - 1] + diff);
+				if (index < lastPointInd)
+					points[index + 1] = points[index + 1].SetPosition(points[index + 1] + diff);
+			}
+			else
+			{
+				var controlPoint = points[index].type == Point.Type.LeftHandle ? points[index + 1] : points[index - 1];
+				var otherHandleIndex = points[index].type == Point.Type.LeftHandle ? index + 2 : index - 2;
+
+				if (!thisPoint.mode.HasFlag(Point.Mode.Automatic) && index > 1 && index < lastPointInd - 1)
+				{
+					var otherHandle = points[otherHandleIndex];
+
+					if (thisPoint.mode.HasFlag(Point.Mode.Manual))
+					{
+						//Proportional
+						var diff = position - thisPoint;
+						var otherDiff = diff * ((controlPoint - otherHandle).magnitude / (controlPoint - thisPoint).magnitude);
+						if (index > 1 && index < lastPointInd - 1)
+							points[otherHandleIndex] = otherHandle.SetPosition(otherHandle - otherDiff);
+					}
+					else
+					{
+						//Automatic
+						if (index > 1 && index < lastPointInd - 1)
+							points[otherHandleIndex] = otherHandle.SetPosition(controlPoint + controlPoint - position);
+					}
+				}
+			}
 			points[index] = points[index].SetPosition(position);
 			_bVersion++;
 		}
@@ -59,9 +96,10 @@ namespace BezierCurveZ
 		public void SetPointMode(int index, Point.Mode mode)
 		{
 			index = Mathf.Clamp(index, 0, lastPointInd);
-			points[index] = points[index].SetMode(mode);
 			if (_isClosed && (index == 0 || index == lastPointInd))
 				_preservedNodeModesWhileClosed[Mathf.Clamp(index,0,1)] = mode;
+			else
+				points[index] = points[index].SetMode(mode);
 			_bVersion++;
 		}
 
