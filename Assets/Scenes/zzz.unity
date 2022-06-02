@@ -245,14 +245,14 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1724460297}
-  m_LocalRotation: {x: 0, y: -0.009250191, z: 0, w: 0.9999572}
-  m_LocalPosition: {x: 0, y: -0.17, z: 0}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
   m_RootOrder: 2
-  m_LocalEulerAnglesHint: {x: 0, y: -1.06, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &1724460300
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -267,35 +267,35 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   curve:
     points:
-    - point: {x: 0.1, y: 0, z: 0}
-      mode: 2
+    - point: {x: -0.13206375, y: 0.11032683, z: 0.15224779}
+      mode: 4
       type: 0
-    - point: {x: 1, y: 0, z: 0}
-      mode: 2
+    - point: {x: 2.15875, y: 0.19396245, z: 0.017617583}
+      mode: 4
       type: 1
-    - point: {x: 1.4515313, y: 3.009485, z: -0.044686813}
+    - point: {x: 2, y: 3, z: 0}
       mode: 2
       type: 2
     - point: {x: 0, y: 3, z: 0}
       mode: 2
       type: 0
-    - point: {x: -1.4515313, y: 2.990515, z: 0.044686813}
+    - point: {x: -1, y: 3, z: 0}
       mode: 2
       type: 1
-    - point: {x: -1.2864834, y: 3, z: 4.0573316}
+    - point: {x: -1, y: 3, z: 4}
       mode: 2
       type: 2
     - point: {x: 0, y: 3, z: 4}
       mode: 2
       type: 0
-    - point: {x: 1.2864834, y: 3, z: 3.9426684}
+    - point: {x: 1, y: 3, z: 4}
       mode: 2
       type: 1
-    - point: {x: 1.4718397, y: 0, z: 3.173374}
+    - point: {x: 2.3136604, y: 0, z: 3.9345858}
       mode: 2
       type: 2
-    - point: {x: 0.41728958, y: 0, z: 3.8060544}
-      mode: 1
+    - point: {x: -0.59015274, y: 0, z: 4.065174}
+      mode: 2
       type: 0
     _isClosed: 0
     _minSamplingDistance: 0

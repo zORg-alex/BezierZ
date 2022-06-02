@@ -61,9 +61,9 @@ namespace BezierCurveZ
 				var diff = position - points[index];
 				var isLinear = thisPoint.mode == Point.Mode.Linear;
 				if (index > 0)
-					points[index - 1] = isLinear ? points[index] : points[index - 1].SetPosition(points[index - 1] + diff);
+					points[index - 1] = points[index - 1].SetPosition(isLinear ? points[index] : points[index - 1] + diff);
 				if (index < lastPointInd)
-					points[index + 1] = isLinear ? points[index] : points[index + 1].SetPosition(points[index + 1] + diff);
+					points[index + 1] = points[index + 1].SetPosition(isLinear ? points[index] : points[index + 1] + diff);
 			}
 			else
 			{

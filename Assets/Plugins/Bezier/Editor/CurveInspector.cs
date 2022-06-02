@@ -25,6 +25,7 @@ namespace BezierCurveZ
 		private bool previewAlways;
 		private Vector3 closestPosition;
 		private Curve.Point closestPoint;
+		private Vector3 editedPosition;
 		private int closestIndex;
 
 		#region editor behaviour
@@ -233,7 +234,9 @@ namespace BezierCurveZ
 				{
 					var mode = val;
 					menu.AddItem(new GUIContent(mode.ToString()),
-						closestPoint.mode == mode, () => curve.Points[closestIndex] = curve.Points[closestIndex].SetMode(mode));
+						closestPoint.mode == mode, () => {
+							curve.SetPointMode(closestIndex, mode);
+						});
 				}
 
 				//menu.ShowAsContext();
@@ -252,6 +255,7 @@ namespace BezierCurveZ
 					if (dist < minDist) { minDist = dist; closestIndex = i; }
 				}
 				closestPoint = curve.Points[closestIndex];
+				editedPosition = targetTransform.TransformPoint(closestPoint.point);
 				if (minDist > 100)
 					closestIndex = -1;
 			}
@@ -279,13 +283,13 @@ namespace BezierCurveZ
 			//Draw tool
 			if (closestIndex != -1)
 			{
-				var newPoint = Handles.PositionHandle(transform(closestPoint), CurveEditorTransformOrientation.rotation);
+				editedPosition = Handles.PositionHandle(editedPosition, CurveEditorTransformOrientation.rotation);
 
 				//Do undo
 				if (EditorGUI.EndChangeCheck())
 				{
 					Undo.RecordObject(targetObject, "Point position changed");
-					curve.SetPoint(closestIndex, targetTransform.InverseTransformPoint(newPoint));
+					curve.SetPoint(closestIndex, targetTransform.InverseTransformPoint(editedPosition));
 				}
 			}
 
