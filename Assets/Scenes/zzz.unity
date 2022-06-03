@@ -267,6 +267,24 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   curve:
     points:
+    - point: {x: -3.3920503, y: 0, z: 3.1054516}
+      mode: 2
+      type: 0
+    - point: {x: -3.3920503, y: 0, z: 3.1054516}
+      mode: 2
+      type: 1
+    - point: {x: -2.040539, y: 0, z: 2.6790526}
+      mode: 2
+      type: 2
+    - point: {x: -2.043725, y: 0, z: 1.1459424}
+      mode: 2
+      type: 0
+    - point: {x: -2.046911, y: 0, z: -0.3871677}
+      mode: 2
+      type: 1
+    - point: {x: -0.79999995, y: 0, z: 0}
+      mode: 2
+      type: 2
     - point: {x: 0.1, y: 0, z: 0}
       mode: 2
       type: 0

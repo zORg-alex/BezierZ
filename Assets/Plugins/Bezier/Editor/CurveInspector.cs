@@ -304,6 +304,11 @@ namespace BezierCurveZ
 				}
 			}
 
+			//DrawClosestPoint
+			var closestPointToLine =  HandleUtility.ClosestPointToPolyLine(curve.Vertices);
+			Handles.color = Color.red / 2 + Color.white / 2;
+			Handles.DrawSolidDisc(closestPointToLine, -Camera.current.transform.forward, .1f * HandleUtility.GetHandleSize(closestPointToLine));
+
 			Handles.matrix = m;
 			Handles.color = c;
 
