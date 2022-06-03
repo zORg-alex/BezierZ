@@ -14,7 +14,7 @@ namespace BezierCurveZ
 		private int _bVersion = 0;
 		[SerializeField, HideInInspector]
 		private List<Point> points;
-		private int lastPointInd => points.Count - 1;
+		internal int lastPointInd => points.Count - 1;
 
 		private Vector3[] _pointPositions;
 		private int _pointPosVersion;
@@ -121,60 +121,48 @@ namespace BezierCurveZ
 		
 		public Point.Mode DefaultAddedPointMode { get; set; }
 
-		public void AddPointAtEnd(Vector3 point) => AddPointAt(point, true);
-		public void AddPointAtStart(Vector3 point) => AddPointAt(point, false);
-		public void AddPointAt(Vector3 point, bool end)
-		{
-			Point[] addedPoints;
-
-			if (!end)
-				addedPoints = AddPointAtBeginning(point);
+		public void AddPointAtEnd(Vector3 point) {
+			Point[] addedPoints = new Point[3];
+			if (DefaultAddedPointMode == Point.Mode.Linear)
+			{
+				var leftHandle = (points[lastPointInd] - point) / 3f;
+				addedPoints[0] = Point.RightHandle(points[lastPointInd] + leftHandle);
+				addedPoints[1] = Point.LeftHandle(point - leftHandle);
+			}
 			else
-				addedPoints = AddPointAtEnd(point);
-
-			points.InsertRange(end? lastPointInd : 0 , addedPoints);
+			{
+				var invertedHandleOffset = points[lastPointInd] - points[lastPointInd - 1];
+				addedPoints[0] = Point.RightHandle(invertedHandleOffset + points[lastPointInd]);
+				addedPoints[1] = Point.LeftHandle(getSecondHandle(points[lastPointInd], point, invertedHandleOffset));
+			}
+			addedPoints[2] = Point.Control(point);
+			points.InsertRange(points.Count, addedPoints);
 			_bVersion++;
-
-			Point[] AddPointAtBeginning(Vector3 point)
-			{
-				Point[] addedPoints = new Point[3];
-				addedPoints[0] = Point.Control(point);
-				if (DefaultAddedPointMode == Point.Mode.Linear)
-				{
-					var rightHandle = (points[0] - point) / 3f;
-					addedPoints[1] = Point.RightHandle(point - rightHandle);
-					addedPoints[2] = Point.LeftHandle(points[0] + rightHandle);
-				} else {
-					var invertedHandleOffset = points[0] - points[1];
-					addedPoints[1] = Point.RightHandle(getSecondHandle(points[0], point, invertedHandleOffset));
-					addedPoints[2] = Point.LeftHandle(invertedHandleOffset + points[0]);
-				}
-				return addedPoints;
-			}
-
-			Point[] AddPointAtEnd(Vector3 point)
-			{
-				Point[] addedPoints = new Point[3];
-				if (DefaultAddedPointMode == Point.Mode.Linear)
-				{
-					var leftHandle = (points[lastPointInd] - point) / 3f;
-					addedPoints[0] = Point.RightHandle(points[lastPointInd] + leftHandle);
-					addedPoints[1] = Point.LeftHandle(point - leftHandle);
-				}
-				else
-				{
-					var invertedHandleOffset = points[lastPointInd] - points[lastPointInd - 1];
-					addedPoints[0] = Point.RightHandle(invertedHandleOffset + points[lastPointInd]);
-					addedPoints[1] = Point.LeftHandle(getSecondHandle(points[lastPointInd], point, invertedHandleOffset));
-				}
-				addedPoints[2] = Point.Control(point);
-				return addedPoints;
-			}
 
 			Vector3 getSecondHandle(Vector3 lastPoint, Vector3 newPoint, Vector3 offset) =>
 				lastPoint + Vector3.Reflect(lastPoint - newPoint, offset);
+		}
+		public void AddPointAtStart(Vector3 point)
+		{
+			Point[] addedPoints = new Point[3];
+			addedPoints[0] = Point.Control(point);
+			if (DefaultAddedPointMode == Point.Mode.Linear)
+			{
+				var rightHandle = (points[0] - point) / 3f;
+				addedPoints[1] = Point.RightHandle(point - rightHandle);
+				addedPoints[2] = Point.LeftHandle(points[0] + rightHandle);
+			}
+			else
+			{
+				var invertedHandleOffset = points[0] - points[1];
+				addedPoints[1] = Point.RightHandle(getSecondHandle(points[0], point, invertedHandleOffset));
+				addedPoints[2] = Point.LeftHandle(invertedHandleOffset + points[0]);
+			}
+			points.InsertRange(0, addedPoints);
 			_bVersion++;
 
+			Vector3 getSecondHandle(Vector3 lastPoint, Vector3 newPoint, Vector3 offset) =>
+				lastPoint + Vector3.Reflect(lastPoint - newPoint, offset);
 		}
 
 		//TODO create LookUpTable for binary search of closest point for this function

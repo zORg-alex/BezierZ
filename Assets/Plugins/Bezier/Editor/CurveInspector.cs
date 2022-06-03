@@ -213,6 +213,17 @@ namespace BezierCurveZ
 
 		private void Input()
 		{
+			if ((closestIndex == 0 || closestIndex == curve.Points.Count - 1) &&
+				Event.current.type == EventType.KeyUp && Event.current.keyCode == KeyCode.V)
+			{
+				if (closestIndex == 0) curve.AddPointAtStart(curve.Points[closestIndex]);
+				else
+				{
+					curve.AddPointAtEnd(curve.Points[closestIndex]);
+					closestIndex++;
+					closestPoint = curve.Points[closestIndex];
+				}
+			}
 			if (Event.current.type == EventType.MouseDown &&
 				Event.current.button == 1 &&
 				closestPoint.type == Curve.Point.Type.Control &&
