@@ -166,7 +166,7 @@ namespace BezierCurveZ
 		}
 
 		//TODO create LookUpTable for binary search of closest point for this function
-		public void AddPointAt(Vector3 point, int segmentIndex, float t)
+		public void AddPointAt(Vector3 point)
 		{
 			
 		}

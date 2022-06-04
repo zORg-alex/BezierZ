@@ -246,7 +246,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1724460297}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: 0.8876305, y: 0, z: 0.29226375}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -267,79 +267,61 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   curve:
     points:
-    - point: {x: -3.3920503, y: 0, z: 3.1054516}
+    - point: {x: -0.8154819, y: 0, z: 2.9846113}
       mode: 2
       type: 0
-    - point: {x: -3.3920503, y: 0, z: 3.1054516}
+    - point: {x: -0.8154819, y: 0, z: 2.9846113}
       mode: 2
       type: 1
-    - point: {x: -2.040539, y: 0, z: 2.6790526}
-      mode: 2
+    - point: {x: -1.8254445, y: 0, z: -0.010335326}
+      mode: 6
       type: 2
-    - point: {x: -2.043725, y: 0, z: 1.1459424}
+    - point: {x: 0.22590661, y: 0, z: 0.025439143}
       mode: 2
       type: 0
-    - point: {x: -2.046911, y: 0, z: -0.3871677}
+    - point: {x: 2.2772577, y: 0, z: 0.061213613}
       mode: 2
       type: 1
-    - point: {x: -0.79999995, y: 0, z: 0}
+    - point: {x: 3.340662, y: 3.3326275, z: 0.4168409}
       mode: 2
       type: 2
-    - point: {x: 0.1, y: 0, z: 0}
+    - point: {x: 0.78281075, y: 3.3326275, z: 0.23501766}
       mode: 2
       type: 0
-    - point: {x: 1, y: 0, z: 0}
+    - point: {x: -1.775041, y: 3.3326275, z: 0.053194404}
       mode: 2
       type: 1
-    - point: {x: 2, y: 3, z: 0}
+    - point: {x: -2.7978792, y: 2.9341395, z: 4.529339}
       mode: 2
       type: 2
-    - point: {x: 0, y: 3, z: 0}
+    - point: {x: 0.14937353, y: 2.9341395, z: 4.0880766}
       mode: 2
       type: 0
-    - point: {x: -1, y: 3, z: 0}
+    - point: {x: 3.0966263, y: 2.9341395, z: 3.6468143}
       mode: 2
       type: 1
-    - point: {x: -1, y: 3, z: 4}
-      mode: 2
+    - point: {x: 1.9039781, y: 0, z: 3.1511884}
+      mode: 6
       type: 2
-    - point: {x: 0, y: 3, z: 4}
-      mode: 2
+    - point: {x: 1.8970985, y: 0, z: 2.641567}
+      mode: 6
       type: 0
-    - point: {x: 1, y: 3, z: 4}
-      mode: 2
+    - point: {x: 1.8743551, y: 0, z: 0.9567754}
+      mode: 6
       type: 1
-    - point: {x: 0.5988256, y: 0, z: 4.491275}
+    - point: {x: -0.46794128, y: 0, z: 2.3644702}
       mode: 2
       type: 2
-    - point: {x: 0.5988256, y: 0, z: 3.4912746}
-      mode: 2
-      type: 0
-    - point: {x: 0.5988256, y: 0, z: 2.4912744}
-      mode: 2
-      type: 1
-    - point: {x: 2.7419384, y: 0, z: 2.3676445}
-      mode: 2
-      type: 2
-    - point: {x: 2.738235, y: 0, z: 3.424328}
-      mode: 2
-      type: 0
-    - point: {x: 2.7345316, y: 0, z: 4.4810085}
-      mode: 2
-      type: 1
-    - point: {x: 3.8368134, y: 0, z: 4.9178433}
-      mode: 2
-      type: 2
-    - point: {x: 3.7179759, y: 0, z: 3.324553}
+    - point: {x: 0.97524214, y: 0, z: 3.0362728}
       mode: 2
       type: 0
     _isClosed: 0
-    _minSamplingDistance: 0
-    _maxAngleError: 0
+    _minSamplingDistance: 0.5
+    _maxAngleError: 1
   useRMFrames: 0
   RMFramesPerSegment: 5
   points:
-  - {x: 0.1, y: 0, z: 0}
+  - {x: 0, y: 0, z: 0}
   - {x: 1, y: 0, z: 0}
   - {x: 2, y: 3, z: 0}
   - {x: 0, y: 3, z: 0}

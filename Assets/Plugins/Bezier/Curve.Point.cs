@@ -15,13 +15,13 @@ namespace BezierCurveZ
 			[Flags]
 			public enum Mode { None = 0, Linear = 1, Automatic = 2, Manual = 4, Proportional = Automatic | Manual }
 			public Mode mode;
-			public static IEnumerable<Mode> GetModes()
+			public static Mode[] AllModes = new Mode[]
 			{
-				yield return Mode.Automatic;
-				yield return Mode.Manual;
-				yield return Mode.Linear;
-				yield return Mode.Proportional;
-			}
+				Mode.Automatic,
+				Mode.Manual,
+				Mode.Linear,
+				Mode.Proportional
+			};
 
 			public enum Type { Control = 0, RightHandle = 1, LeftHandle = 2 }
 			public Type type;
