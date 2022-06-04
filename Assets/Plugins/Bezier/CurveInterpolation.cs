@@ -20,10 +20,11 @@ namespace BezierCurveZ
 			var length = -1f;
 			Vector3 nextPoint = Vector3.zero;
 
-			data.points.Add(currentPoint);
-			data.tangents.Add(firstTangent);
-			data.cumulativeLength.Add(length);
-			data.indices.Add(0);
+			//data.points.Add(currentPoint);
+			//data.tangents.Add(firstTangent);
+			//data.cumulativeLength.Add(length);
+			//data.segmentTime.Add(0);
+			//data.indices.Add(0);
 
 			var i = 0;
 			foreach (var segment in curve.Segments)
@@ -34,10 +35,10 @@ namespace BezierCurveZ
 				if (i == 0)
 					nextPoint = CurveUtils.Evaluate(increment, segment);
 
-				float t = increment; //Start from second vertex
-				do
+				float t = 0f;
+				while (true)
 				{
-					var lastPointInCurve = t >= 1 && i == curve.SegmentCount - 1;
+					var edgePoint = (t == 0) || (t >= 1 && i == curve.SegmentCount - 1);
 
 					Vector3 toLastPoint = previousPoint - currentPoint;
 					var toLastPointMag = toLastPoint.magnitude;
@@ -45,10 +46,11 @@ namespace BezierCurveZ
 					float angle = 180 - Vector3.Angle(toLastPoint, nextPoint - currentPoint);
 					float angleError = angle.Max(previousAngle);
 
-					if (lastPointInCurve || angleError > maxAngleError && dist >= minSplitDistance)
+					if (edgePoint || angleError > maxAngleError && dist >= minSplitDistance)
 					{
 						data.points.Add(currentPoint);
 						data.tangents.Add(CurveUtils.EvaluateDerivative(t, segment).normalized);
+						data.segmentTime.Add(t);
 						data.cumulativeLength.Add(length);
 						data.indices.Add(i);
 						dist = 0;
@@ -56,11 +58,12 @@ namespace BezierCurveZ
 					}
 					else dist += toLastPointMag;
 
+					if (t >= 1f) break;
 					t = (t + increment).Min(1f);
 					currentPoint = nextPoint;
 					nextPoint = CurveUtils.Evaluate(t + increment, segment);
 					previousAngle = angle;
-				} while (t + increment < 1f);
+				}
 
 				i++;
 			}
@@ -97,6 +100,7 @@ namespace BezierCurveZ
 			public List<Vector3> tangents = new List<Vector3>();
 			public List<int> indices = new List<int>();
 			public List<float> cumulativeLength = new List<float>();
+			public List<float> segmentTime = new List<float>();
 		}
 	}
 }
