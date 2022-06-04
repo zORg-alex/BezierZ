@@ -226,7 +226,7 @@ namespace BezierCurveZ
 				curve.AddPointAt(closestPointToMouseOnCurve);
 			}
 			//Cancel Dropdown
-			if (drawContextMenu && (GetMouseDown(0) || GetKeyDown(KeyCode.Escape)))
+			if (drawContextMenu && (Event.current.type == EventType.Layout || GetMouseDown(0) || GetKeyDown(KeyCode.Escape)))
 			{
 				drawContextMenu = false;
 			}
@@ -253,7 +253,6 @@ namespace BezierCurveZ
 			{
 				mouse1Position = Event.current.mousePosition;
 				mouse1PressedTime = Time.time;
-				Event.current.Use();
 			}
 			else if (!drawContextMenu && closestIndex != -1 && mouse1PressedTime > 0 && Time.time - mouse1PressedTime < .5f &&
 				GetMouseUp(1) && (mouse1Position - Event.current.mousePosition).magnitude < 5f)
