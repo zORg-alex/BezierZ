@@ -196,6 +196,7 @@ namespace BezierCurveZ
 		private bool cuttingInitialized;
 		private Vector3 closestPointToMouseOnCurve;
 		private int controlID;
+		private bool altSelectionMode;
 
 		private void DrawCurveEditor(Rect position)
 		{
@@ -208,6 +209,9 @@ namespace BezierCurveZ
 		private void OnSceneGUI(SceneView scene)
 		{
 			controlID = GUIUtility.GetControlID(932795648, FocusType.Passive);
+			if (Event.current.type == EventType.Layout)
+				//Magic thing to stop mouse from selecting other objects
+				HandleUtility.AddDefaultControl(controlID);
 
 			if (Event.current.type == EventType.ValidateCommand && Event.current.commandName == "UndoRedoPerformed")
 				curve.Update();
@@ -219,17 +223,22 @@ namespace BezierCurveZ
 
 		private void Input()
 		{
+			Event current = Event.current;
+
 			if (cuttingInitialized && (GetMouseDown(0) || GetKeyDown(KeyCode.Escape)))
 			{
 				cuttingInitialized = false;
 				GUIUtility.hotControl = 0;
 				curve.AddPointAt(closestPointToMouseOnCurve);
 			}
+			//ControlPoint mode selection Dropdown menu
+			#region CP Mode Dropdown
 			//Cancel Dropdown
-			if (drawContextMenu && (Event.current.type == EventType.Layout || GetMouseDown(0) || GetKeyDown(KeyCode.Escape)))
+			if (drawContextMenu && (current.type == EventType.Layout || GetMouseDown(0) || GetKeyDown(KeyCode.Escape)))
 			{
 				drawContextMenu = false;
 			}
+			//Cut/Extrude
 			if (GetKeyUp(KeyCode.V))
 			{
 				if (closestIndex == 0) curve.AddPointAtStart(curve.Points[closestIndex]);
@@ -244,6 +253,7 @@ namespace BezierCurveZ
 					GUIUtility.hotControl = controlID;
 				}
 			}
+			//Cancel Cut
 			if (GetMouseDown(1) && cuttingInitialized)
 			{
 				cuttingInitialized = false;
@@ -251,14 +261,15 @@ namespace BezierCurveZ
 			}
 			else if (GetMouseDown(1) && closestPoint.type == Curve.Point.Type.Control && closestIndex != -1)
 			{
-				mouse1Position = Event.current.mousePosition;
+				mouse1Position = current.mousePosition;
 				mouse1PressedTime = Time.time;
 			}
+			//Open Context Menu for control points
 			else if (!drawContextMenu && closestIndex != -1 && mouse1PressedTime > 0 && Time.time - mouse1PressedTime < .5f &&
-				GetMouseUp(1) && (mouse1Position - Event.current.mousePosition).magnitude < 5f)
+				GetMouseUp(1) && (mouse1Position - current.mousePosition).magnitude < 5f)
 			{
 				mouse1PressedTime = 0;
-				Event.current.Use();
+				current.Use();
 
 				contextMenu = new GenericMenu();
 				foreach (var val in Curve.Point.AllModes)
@@ -270,33 +281,66 @@ namespace BezierCurveZ
 							drawContextMenu = false;
 						});
 				}
-				//menu.ShowAsContext();
 				contextMenu.DropDown(new Rect(mouse1Position, Vector2.zero));
 
 				drawContextMenu = true;
 			}
-			if (Event.current.type == EventType.MouseMove)
+			#endregion
+
+			//Handle selection mode
+			if (GetKeyDown(KeyCode.C))
+			{
+				current.Use();
+				altSelectionMode = true;
+				SelectClosestPointToMouse(current);
+
+			} else if (altSelectionMode && GetKeyUp(KeyCode.C))
+			{
+				altSelectionMode = false;
+			} else if (altSelectionMode && current.type == EventType.MouseDrag)
+			{
+				GUIUtility.hotControl = controlID;
+			}
+
+			if (current.type == EventType.MouseMove)
 			{
 				//Trigger repainting if it is needed by tool
 				if (cuttingInitialized) SceneView.currentDrawingSceneView.Repaint();
 
-				closestPointToMouseOnCurve = HandleUtility.ClosestPointToPolyLine(curve.Vertices);
+				closestPointToMouseOnCurve = HandleUtility.ClosestPointToPolyLine(curve.Vertices.SelectArray(v => targetTransform.TransformPoint(v)));
 
-				//GUI coordinates starts from top-left of actual view
-				Vector2 mousePos = Event.current.mousePosition;
-				var minDist = float.MaxValue;
-				closestIndex = -1;
-				for (int i = 0; i < curve.Points.Count; i++)
-				{
-					Vector3 point = curve.Points[i];
-					var dist = HandleUtility.WorldToGUIPoint(targetTransform.TransformPoint(curve.Points[i])).DistanceTo(mousePos);
-					if (dist < minDist) { minDist = dist; closestIndex = i; }
-				}
-				closestPoint = curve.Points[closestIndex];
-				editedPosition = targetTransform.TransformPoint(closestPoint.point);
-				if (minDist > 100)
-					closestIndex = -1;
+				SelectClosestPointToMouse(current);
 			}
+
+			//if (current.type == EventType.MouseDown)
+			//	current.Use();
+
+			bool GetKeyDown(KeyCode key) => current.type == EventType.KeyDown && current.keyCode == key;
+			bool GetKeyUp(KeyCode key) => current.type == EventType.KeyUp && current.keyCode == key;
+			bool GetMouseDown(int button) => current.type == EventType.MouseDown && current.button == button;
+			bool GetMouseUp(int button) => current.type == EventType.MouseUp && current.button == button;
+		}
+
+		private void SelectClosestPointToMouse(Event current)
+		{
+			//Just a reminder: GUI coordinates starts from top-left of actual view
+			//Register closest point to mouse
+			Vector2 mousePos = current.mousePosition;
+			var minDist = float.MaxValue;
+			closestIndex = -1;
+			for (int i = 0; i < curve.Points.Count; i++)
+			{
+				Vector3 point = curve.Points[i];
+				//Skip Control Points while altSelectionMode
+				if (altSelectionMode && curve.Points[i].type == Curve.Point.Type.Control) continue;
+
+				var dist = HandleUtility.WorldToGUIPoint(targetTransform.TransformPoint(curve.Points[i])).DistanceTo(mousePos);
+				if (dist < minDist) { minDist = dist; closestIndex = i; }
+			}
+			closestPoint = curve.Points[closestIndex];
+			editedPosition = targetTransform.TransformPoint(closestPoint.point);
+			if (minDist > 100)
+				closestIndex = -1;
 		}
 
 		private void DrawHandles()
@@ -379,10 +423,5 @@ namespace BezierCurveZ
 			Handles.matrix = m;
 			Handles.color = c;
 		}
-
-		bool GetKeyDown(KeyCode key) => Event.current.type == EventType.KeyDown && Event.current.keyCode == key;
-		bool GetKeyUp(KeyCode key) => Event.current.type == EventType.KeyUp && Event.current.keyCode == key;
-		bool GetMouseDown(int button) => Event.current.type == EventType.MouseDown && Event.current.button == button;
-		bool GetMouseUp(int button) => Event.current.type == EventType.MouseUp && Event.current.button == button;
 	}
 }
