@@ -9,6 +9,10 @@ namespace BezierCurveZ
 		[Serializable]
 		public struct Point
 		{
+			public override string ToString()
+			{
+				return $"{point} {type} {mode}";
+			}
 			public Vector3 point;
 			public static implicit operator Vector3(Point cp) => cp.point;
 

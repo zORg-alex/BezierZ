@@ -225,12 +225,6 @@ namespace BezierCurveZ
 		{
 			Event current = Event.current;
 
-			if (cuttingInitialized && (GetMouseDown(0) || GetKeyDown(KeyCode.Escape)))
-			{
-				cuttingInitialized = false;
-				GUIUtility.hotControl = 0;
-				curve.AddPointAt(closestPointToMouseOnCurve);
-			}
 			//ControlPoint mode selection Dropdown menu
 			#region CP Mode Dropdown
 			//Cancel Dropdown
@@ -254,7 +248,7 @@ namespace BezierCurveZ
 				}
 			}
 			//Cancel Cut
-			if (GetMouseDown(1) && cuttingInitialized)
+			if ((GetMouseDown(1) || GetKeyDown(KeyCode.Escape)) && cuttingInitialized)
 			{
 				cuttingInitialized = false;
 				GUIUtility.hotControl = 0;
@@ -284,6 +278,11 @@ namespace BezierCurveZ
 				contextMenu.DropDown(new Rect(mouse1Position, Vector2.zero));
 
 				drawContextMenu = true;
+			} else if (cuttingInitialized && GetMouseDown(0))
+			{
+				cuttingInitialized = false;
+				GUIUtility.hotControl = 0;
+				curve.SplitAt(closestPointToMouseOnCurve);
 			}
 			#endregion
 

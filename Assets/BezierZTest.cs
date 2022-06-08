@@ -17,7 +17,7 @@ public class BezierZTest : MonoBehaviour
 		curve = new Curve();
   //      curve.SetRMFramesQuality(RMFramesPerSegment);
 		//curve.useRotationMinimistionFrames = useRMFrames;
-		curve.AddPoints(points);
+		curve.AddInitialPoints(points);
 	}
 
 #if UNITY_EDITOR

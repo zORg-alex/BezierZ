@@ -16,6 +16,7 @@ namespace BezierCurveZ
 			public Quaternion rotation;
 			public int segmentIndex;
 			public float length;
+			public float time;
 		}
 		[SerializeField, HideInInspector]
 		private Vector3[] _points;
@@ -29,6 +30,10 @@ namespace BezierCurveZ
 		[SerializeField, HideInInspector]
 		private float[] _cumulativeLengths;
 		public float[] CumulativeLengths => _cumulativeLengths;
+		[SerializeField, HideInInspector]
+		private float[] _times;
+		public float[] Times => _times;
+
 
 		[SerializeField, HideInInspector]
 		private int[] _segmentIndexes;
@@ -43,6 +48,7 @@ namespace BezierCurveZ
 			_cumulativeLengths = data.cumulativeLength.ToArray();
 			_tangents = data.tangents.ToArray();
 			_rotations = CurveInterpolation.GetRotations(data);
+			_times = data.segmentTime.ToArray();
 		}
 
 		public Vector3 GetPointAtLength(float length) => throw new NotImplementedException();
@@ -61,7 +67,8 @@ namespace BezierCurveZ
 					tangent = _tangents[i],
 					rotation = _rotations[i],
 					length = _cumulativeLengths[i],
-					segmentIndex = _segmentIndexes[i]
+					segmentIndex = _segmentIndexes[i],
+					time = _times[i]
 				};
 			}
 		}

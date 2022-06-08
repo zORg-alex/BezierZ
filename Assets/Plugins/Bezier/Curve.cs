@@ -49,7 +49,7 @@ namespace BezierCurveZ
 		}
 
 		public int ControlPointCount => points.Count / 3 + 1;
-		public int SegmentCount => points.Count / 3 + (_isClosed ? 1 : 0);
+		public int SegmentCount => (points?.Count ?? 0) / 3 + (_isClosed ? 1 : 0);
 
 		public void SetPoint(int index, Vector3 position)
 		{
@@ -118,7 +118,10 @@ namespace BezierCurveZ
 					yield return new Vector3[] { points[i*3], points[i * 3 + 1], points[i * 3 + 2], points[i * 3 + 3] };
 			}
 		}
-		
+
+		public Vector3[] Segment(int index) =>
+			new Vector3[] { points[index * 3], points[index * 3 + 1], points[index * 3 + 2], points[index * 3 + 3] };
+
 		public Point.Mode DefaultAddedPointMode { get; set; }
 
 		public void AddPointAtEnd(Vector3 point) {
@@ -165,27 +168,43 @@ namespace BezierCurveZ
 				lastPoint + Vector3.Reflect(lastPoint - newPoint, offset);
 		}
 
-		//TODO create LookUpTable for binary search of closest point for this function
-		public void AddPointAt(Vector3 point)
-		{
-			
-		}
-		public void AddPoints(Vector3[] points)
+		public void AddInitialPoints(Vector3[] points)
 		{
 			if (points.Length < 4) return;
 			int newLength = points.Length - (points.Length % 3) + 1;
-			if (this.points == null || this.points.Count == 0)
+			if (this.points == null)
 				this.points = new List<Point>(newLength);
+			else if (this.points.Count > 0)
+				return;
+
 			var newPoints = new Point[newLength];
-			var t = IsClosed ? Point.Type.LeftHandle : Point.Type.Control;
+			var type = IsClosed ? Point.Type.LeftHandle : Point.Type.Control;
 			for (int i = 0; i < newLength; i++)
 			{
-				newPoints[i] = new Point(points[i], t);
-				t++;
-				t = (Point.Type)((int)t % 3);
+				newPoints[i] = new Point(points[i], type);
+				type++;
+				type = (Point.Type)((int)type % 3);
 			}
 
 			this.points.AddRange(newPoints);
+			_bVersion++;
+		}
+		private void ReplaceSegment(int segmentInd, Vector3[] newSegments)
+		{
+			if (newSegments.Length % 3 != 1) return;
+
+			var newPoints = new Point[newSegments.Length];
+			var type = Point.Type.Control;
+			for (int i = 0; i < newSegments.Length; i++)
+			{
+				newPoints[i] = new Point(newSegments[i], type);
+				type++;
+				type = (Point.Type)((int)type % 3);
+			}
+
+			points.RemoveRange(segmentInd * 3, 4);
+			points.InsertRange(segmentInd * 3, newPoints);
+
 			_bVersion++;
 		}
 
@@ -223,6 +242,45 @@ namespace BezierCurveZ
 		public void OnAfterDeserialize() => Update(true);
 
 		//========================
+		public void SplitAt(Vector3 point)
+		{
+			var t = GetClosestTimeSegment(point, out var segmentInd);
+
+			var newSegments = CasteljauUtility.GetSplitSegmentPoints(t, Segment(segmentInd));
+
+			ReplaceSegment(segmentInd, newSegments);
+		}
+
+		public float GetClosestTimeSegment(Vector3 position, out int segmentInd)
+		{
+			var minDist = float.MaxValue;
+			var closestTime = float.MaxValue;
+			var closestIndex = -1;
+			BezierCurveVertexData.VertexData prevPoint = default;
+			foreach (var point in VertexData)
+			{
+				if (!prevPoint.Equals(default))
+				{
+					var t = Vector3.Dot((point.point - prevPoint.point), position - prevPoint.point);
+					var newPos = Vector3.Lerp(prevPoint.point, point.point, t);
+					var dist = newPos.DistanceTo(position);
+					if (dist < minDist)
+					{
+						minDist = dist;
+						if (prevPoint.segmentIndex == closestIndex)
+							closestTime = Mathf.Lerp(prevPoint.time, point.time, t);
+						else
+							closestTime = Mathf.Lerp(prevPoint.time, point.time + 1f, t);
+
+						closestIndex = prevPoint.segmentIndex + closestTime.FloorToInt();
+						closestTime %= 1f;
+					}
+				}
+				prevPoint = point;
+			}
+			segmentInd = closestIndex;
+			return closestTime;
+		}
 
 		public Vector3 GetPoint(int segmentIndex, float time) => CurveUtils.Evaluate(time, points[segmentIndex * 3], points[segmentIndex * 3 + 1], points[segmentIndex * 3 + 2], points[segmentIndex * 3 + 3]);
 		public Vector3 GetPointAtTIme(float time)

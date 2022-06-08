@@ -246,7 +246,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1724460297}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.8876305, y: 0, z: 0.29226375}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -267,57 +267,39 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   curve:
     points:
-    - point: {x: -0.6433141, y: 0, z: 1.9741135}
+    - point: {x: 0, y: 0, z: 0}
       mode: 2
       type: 0
-    - point: {x: -0.6433141, y: 0, z: 1.9741135}
+    - point: {x: 1, y: 0, z: 0}
       mode: 2
       type: 1
-    - point: {x: -0.9472945, y: 0, z: -0.010335326}
-      mode: 6
+    - point: {x: 2, y: 3, z: 0}
+      mode: 2
       type: 2
-    - point: {x: 0.22590661, y: 0, z: 0.025439143}
+    - point: {x: 0, y: 3, z: 0}
       mode: 2
       type: 0
-    - point: {x: 1.3991077, y: 0, z: 0.061213613}
+    - point: {x: -1, y: 3, z: 0}
       mode: 2
       type: 1
-    - point: {x: 2.5185819, y: 3.360505, z: 0.47571737}
+    - point: {x: -1, y: 3, z: 4}
       mode: 2
       type: 2
-    - point: {x: 1.0551763, y: 3.3326275, z: 0.42391384}
+    - point: {x: 0, y: 3, z: 4}
       mode: 2
       type: 0
-    - point: {x: -0.40822923, y: 3.30475, z: 0.3721103}
+    - point: {x: 1, y: 3, z: 4}
       mode: 2
       type: 1
-    - point: {x: -2.7978792, y: 2.9341395, z: 4.529339}
+    - point: {x: 1, y: 0, z: 4}
       mode: 2
       type: 2
-    - point: {x: 0.14937353, y: 2.9341395, z: 4.0880766}
-      mode: 2
-      type: 0
-    - point: {x: 3.0966263, y: 2.9341395, z: 3.6468143}
-      mode: 2
-      type: 1
-    - point: {x: 1.9039781, y: 0, z: 3.1511884}
-      mode: 6
-      type: 2
-    - point: {x: 1.8970985, y: 0, z: 2.641567}
-      mode: 6
-      type: 0
-    - point: {x: 1.8743551, y: 0, z: 0.9567754}
-      mode: 6
-      type: 1
-    - point: {x: -0.46794128, y: 0, z: 2.3644702}
-      mode: 2
-      type: 2
-    - point: {x: 0.97524214, y: 0, z: 3.0362728}
+    - point: {x: 1, y: 0, z: 3}
       mode: 2
       type: 0
     _isClosed: 0
-    _minSamplingDistance: 0.5
-    _maxAngleError: 1
+    _minSamplingDistance: 0
+    _maxAngleError: 0
   useRMFrames: 0
   RMFramesPerSegment: 5
   points:
