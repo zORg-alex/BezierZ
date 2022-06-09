@@ -215,6 +215,7 @@ namespace BezierCurveZ
 
 			if (Event.current.type == EventType.ValidateCommand && Event.current.commandName == "UndoRedoPerformed")
 				curve.Update();
+			EditorGUI.BeginChangeCheck();
 			Input();
 
 			DrawCurveAndPoints();
@@ -238,6 +239,7 @@ namespace BezierCurveZ
 				if (closestIndex == 0) curve.AddPointAtStart(curve.Points[closestIndex]);
 				else if (closestIndex == curve.Points.Count - 1)
 				{
+					Undo.RecordObject(targetObject, $"Added new point to a curve");
 					curve.AddPointAtEnd(curve.Points[closestIndex]);
 					closestIndex++;
 					closestPoint = curve.Points[closestIndex];
@@ -271,8 +273,10 @@ namespace BezierCurveZ
 					var mode = val;
 					contextMenu.AddItem(new GUIContent(mode.ToString()),
 						closestPoint.mode == mode, () => {
+							EditorGUI.BeginChangeCheck();
 							curve.SetPointMode(closestIndex, mode);
 							drawContextMenu = false;
+							Undo.RecordObject(targetObject, $"Curve {closestIndex} point mode changed to {mode}");
 						});
 				}
 				contextMenu.DropDown(new Rect(mouse1Position, Vector2.zero));
@@ -282,11 +286,21 @@ namespace BezierCurveZ
 			{
 				cuttingInitialized = false;
 				GUIUtility.hotControl = 0;
+				Undo.RecordObject(targetObject, $"Curve split at {closestPointToMouseOnCurve}");
 				curve.SplitAt(closestPointToMouseOnCurve);
 			}
 			#endregion
 
-			//Handle selection mode
+			//Delete selected point
+			if (GetKeyDown(KeyCode.X))
+			{
+				SelectClosestPointToMouse(current);
+				Undo.RecordObject(targetObject, "Delete selected point");
+				curve.RemoveAt(closestIndex);
+				closestIndex = -1;
+			}
+
+			//Handle alternative selection mode
 			if (GetKeyDown(KeyCode.C))
 			{
 				current.Use();
@@ -296,10 +310,11 @@ namespace BezierCurveZ
 			} else if (altSelectionMode && GetKeyUp(KeyCode.C))
 			{
 				altSelectionMode = false;
-			} else if (altSelectionMode && current.type == EventType.MouseDrag)
-			{
-				GUIUtility.hotControl = controlID;
 			}
+			//else if (altSelectionMode && current.type == EventType.MouseDrag)
+			//{
+			//	GUIUtility.hotControl = controlID;
+			//}
 
 			if (current.type == EventType.MouseMove)
 			{
@@ -344,7 +359,6 @@ namespace BezierCurveZ
 
 		private void DrawHandles()
 		{
-			EditorGUI.BeginChangeCheck();
 			var m = Handles.matrix;
 			//Handles.matrix = targetTransform.localToWorldMatrix;
 			Handles.matrix = Matrix4x4.identity;
@@ -370,13 +384,12 @@ namespace BezierCurveZ
 			//Draw tool
 			if (closestIndex != -1)
 			{
-				editedPosition = Handles.PositionHandle(editedPosition, CurveEditorTransformOrientation.rotation);
+				var pos = Handles.PositionHandle(editedPosition, CurveEditorTransformOrientation.rotation);
 
-				//Do undo
 				if (EditorGUI.EndChangeCheck())
 				{
 					Undo.RecordObject(targetObject, "Point position changed");
-					curve.SetPoint(closestIndex, targetTransform.InverseTransformPoint(editedPosition));
+					curve.SetPoint(closestIndex, targetTransform.InverseTransformPoint(pos));
 				}
 			}
 

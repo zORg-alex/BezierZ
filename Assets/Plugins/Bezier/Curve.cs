@@ -189,6 +189,31 @@ namespace BezierCurveZ
 			this.points.AddRange(newPoints);
 			_bVersion++;
 		}
+
+		public void RemoveAt(int index)
+		{
+			if (index == 0)
+				points.RemoveRange(0, 3);
+			else if (index == lastPointInd)
+				points.RemoveRange(points.Count - 4, 3);
+			else
+			{
+				//Cancel if not a control point
+				if (index > 1 && index % 3 != 0) return;
+				//Then compensate neighbouring handles
+				var prevCP = index - 3;
+				var prevHandle = index - 2;
+				var nextHandle = index + 2;
+				var nextCP = index + 3;
+				points[prevHandle] = points[prevHandle].SetPosition(-points[prevCP].point + points[prevHandle].point * 2f);
+				points[nextHandle] = points[nextHandle].SetPosition(-points[nextCP].point + points[nextHandle].point * 2f);
+				//First just remove that point
+				points.RemoveRange(index - 1, 3);
+
+			}
+			_bVersion++;
+		}
+
 		private void ReplaceSegment(int segmentInd, Vector3[] newSegments)
 		{
 			if (newSegments.Length % 3 != 1) return;

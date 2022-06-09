@@ -267,22 +267,49 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   curve:
     points:
+    - point: {x: -2.0113347, y: 0, z: 1.9974942}
+      mode: 2
+      type: 0
+    - point: {x: -2.034847, y: 0, z: 0.8094778}
+      mode: 2
+      type: 1
+    - point: {x: -0.7705028, y: 0, z: 0}
+      mode: 2
+      type: 2
     - point: {x: 0, y: 0, z: 0}
       mode: 2
       type: 0
-    - point: {x: 1, y: 0, z: 0}
+    - point: {x: 0.7705028, y: 0, z: 0}
       mode: 2
       type: 1
-    - point: {x: 2, y: 3, z: 0}
+    - point: {x: 1.2263796, y: 0.4653253, z: 0}
+      mode: 2
+      type: 2
+    - point: {x: 1.2216287, y: 1.5307288, z: 0}
+      mode: 2
+      type: 0
+    - point: {x: 1.2168777, y: 2.5961318, z: 0}
+      mode: 2
+      type: 1
+    - point: {x: 0.4589944, y: 3, z: 0}
       mode: 2
       type: 2
     - point: {x: 0, y: 3, z: 0}
       mode: 2
       type: 0
-    - point: {x: -1, y: 3, z: 0}
+    - point: {x: -0.5285715, y: 3, z: 0}
       mode: 2
       type: 1
-    - point: {x: -1, y: 3, z: 4}
+    - point: {x: -0.77775514, y: 3, z: 0.02171284}
+      mode: 2
+      type: 2
+    - point: {x: -0.74755096, y: 3, z: 2.1712422}
+      mode: 2
+      type: 0
+    - point: {x: -0.7173468, y: 3, z: 4.3207717}
+      mode: 2
+      type: 1
+    - point: {x: -0.4714285, y: 3, z: 4}
       mode: 2
       type: 2
     - point: {x: 0, y: 3, z: 4}
@@ -291,10 +318,10 @@ MonoBehaviour:
     - point: {x: 1, y: 3, z: 4}
       mode: 2
       type: 1
-    - point: {x: 1, y: 0, z: 4}
+    - point: {x: 0.99314606, y: 0, z: 4.0268908}
       mode: 2
       type: 2
-    - point: {x: 1, y: 0, z: 3}
+    - point: {x: 0.043708086, y: 0, z: 4.0297093}
       mode: 2
       type: 0
     _isClosed: 0
