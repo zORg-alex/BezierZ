@@ -33,23 +33,29 @@ namespace BezierCurveZ
 		public bool IsClosed { get => _isClosed; set { CloseCurve(value); _bVersion++; } }
 		private Curve.Point.Mode[] _preservedNodeModesWhileClosed = new Point.Mode[2];
 
-		private void CloseCurve(bool value)
+		public void CloseCurve(bool value)
 		{
 			if (value && !_isClosed) {
 				_preservedNodeModesWhileClosed[0] = points[0].mode;
 				_preservedNodeModesWhileClosed[1] = points[lastPointInd].mode;
 				points[0] = points[0].SetMode(Point.Mode.Manual);
 				points[lastPointInd] = points[lastPointInd].SetMode(Point.Mode.Manual);
+				points.Insert(0, new Point(points[0].point * 2f - points[1].point, Point.Type.LeftHandle, Point.Mode.Manual));
+				points.Add(new Point(points[lastPointInd].point * 2f - points[lastPointInd - 1].point, Point.Type.RightHandle, Point.Mode.Manual));
+				_bVersion++;
 			}
 			else if (!value && _isClosed) {
+				points.RemoveAt(0);
+				points.RemoveAt(lastPointInd);
 				points[0] = points[0].SetMode(_preservedNodeModesWhileClosed[0]);
 				points[lastPointInd] = points[lastPointInd].SetMode(_preservedNodeModesWhileClosed[1]);
+				_bVersion++;
 			}
 			_isClosed = value;
 		}
 
 		public int ControlPointCount => points.Count / 3 + 1;
-		public int SegmentCount => (points?.Count ?? 0) / 3 + (_isClosed ? 1 : 0);
+		public int SegmentCount => (points?.Count ?? 0) / 3;
 
 		public void SetPoint(int index, Vector3 position)
 		{
@@ -115,11 +121,12 @@ namespace BezierCurveZ
 
 		public IEnumerable<Vector3[]> Segments { get {
 				for (int i = 0; i < SegmentCount; i++)
-					yield return new Vector3[] { points[i*3], points[i * 3 + 1], points[i * 3 + 2], points[i * 3 + 3] };
+					yield return Segment(i);
 			}
 		}
 
-		public Vector3[] Segment(int index) =>
+		public Vector3[] Segment(int index) => IsClosed ?
+			new Vector3[] { points[index * 3 + 1], points[index * 3 + 2], points[(index * 3 + 3) % points.Count], points[(index * 3 + 4) % points.Count] } :
 			new Vector3[] { points[index * 3], points[index * 3 + 1], points[index * 3 + 2], points[index * 3 + 3] };
 
 		public Point.Mode DefaultAddedPointMode { get; set; }

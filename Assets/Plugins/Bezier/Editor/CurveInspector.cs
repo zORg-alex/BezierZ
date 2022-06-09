@@ -193,8 +193,21 @@ namespace BezierCurveZ
 		{
 			var lines = position.Column(4);
 			var firstLine = lines[0].Row(2);
+			EditorGUI.BeginChangeCheck();
 			EditorGUI.PropertyField(firstLine[0],property.FindPropertyRelative("_maxAngleError"));
 			EditorGUI.PropertyField(firstLine[1], property.FindPropertyRelative("_minSamplingDistance"));
+			if (EditorGUI.EndChangeCheck())
+			{
+				curve.Update(force: true);
+			}
+			EditorGUI.BeginChangeCheck();
+			var closed = EditorGUI.Toggle(lines[1], "Is Closed", curve.IsClosed);
+			if (EditorGUI.EndChangeCheck())
+			{
+				Undo.RecordObject(targetObject, "Curve Is Closed changed");
+				curve.CloseCurve(closed);
+				CallSceneRedraw();
+			}
 		}
 
 		private Tool lastTool;
