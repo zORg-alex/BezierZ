@@ -5,6 +5,7 @@ using RectEx;
 using UnityEditor.Toolbars;
 using System.Linq;
 using Utility.Editor;
+using UnityEditor.SceneManagement;
 
 namespace BezierCurveZ
 {
@@ -23,10 +24,6 @@ namespace BezierCurveZ
 		private bool isInEditMode;
 		private bool isMouseOver;
 		private bool previewAlways;
-		private Vector3 closestPosition;
-		private Curve.Point closestPoint;
-		private Vector3 editedPosition;
-		private int closestIndex;
 
 		#region editor behaviour
 		private bool IsCurrentlyEditedDrawer => currentPropertyDrawer == this;
@@ -54,7 +51,7 @@ namespace BezierCurveZ
 			}
 			else if (IsCurrentlyEditedDrawer && Event.current.type != EventType.Layout)
 			{
-				DrawCurveEditor(rootRows[1]);
+				DrawCurveEditor(rootRows[1], property);
 				var c = GUI.color;
 				GUI.color = Color.white / 2 + Color.red / 2;
 				if (GUI.Button(firstRow[1], "Finish Editing"))
@@ -139,6 +136,7 @@ namespace BezierCurveZ
 			isInEditMode = true;
 			currentPropertyDrawer?.FinishEditor();
 			Selection.selectionChanged += FinishEditor;
+			EditorSceneManager.sceneClosed += FinishEditor;
 			AssemblyReloadEvents.beforeAssemblyReload += FinishEditor;
 			SceneView.duringSceneGui += OnSceneGUI;
 			CallSceneRedraw();
@@ -148,10 +146,13 @@ namespace BezierCurveZ
 			Tools.current = Tool.None;
 		}
 
+		private void FinishEditor(UnityEngine.SceneManagement.Scene scene) => FinishEditor();
+
 		private void FinishEditor()
 		{
 			isInEditMode = false;
 			Selection.selectionChanged -= FinishEditor;
+			EditorSceneManager.sceneClosed += FinishEditor;
 			AssemblyReloadEvents.beforeAssemblyReload -= FinishEditor;
 			SceneView.duringSceneGui -= OnSceneGUI;
 			CallSceneRedraw();
@@ -188,6 +189,14 @@ namespace BezierCurveZ
 		}
 
 		private float editorHeight = EditorGUIUtility.singleLineHeight * 4;
+		private void DrawCurveEditor(Rect position, SerializedProperty property)
+		{
+			var lines = position.Column(4);
+			var firstLine = lines[0].Row(2);
+			EditorGUI.PropertyField(firstLine[0],property.FindPropertyRelative("_maxAngleError"));
+			EditorGUI.PropertyField(firstLine[1], property.FindPropertyRelative("_minSamplingDistance"));
+		}
+
 		private Tool lastTool;
 		private float mouse1PressedTime;
 		private GenericMenu contextMenu;
@@ -197,14 +206,9 @@ namespace BezierCurveZ
 		private Vector3 closestPointToMouseOnCurve;
 		private int controlID;
 		private bool altSelectionMode;
-
-		private void DrawCurveEditor(Rect position)
-		{
-			var lines = position.Column(4);
-			var firstLine = lines[0].Row(2);
-			curve.MaxAngleError = EditorGUI.FloatField(firstLine[0], "MaxAngleError", curve.MaxAngleError);
-			curve.MinSamplingDistance = EditorGUI.FloatField(firstLine[1], "MinSamplingDistance", curve.MinSamplingDistance);
-		}
+		private Curve.Point closestPoint;
+		private Vector3 editedPosition;
+		private int closestIndex;
 
 		private void OnSceneGUI(SceneView scene)
 		{
