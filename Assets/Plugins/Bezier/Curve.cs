@@ -278,6 +278,7 @@ namespace BezierCurveZ
 
 		public float GetClosestTimeSegment(Vector3 position, out int segmentInd)
 		{
+			Update();
 			var minDist = float.MaxValue;
 			var closestTime = float.MaxValue;
 			var closestIndex = -1;

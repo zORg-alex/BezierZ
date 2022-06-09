@@ -20,13 +20,13 @@ namespace BezierCurveZ
 
 		private Curve curve;
 		[NonSerialized]
-		private static CurvePropertyDrawer currentPropertyDrawer;
+		private static CurvePropertyDrawer currentlyEditedPropertyDrawer;
 		private bool isInEditMode;
 		private bool isMouseOver;
 		private bool previewAlways;
 
 		#region editor behaviour
-		private bool IsCurrentlyEditedDrawer => currentPropertyDrawer == this;
+		private bool IsCurrentlyEditedDrawer => currentlyEditedPropertyDrawer == this;
 
 		public override float GetPropertyHeight(SerializedProperty property, GUIContent label) =>
 			IsCurrentlyEditedDrawer ? EditorGUIUtility.singleLineHeight + 2 + editorHeight : EditorGUIUtility.singleLineHeight;
@@ -68,11 +68,11 @@ namespace BezierCurveZ
 				CheckIfMouseIsOver(position);
 			}
 
-			// Notify of undo/redo that might modify the path
-			if (Event.current.type == EventType.ValidateCommand && Event.current.commandName == "UndoRedoPerformed")
-			{
-				//data.PathModifiedByUndo();
-			}
+			//// Notify of undo/redo that might modify the path
+			//if (Event.current.type == EventType.ValidateCommand && Event.current.commandName == "UndoRedoPerformed")
+			//{
+			//	//data.PathModifiedByUndo();
+			//}
 		}
 
 		/// <summary>
@@ -134,13 +134,13 @@ namespace BezierCurveZ
 		private void StartEditor()
 		{
 			isInEditMode = true;
-			currentPropertyDrawer?.FinishEditor();
+			currentlyEditedPropertyDrawer?.FinishEditor();
 			Selection.selectionChanged += FinishEditor;
 			EditorSceneManager.sceneClosed += FinishEditor;
 			AssemblyReloadEvents.beforeAssemblyReload += FinishEditor;
 			SceneView.duringSceneGui += OnSceneGUI;
 			CallSceneRedraw();
-			currentPropertyDrawer = this;
+			currentlyEditedPropertyDrawer = this;
 			CurveEditorOverlay.Show();
 			lastTool = Tools.current;
 			Tools.current = Tool.None;
@@ -156,7 +156,7 @@ namespace BezierCurveZ
 			AssemblyReloadEvents.beforeAssemblyReload -= FinishEditor;
 			SceneView.duringSceneGui -= OnSceneGUI;
 			CallSceneRedraw();
-			currentPropertyDrawer = null;
+			currentlyEditedPropertyDrawer = null;
 			CurveEditorOverlay.Hide();
 			Tools.current = lastTool;
 		}
@@ -218,7 +218,7 @@ namespace BezierCurveZ
 				HandleUtility.AddDefaultControl(controlID);
 
 			if (Event.current.type == EventType.ValidateCommand && Event.current.commandName == "UndoRedoPerformed")
-				curve.Update();
+				curve.Update(true);
 			EditorGUI.BeginChangeCheck();
 			Input();
 
@@ -240,14 +240,21 @@ namespace BezierCurveZ
 			//Cut/Extrude
 			if (GetKeyUp(KeyCode.V))
 			{
-				if (closestIndex == 0) curve.AddPointAtStart(curve.Points[closestIndex]);
+				if (closestIndex == 0)
+				{
+					Undo.RecordObject(targetObject, $"Added new point to a curve");
+					curve.AddPointAtStart(curve.Points[closestIndex]);
+					closestIndex = 0;
+					closestPoint = curve.Points[closestIndex];
+				}
 				else if (closestIndex == curve.Points.Count - 1)
 				{
 					Undo.RecordObject(targetObject, $"Added new point to a curve");
 					curve.AddPointAtEnd(curve.Points[closestIndex]);
 					closestIndex++;
 					closestPoint = curve.Points[closestIndex];
-				} else 
+				}
+				else
 				{
 					cuttingInitialized = true;
 					GUIUtility.hotControl = controlID;
