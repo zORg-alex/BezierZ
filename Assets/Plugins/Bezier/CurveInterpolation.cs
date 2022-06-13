@@ -7,9 +7,20 @@ namespace BezierCurveZ
 	public static class CurveInterpolation {
 		public static SplitData SplitCurveByAngleError(Curve curve, float maxAngleError, float minSplitDistance, int accuracy = 10)
 		{
+			if (curve.Points.Count == 1)
+				return new SplitData()
+				{
+					points = new List<Vector3>() { curve.Points[0], curve.Points[0] },
+					tangents = new List<Vector3>() { Vector3.forward, Vector3.forward },
+					indices = new List<int>() { 0, 0 },
+					cumulativeLength = new List<float>() { 0, 0 },
+					segmentTime = new List<float>() { 0, 0 }
+				};
+			else if (curve.Points.Count == 0) return null;
+
 			var data = new SplitData();
 
-			var firstSegment = curve.Segments.First();
+			var firstSegment = curve.Segments.FirstOrDefault();
 			var firstTangent = CurveUtils.EvaluateDerivative(0, firstSegment).normalized;
 			var currentPoint = CurveUtils.Evaluate(0, firstSegment);
 			var previousPoint = currentPoint - firstTangent;
@@ -72,6 +83,7 @@ namespace BezierCurveZ
 
 		public static Quaternion[] GetRotations(SplitData data)
 		{
+			if (data.points.Count == 0) return new Quaternion[] { Quaternion.identity };
 			var up = Vector3.up;
 			var r = new Quaternion[data.points.Count];
 			//var point = data.points[0];

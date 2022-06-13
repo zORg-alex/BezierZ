@@ -8,6 +8,7 @@ using UnityEditor;
 public class BezierZTest : MonoBehaviour
 {
 	public BezierCurveZ.Curve curve;
+	public BezierCurveZ.Curve anotherCurve;
     public bool useRMFrames;
     public int RMFramesPerSegment = 5;
     public Vector3[] points = new Vector3[4];

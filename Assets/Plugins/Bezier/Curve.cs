@@ -9,6 +9,12 @@ namespace BezierCurveZ
 	[Serializable]
 	public partial class Curve : ISerializationCallbackReceiver
 	{
+		public Curve()
+		{
+			points = new List<Point> { new Point(Vector3.zero, Point.Type.Control) };
+			_bVersion = 1;
+		}
+
 		//===== Bezier Curve =====
 		//Don't need to serialize versions. Generated data won't be serialized
 		private int _bVersion = 0;
@@ -156,7 +162,7 @@ namespace BezierCurveZ
 		{
 			Point[] addedPoints = new Point[3];
 			addedPoints[0] = Point.Control(point);
-			if (DefaultAddedPointMode == Point.Mode.Linear)
+			if (points.Count == 1 || DefaultAddedPointMode == Point.Mode.Linear)
 			{
 				var rightHandle = (points[0] - point) / 3f;
 				addedPoints[1] = Point.RightHandle(point - rightHandle);

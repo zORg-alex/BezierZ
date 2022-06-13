@@ -267,45 +267,44 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   curve:
     points:
-    - point: {x: -1.7631078, y: 0, z: 0}
-      mode: 4
-      type: 2
     - point: {x: 0, y: 0, z: 0}
-      mode: 4
+      mode: 2
       type: 0
-    - point: {x: 1.7631078, y: 0, z: 0}
-      mode: 6
+    - point: {x: 1, y: 0, z: 0}
+      mode: 2
       type: 1
-    - point: {x: 1, y: 3, z: 0}
+    - point: {x: 1.0274854, y: 3, z: 0}
       mode: 2
       type: 2
     - point: {x: 0, y: 3, z: 0}
       mode: 2
       type: 0
-    - point: {x: -1, y: 3, z: 0}
+    - point: {x: -1.0274854, y: 3, z: 0}
       mode: 2
       type: 1
-    - point: {x: -1, y: 3, z: 4}
+    - point: {x: -1.0108827, y: 3, z: 4}
       mode: 2
       type: 2
     - point: {x: 0, y: 3, z: 4}
       mode: 2
       type: 0
-    - point: {x: 1, y: 3, z: 4}
+    - point: {x: 1.0108827, y: 3, z: 4}
       mode: 2
       type: 1
-    - point: {x: 1.9939208, y: 0, z: 4}
-      mode: 6
+    - point: {x: 1, y: 0, z: 4}
+      mode: 2
       type: 2
     - point: {x: 0, y: 0, z: 4}
-      mode: 4
+      mode: 2
       type: 0
-    - point: {x: -1.9939208, y: 0, z: 4}
-      mode: 4
-      type: 1
-    _isClosed: 1
+    _isClosed: 0
     _minSamplingDistance: 0.2
     _maxAngleError: 5
+  anotherCurve:
+    points: []
+    _isClosed: 0
+    _minSamplingDistance: 0
+    _maxAngleError: 0
   useRMFrames: 0
   RMFramesPerSegment: 5
   points:
