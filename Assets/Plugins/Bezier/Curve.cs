@@ -11,7 +11,7 @@ namespace BezierCurveZ
 	{
 		public Curve()
 		{
-			points = new List<Point> { new Point(Vector3.zero, Point.Type.Control) };
+			points = new List<BezierPoint> { new BezierPoint(Vector3.zero, BezierPoint.Type.Control) };
 			_bVersion = 1;
 		}
 
@@ -19,7 +19,7 @@ namespace BezierCurveZ
 		//Don't need to serialize versions. Generated data won't be serialized
 		private int _bVersion = 0;
 		[SerializeField, HideInInspector]
-		private List<Point> points;
+		private List<BezierPoint> points;
 		internal int lastPointInd => points.Count - 1;
 
 		private Vector3[] _pointPositions;
@@ -32,22 +32,24 @@ namespace BezierCurveZ
 				}
 				return _pointPositions;
 			} }
-		public List<Point> Points => points;
+		public List<BezierPoint> Points => points;
 
 		[SerializeField]
 		private bool _isClosed;
 		public bool IsClosed { get => _isClosed; set { CloseCurve(value); _bVersion++; } }
-		private Curve.Point.Mode[] _preservedNodeModesWhileClosed = new Point.Mode[2];
+		private Curve.BezierPoint.Mode[] _preservedNodeModesWhileClosed = new BezierPoint.Mode[2];
+
+		internal bool _useRotations;
 
 		public void CloseCurve(bool value)
 		{
 			if (value && !_isClosed) {
 				_preservedNodeModesWhileClosed[0] = points[0].mode;
 				_preservedNodeModesWhileClosed[1] = points[lastPointInd].mode;
-				points[0] = points[0].SetMode(Point.Mode.Manual);
-				points[lastPointInd] = points[lastPointInd].SetMode(Point.Mode.Manual);
-				points.Insert(0, new Point(points[0].point * 2f - points[1].point, Point.Type.LeftHandle, Point.Mode.Manual));
-				points.Add(new Point(points[lastPointInd].point * 2f - points[lastPointInd - 1].point, Point.Type.RightHandle, Point.Mode.Manual));
+				points[0] = points[0].SetMode(BezierPoint.Mode.Manual);
+				points[lastPointInd] = points[lastPointInd].SetMode(BezierPoint.Mode.Manual);
+				points.Insert(0, new BezierPoint(points[0].point * 2f - points[1].point, BezierPoint.Type.LeftHandle, BezierPoint.Mode.Manual));
+				points.Add(new BezierPoint(points[lastPointInd].point * 2f - points[lastPointInd - 1].point, BezierPoint.Type.RightHandle, BezierPoint.Mode.Manual));
 				_bVersion++;
 			}
 			else if (!value && _isClosed) {
@@ -63,15 +65,24 @@ namespace BezierCurveZ
 		public int ControlPointCount => points.Count / 3 + 1;
 		public int SegmentCount => (points?.Count ?? 0) / 3;
 
+		public int GetPointIndex(int segmentIndex) =>
+			segmentIndex.Min(SegmentCount) * 3 + (IsClosed ? 1 : 0);
+		public int GetSegmentIndex(int index) =>
+			((IsClosed? index - 1 : index) / 3f).FloorToInt();
+		public bool IsControlPoint(int index) =>
+			index < 0 || index >= points.Count ? false :
+			points[index].type == BezierPoint.Type.Control;
+
+
 		public void SetPoint(int index, Vector3 position)
 		{
 			index = Mathf.Clamp(index, 0, lastPointInd);
 
 			var thisPoint = points[index];
-			if (thisPoint.type == Point.Type.Control)
+			if (thisPoint.type == BezierPoint.Type.Control)
 			{
 				var diff = position - points[index];
-				var isLinear = thisPoint.mode == Point.Mode.Linear;
+				var isLinear = thisPoint.mode == BezierPoint.Mode.Linear;
 				if (index > 0)
 					points[index - 1] = points[index - 1].SetPosition(isLinear ? points[index] : points[index - 1] + diff);
 				if (index < lastPointInd)
@@ -79,14 +90,14 @@ namespace BezierCurveZ
 			}
 			else
 			{
-				var controlPoint = points[index].type == Point.Type.LeftHandle ? points[index + 1] : points[index - 1];
-				var otherHandleIndex = points[index].type == Point.Type.LeftHandle ? index + 2 : index - 2;
+				var controlPoint = points[index].type == BezierPoint.Type.LeftHandle ? points[index + 1] : points[index - 1];
+				var otherHandleIndex = points[index].type == BezierPoint.Type.LeftHandle ? index + 2 : index - 2;
 
-				if (controlPoint.mode.HasFlag(Point.Mode.Automatic) && index > 1 && index < lastPointInd - 1)
+				if (controlPoint.mode.HasFlag(BezierPoint.Mode.Automatic) && index > 1 && index < lastPointInd - 1)
 				{
 					var otherHandle = points[otherHandleIndex];
 
-					if (controlPoint.mode.HasFlag(Point.Mode.Manual))
+					if (controlPoint.mode.HasFlag(BezierPoint.Mode.Manual))
 					{
 						//Proportional
 						var diff = position - thisPoint;
@@ -106,7 +117,7 @@ namespace BezierCurveZ
 			_bVersion++;
 		}
 
-		public void SetPointMode(int index, Point.Mode mode)
+		public void SetPointMode(int index, BezierPoint.Mode mode)
 		{
 			index = Mathf.Clamp(index, 0, lastPointInd);
 			if (_isClosed && (index == 0 || index == lastPointInd))
@@ -114,7 +125,7 @@ namespace BezierCurveZ
 			else
 				points[index] = points[index].SetMode(mode);
 
-			if (points[index].type == Point.Type.Control)
+			if (points[index].type == BezierPoint.Type.Control)
 			{
 				if (index > 0)
 					points[index - 1] = points[index - 1].SetMode(mode);
@@ -123,6 +134,35 @@ namespace BezierCurveZ
 			}
 
 			_bVersion++;
+		}
+
+		/// <summary>
+		/// Set point rotation in object-space relative to Vector3.up
+		/// </summary>
+		/// <param name="index"></param>
+		/// <param name="rotation"></param>
+		public void SetCPRotation(int index, Quaternion rotation)
+		{
+			var segInd = GetSegmentIndex(index);
+			var tang = GetTangent(segInd, 0);
+			//Get euler z value from rotation relative default tangent look rotation
+			var pointDefaultRotation = Quaternion.LookRotation(tang);
+			var a = (pointDefaultRotation.Inverted() * rotation).eulerAngles.z;
+			_useRotations = true;
+			var newPoint = points[index].SetRotation(a);
+			if (!points[index].Equals(newPoint))
+			{
+				points[index] = newPoint;
+				_bVersion++;
+			}
+		}
+
+		public Quaternion GetRotation(int segmentIndex, float t)
+		{
+			if (segmentIndex == SegmentCount)
+				return _vertexData.Rotations.Last();
+			else
+				return _vertexData.GetRotation(_vertexData.SegmentIndexes.IndexOf(segmentIndex));
 		}
 
 		public IEnumerable<Vector3[]> Segments { get {
@@ -135,23 +175,23 @@ namespace BezierCurveZ
 			new Vector3[] { points[index * 3 + 1], points[index * 3 + 2], points[(index * 3 + 3) % points.Count], points[(index * 3 + 4) % points.Count] } :
 			new Vector3[] { points[index * 3], points[index * 3 + 1], points[index * 3 + 2], points[index * 3 + 3] };
 
-		public Point.Mode DefaultAddedPointMode { get; set; }
+		public BezierPoint.Mode DefaultAddedPointMode { get; set; }
 
 		public void AddPointAtEnd(Vector3 point) {
-			Point[] addedPoints = new Point[3];
-			if (DefaultAddedPointMode == Point.Mode.Linear)
+			BezierPoint[] addedPoints = new BezierPoint[3];
+			if (DefaultAddedPointMode == BezierPoint.Mode.Linear)
 			{
 				var leftHandle = (points[lastPointInd] - point) / 3f;
-				addedPoints[0] = Point.RightHandle(points[lastPointInd] + leftHandle);
-				addedPoints[1] = Point.LeftHandle(point - leftHandle);
+				addedPoints[0] = BezierPoint.RightHandle(points[lastPointInd] + leftHandle);
+				addedPoints[1] = BezierPoint.LeftHandle(point - leftHandle);
 			}
 			else
 			{
 				var invertedHandleOffset = points[lastPointInd] - points[lastPointInd - 1];
-				addedPoints[0] = Point.RightHandle(invertedHandleOffset + points[lastPointInd]);
-				addedPoints[1] = Point.LeftHandle(getSecondHandle(points[lastPointInd], point, invertedHandleOffset));
+				addedPoints[0] = BezierPoint.RightHandle(invertedHandleOffset + points[lastPointInd]);
+				addedPoints[1] = BezierPoint.LeftHandle(getSecondHandle(points[lastPointInd], point, invertedHandleOffset));
 			}
-			addedPoints[2] = Point.Control(point);
+			addedPoints[2] = BezierPoint.Control(point);
 			points.InsertRange(points.Count, addedPoints);
 			_bVersion++;
 
@@ -160,19 +200,19 @@ namespace BezierCurveZ
 		}
 		public void AddPointAtStart(Vector3 point)
 		{
-			Point[] addedPoints = new Point[3];
-			addedPoints[0] = Point.Control(point);
-			if (points.Count == 1 || DefaultAddedPointMode == Point.Mode.Linear)
+			BezierPoint[] addedPoints = new BezierPoint[3];
+			addedPoints[0] = BezierPoint.Control(point);
+			if (points.Count == 1 || DefaultAddedPointMode == BezierPoint.Mode.Linear)
 			{
 				var rightHandle = (points[0] - point) / 3f;
-				addedPoints[1] = Point.RightHandle(point - rightHandle);
-				addedPoints[2] = Point.LeftHandle(points[0] + rightHandle);
+				addedPoints[1] = BezierPoint.RightHandle(point - rightHandle);
+				addedPoints[2] = BezierPoint.LeftHandle(points[0] + rightHandle);
 			}
 			else
 			{
 				var invertedHandleOffset = points[0] - points[1];
-				addedPoints[1] = Point.RightHandle(getSecondHandle(points[0], point, invertedHandleOffset));
-				addedPoints[2] = Point.LeftHandle(invertedHandleOffset + points[0]);
+				addedPoints[1] = BezierPoint.RightHandle(getSecondHandle(points[0], point, invertedHandleOffset));
+				addedPoints[2] = BezierPoint.LeftHandle(invertedHandleOffset + points[0]);
 			}
 			points.InsertRange(0, addedPoints);
 			_bVersion++;
@@ -181,22 +221,18 @@ namespace BezierCurveZ
 				lastPoint + Vector3.Reflect(lastPoint - newPoint, offset);
 		}
 
-		public void AddInitialPoints(Vector3[] points)
+		public void SetInitialPoints(Vector3[] points)
 		{
-			if (points.Length < 4) return;
 			int newLength = points.Length - (points.Length % 3) + 1;
-			if (this.points == null)
-				this.points = new List<Point>(newLength);
-			else if (this.points.Count > 0)
-				return;
+			this.points = new List<BezierPoint>(newLength);
 
-			var newPoints = new Point[newLength];
-			var type = IsClosed ? Point.Type.LeftHandle : Point.Type.Control;
+			var newPoints = new BezierPoint[newLength];
+			var type = IsClosed ? BezierPoint.Type.LeftHandle : BezierPoint.Type.Control;
 			for (int i = 0; i < newLength; i++)
 			{
-				newPoints[i] = new Point(points[i], type);
+				newPoints[i] = new BezierPoint(points[i], type);
 				type++;
-				type = (Point.Type)((int)type % 3);
+				type = (BezierPoint.Type)((int)type % 3);
 			}
 
 			this.points.AddRange(newPoints);
@@ -231,13 +267,13 @@ namespace BezierCurveZ
 		{
 			if (newSegments.Length % 3 != 1) return;
 
-			var newPoints = new Point[newSegments.Length];
-			var type = Point.Type.Control;
+			var newPoints = new BezierPoint[newSegments.Length];
+			var type = BezierPoint.Type.Control;
 			for (int i = 0; i < newSegments.Length; i++)
 			{
-				newPoints[i] = new Point(newSegments[i], type);
+				newPoints[i] = new BezierPoint(newSegments[i], type);
 				type++;
-				type = (Point.Type)((int)type % 3);
+				type = (BezierPoint.Type)((int)type % 3);
 			}
 
 			points.RemoveRange(segmentInd * 3, 4);
@@ -333,15 +369,39 @@ namespace BezierCurveZ
 			return _vertexData.GetPointAtLength(length);
 		}
 
-		public Vector3 GetRotation(float time)
+		public Quaternion GetRotation(float time)
 		{
 			Update();
 			return _vertexData.GetRotationAtTime(time);
 		}
 
-		public Vector3 GetTangent(int segmentIndex, float time) =>
-			CurveUtils.EvaluateDerivative(time, points[segmentIndex * 3], points[segmentIndex * 3 + 1], points[segmentIndex * 3 + 2], points[segmentIndex * 3 + 3]);
-		public Vector3 GetNormal(int segmentIndex, float time) =>
-			CurveUtils.EvaluateHackNormal(time, points[segmentIndex * 3], points[segmentIndex * 3 + 1], points[segmentIndex * 3 + 2], points[segmentIndex * 3 + 3], out _);
+		/// <summary>
+		/// if segmentIndex is out of bounds, returns last point
+		/// </summary>
+		/// <param name="segmentIndex"></param>
+		/// <param name="time"></param>
+		/// <returns></returns>
+		public Vector3 GetTangent(int segmentIndex, float time)
+		{
+			Update();
+			return segmentIndex < SegmentCount - 1 ?
+			CurveUtils.EvaluateDerivative(time, points[segmentIndex * 3], points[segmentIndex * 3 + 1], points[segmentIndex * 3 + 2], points[segmentIndex * 3 + 3]) :
+			CurveUtils.EvaluateDerivative(1, points[segmentIndex * 3 - 3], points[segmentIndex * 3 - 2], points[segmentIndex * 3 - 1], points[segmentIndex * 3]);
+		}
+
+		/// <summary>
+		/// if segmentIndex is out of bounds, returns last point
+		/// </summary>
+		/// <param name="segmentIndex"></param>
+		/// <param name="time"></param>
+		/// <returns></returns>
+		public Vector3 GetNormal(int segmentIndex, float time)
+		{
+			Update();
+			return segmentIndex < SegmentCount ?
+			CurveUtils.EvaluateHackNormal(time, points[segmentIndex * 3], points[segmentIndex * 3 + 1], points[segmentIndex * 3 + 2], points[segmentIndex * 3 + 3], out _) :
+			CurveUtils.EvaluateHackNormal(1, points[segmentIndex * 3 - 3], points[segmentIndex * 3 - 2], points[segmentIndex * 3 - 1], points[segmentIndex * 3], out _);
+		}
+
 	}
 }

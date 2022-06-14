@@ -268,43 +268,105 @@ MonoBehaviour:
   curve:
     points:
     - point: {x: 0, y: 0, z: 0}
+      angle: 0
       mode: 2
       type: 0
     - point: {x: 1, y: 0, z: 0}
+      angle: 0
       mode: 2
       type: 1
-    - point: {x: 1.0274854, y: 3, z: 0}
+    - point: {x: 1, y: 3, z: 0}
+      angle: 0
       mode: 2
       type: 2
     - point: {x: 0, y: 3, z: 0}
+      angle: 0
       mode: 2
       type: 0
-    - point: {x: -1.0274854, y: 3, z: 0}
+    - point: {x: -1, y: 3, z: 0}
+      angle: 0
       mode: 2
       type: 1
-    - point: {x: -1.0108827, y: 3, z: 4}
+    - point: {x: -1, y: 3, z: 4}
+      angle: 0
       mode: 2
       type: 2
     - point: {x: 0, y: 3, z: 4}
+      angle: 0
       mode: 2
       type: 0
-    - point: {x: 1.0108827, y: 3, z: 4}
+    - point: {x: 1, y: 3, z: 4}
+      angle: 0
       mode: 2
       type: 1
     - point: {x: 1, y: 0, z: 4}
+      angle: 0
       mode: 2
       type: 2
     - point: {x: 0, y: 0, z: 4}
+      angle: 0
       mode: 2
       type: 0
     _isClosed: 0
     _minSamplingDistance: 0.2
     _maxAngleError: 5
   anotherCurve:
-    points: []
+    points:
+    - point: {x: -1.2142482, y: 0, z: -0.3240806}
+      angle: 0
+      mode: 2
+      type: 0
+    - point: {x: -0.63854724, y: 0, z: -0.8711169}
+      angle: 0
+      mode: 2
+      type: 1
+    - point: {x: 0.28947365, y: 0, z: 1.3701888}
+      angle: 0
+      mode: 2
+      type: 2
+    - point: {x: 0.58687353, y: 0, z: 0.020510077}
+      angle: 354.40018
+      mode: 2
+      type: 0
+    - point: {x: 0.8842734, y: 0, z: -1.3291687}
+      angle: 0
+      mode: 2
+      type: 1
+    - point: {x: 1.1123481, y: 0.48399937, z: -0.9801136}
+      angle: 0
+      mode: 2
+      type: 2
+    - point: {x: 1.472228, y: 0.9679985, z: -0.65151983}
+      angle: 327.8528
+      mode: 2
+      type: 0
+    - point: {x: 1.8321078, y: 1.4519974, z: -0.3229263}
+      angle: 0
+      mode: 2
+      type: 1
+    - point: {x: 1.4922507, y: 1.935996, z: 0.76698834}
+      angle: 0
+      mode: 2
+      type: 2
+    - point: {x: 0.7457492, y: 1.935996, z: 0.549289}
+      angle: 96.6206
+      mode: 2
+      type: 0
+    - point: {x: -0.0007522702, y: 1.935996, z: 0.33158967}
+      angle: 0
+      mode: 2
+      type: 1
+    - point: {x: 1.0842804, y: 1.935996, z: -2.0104432}
+      angle: 0
+      mode: 2
+      type: 2
+    - point: {x: 1.809092, y: 1.935996, z: -1.0430012}
+      angle: 94.550446
+      mode: 2
+      type: 0
     _isClosed: 0
-    _minSamplingDistance: 0
-    _maxAngleError: 0
+    _minSamplingDistance: 0.05
+    _maxAngleError: 5
   useRMFrames: 0
   RMFramesPerSegment: 5
   points:

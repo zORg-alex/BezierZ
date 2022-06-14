@@ -12,9 +12,10 @@ namespace BezierCurveZ
 				{
 					points = new List<Vector3>() { curve.Points[0], curve.Points[0] },
 					tangents = new List<Vector3>() { Vector3.forward, Vector3.forward },
-					indices = new List<int>() { 0, 0 },
+					segmentIndices = new List<int>() { 0, 0 },
 					cumulativeLength = new List<float>() { 0, 0 },
-					segmentTime = new List<float>() { 0, 0 }
+					segmentTime = new List<float>() { 0, 0 },
+					rotations = new List<Quaternion> { Quaternion.identity, Quaternion.identity }
 				};
 			else if (curve.Points.Count == 0) return null;
 
@@ -25,6 +26,8 @@ namespace BezierCurveZ
 			var currentPoint = CurveUtils.Evaluate(0, firstSegment);
 			var previousPoint = currentPoint - firstTangent;
 			var previousAngle = 0f;
+			Vector3 firstUp = curve._useRotations ? Quaternion.AngleAxis(curve.Points[0].angle, firstTangent) * Vector3.up : Vector3.up;
+			var previousRotation = Quaternion.LookRotation(firstTangent, firstUp);
 
 			//Should correct for previous point estimation
 			var dist = -1f;
@@ -46,6 +49,10 @@ namespace BezierCurveZ
 				if (i == 0)
 					nextPoint = CurveUtils.Evaluate(increment, segment);
 
+				int lastSegmentIndex = (curve.GetPointIndex(i) + 3).Min(curve.Points.Count - 1);
+				Vector3 finalTangent = CurveUtils.EvaluateDerivative(1, segment).normalized;
+				Vector3 nextUp = Quaternion.AngleAxis(curve.Points[lastSegmentIndex].angle, finalTangent) * Vector3.up;
+
 				float t = 0f;
 				while (true)
 				{
@@ -59,11 +66,17 @@ namespace BezierCurveZ
 
 					if (edgePoint || angleError > maxAngleError && dist >= minSplitDistance)
 					{
+						Vector3 tang = CurveUtils.EvaluateDerivative(t, segment).normalized;
+						Vector3 previousUp = previousRotation * Vector3.up;
+						Vector3 adjustedUp = Vector3.Lerp(previousUp, nextUp, t);
+						previousRotation = Quaternion.LookRotation(tang, adjustedUp);
+
 						data.points.Add(currentPoint);
-						data.tangents.Add(CurveUtils.EvaluateDerivative(t, segment).normalized);
+						data.tangents.Add(tang);
 						data.segmentTime.Add(t);
 						data.cumulativeLength.Add(length);
-						data.indices.Add(i);
+						data.segmentIndices.Add(i);
+						data.rotations.Add(previousRotation);
 						dist = 0;
 						previousPoint = currentPoint;
 					}
@@ -78,41 +91,18 @@ namespace BezierCurveZ
 
 				i++;
 			}
+
 			return data;
-		}
-
-		public static Quaternion[] GetRotations(SplitData data)
-		{
-			if (data.points.Count == 0) return new Quaternion[] { Quaternion.identity };
-			var up = Vector3.up;
-			var r = new Quaternion[data.points.Count];
-			//var point = data.points[0];
-			//var previousPoint = point;
-			var tangent = data.tangents[0];
-			r[0] = Quaternion.LookRotation(tangent, up);
-			var lastRot = r[0];
-
-			for (int i = 1; i < data.points.Count; i++)
-			{
-				//point = data.points[i];
-				tangent = data.tangents[i];
-
-				r[i] = Quaternion.LookRotation(tangent, lastRot * Vector3.up);
-				lastRot = r[i];
-
-				//previousPoint = point;
-			}
-
-			return r;
 		}
 
 		public class SplitData
 		{
 			public List<Vector3> points = new List<Vector3>();
 			public List<Vector3> tangents = new List<Vector3>();
-			public List<int> indices = new List<int>();
+			public List<int> segmentIndices = new List<int>();
 			public List<float> cumulativeLength = new List<float>();
 			public List<float> segmentTime = new List<float>();
+			public List<Quaternion> rotations = new List<Quaternion>();
 		}
 	}
 }

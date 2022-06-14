@@ -98,6 +98,7 @@ public static class DefaultUtils {
 	public static float Deg2Rad(this float v) => v * Mathf.Deg2Rad;
 	public static float Rad2Deg(this float v) => v * Mathf.Rad2Deg;
 
+	/// <returns>Inverse of this rotation</returns>
 	public static Quaternion Inverted(this Quaternion q) => Quaternion.Inverse(q);
 
 	public static IEnumerable<T> Foreach<T>(this IEnumerable<T> collection, Action<T> action) {
@@ -115,6 +116,24 @@ public static class DefaultUtils {
 			result += v;
 		}
 		return result;
+	}
+
+	public static int IndexOf<T>(this T[] array, Func<T, bool> predicate)
+	{
+		for (int i = 0; i < array.Length; i++)
+		{
+			if (predicate(array[i])) return i;
+		}
+		return -1;
+	}
+
+	public static int IndexOf<T>(this T[] array, T value)
+	{
+		for (int i = 0; i < array.Length; i++)
+		{
+			if (array[i].Equals(value)) return i;
+		}
+		return -1;
 	}
 
 	public static Transform Reset(this Transform transform) {

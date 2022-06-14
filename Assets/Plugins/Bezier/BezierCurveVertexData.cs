@@ -17,6 +17,8 @@ namespace BezierCurveZ
 			public int segmentIndex;
 			public float length;
 			public float time;
+
+			public Vector3 normal => rotation * Vector3.right;
 		}
 		[SerializeField, HideInInspector]
 		private Vector3[] _points;
@@ -42,20 +44,22 @@ namespace BezierCurveZ
 		public BezierCurveVertexData(Curve bezierCurve, float minSamplingDistance = .001f, float maxAngleError = .05f)
 		{
 			var data = CurveInterpolation.SplitCurveByAngleError(bezierCurve, maxAngleError, minSamplingDistance);
-			//TODO Implement this
+
 			_points = data.points.ToArray();
-			_segmentIndexes = data.indices.ToArray();
+			_segmentIndexes = data.segmentIndices.ToArray();
 			_cumulativeLengths = data.cumulativeLength.ToArray();
 			_tangents = data.tangents.ToArray();
-			_rotations = CurveInterpolation.GetRotations(data);
+			_rotations = data.rotations.ToArray();
 			_times = data.segmentTime.ToArray();
 		}
 
-		public Vector3 GetPointAtLength(float length) => throw new NotImplementedException();
-		public Vector3 GetPointAtTime(float time) => throw new NotImplementedException();
+		public Vector3 GetPointAtLength(float length) => _points[CumulativeLengths.IndexOf(l => l >= length)];
+		public Vector3 GetPointAtTime(float time) => _points[Times.IndexOf(t => t >= time)];
+		public Vector3 GetPoint(int index) => _points[index];
 
-		public Vector3 GetRotationAtLength(float length) => throw new NotImplementedException();
-		public Vector3 GetRotationAtTime(float time) => throw new NotImplementedException();
+		public Quaternion GetRotationAtLength(float length) => _rotations[CumulativeLengths.IndexOf(l => l >= length)];
+		public Quaternion GetRotationAtTime(float time) => _rotations[Times.IndexOf(t=>t >= time)];
+		public Quaternion GetRotation(int index) => _rotations[index];
 
 		public IEnumerable<VertexData> GetEnumerable()
 		{
