@@ -23,70 +23,79 @@ namespace BezierCurveZ
 
 			var firstSegment = curve.Segments.FirstOrDefault();
 			var firstTangent = CurveUtils.EvaluateDerivative(0, firstSegment).normalized;
-			var currentPoint = CurveUtils.Evaluate(0, firstSegment);
-			var previousPoint = currentPoint - firstTangent;
-			var previousAngle = 0f;
-			Vector3 firstUp = curve._useRotations ? Quaternion.AngleAxis(curve.Points[0].angle, firstTangent) * Vector3.up : Vector3.up;
-			var previousRotation = Quaternion.LookRotation(firstTangent, firstUp);
+			var _currentPoint = CurveUtils.Evaluate(0, firstSegment);
+			var _previousPoint = _currentPoint - firstTangent;
+			var _previousAngle = 0f;
+			var _nextPoint = Vector3.zero;
 
 			//Should correct for previous point estimation
-			var dist = -1f;
+			var _dist = -1f;
 			var length = -1f;
-			Vector3 nextPoint = Vector3.zero;
 
-			//data.points.Add(currentPoint);
-			//data.tangents.Add(firstTangent);
-			//data.cumulativeLength.Add(length);
-			//data.segmentTime.Add(0);
-			//data.indices.Add(0);
-
+			var angles = new float[curve.ControlPointCount + 2];
+			angles[0] = curve.IsClosed ? curve.Points[curve.lastPointInd].angle : curve.Points[0].angle;
+			angles[angles.Length - 2] = curve.Points[curve.lastPointInd].angle;
+			angles[angles.Length - 2] = curve.IsClosed ? curve.Points[0].angle : curve.Points[curve.lastPointInd].angle;
 			var i = 0;
+			foreach (var segment in curve.Segments)
+			{
+				angles[i + 1] = curve.Points[curve.GetPointIndex(i)].angle;
+				var d = Mathf.DeltaAngle(angles[i], angles[i + 1]);
+				angles[i + 1] = angles[i] + d;
+				i++;
+			}
+			//loop angles around, so that change would be minimum, since we can't set rotation past 360deg
+			for (int j = 1; j < angles.Length; j++)
+			{
+				var d = Mathf.DeltaAngle(angles[j - 1], angles[j]);
+				angles[j] = angles[j-1] + d;
+			}
+
+			i = 0;
 			foreach (var segment in curve.Segments)
 			{
 				var estimatedSegmentLength = CurveUtils.EstimateSegmentLength(segment);
 				int divisions = (estimatedSegmentLength * accuracy).CeilToInt();
 				float increment = 1f / divisions;
 				if (i == 0)
-					nextPoint = CurveUtils.Evaluate(increment, segment);
+					_nextPoint = CurveUtils.Evaluate(increment, segment);
 
 				int lastSegmentIndex = (curve.GetPointIndex(i) + 3).Min(curve.Points.Count - 1);
 				Vector3 finalTangent = CurveUtils.EvaluateDerivative(1, segment).normalized;
-				Vector3 nextUp = Quaternion.AngleAxis(curve.Points[lastSegmentIndex].angle, finalTangent) * Vector3.up;
 
 				float t = 0f;
 				while (true)
 				{
-					var edgePoint = (t == 0) || (t >= 1 && i == curve.SegmentCount - 1);
+					var _edgePoint = (t == 0) || (t >= 1 && i == curve.SegmentCount - 1);
 
-					Vector3 toLastPoint = previousPoint - currentPoint;
-					var toLastPointMag = toLastPoint.magnitude;
-					length += toLastPointMag;
-					float angle = 180 - Vector3.Angle(toLastPoint, nextPoint - currentPoint);
-					float angleError = angle.Max(previousAngle);
+					Vector3 _toLastPoint = _previousPoint - _currentPoint;
+					var _toLastPointMag = _toLastPoint.magnitude;
+					length += _toLastPointMag;
+					float _angle = 180 - Vector3.Angle(_toLastPoint, _nextPoint - _currentPoint);
+					float _angleError = _angle.Max(_previousAngle);
 
-					if (edgePoint || angleError > maxAngleError && dist >= minSplitDistance)
+					if (_edgePoint || _angleError > maxAngleError && _dist >= minSplitDistance)
 					{
 						Vector3 tang = CurveUtils.EvaluateDerivative(t, segment).normalized;
-						Vector3 previousUp = previousRotation * Vector3.up;
-						Vector3 adjustedUp = Vector3.Lerp(previousUp, nextUp, t);
-						previousRotation = Quaternion.LookRotation(tang, adjustedUp);
+						var approxAngle = CatmullRomCurveUtility.Evaluate(t, .5f, angles[i], angles[i + 1], angles[i + 2], angles[i + 3]);
+						var rotation = Quaternion.LookRotation(tang) * Quaternion.Euler(0, 0, approxAngle);
 
-						data.points.Add(currentPoint);
+						data.points.Add(_currentPoint);
 						data.tangents.Add(tang);
 						data.segmentTime.Add(t);
 						data.cumulativeLength.Add(length);
 						data.segmentIndices.Add(i);
-						data.rotations.Add(previousRotation);
-						dist = 0;
-						previousPoint = currentPoint;
+						data.rotations.Add(rotation);
+						_dist = 0;
+						_previousPoint = _currentPoint;
 					}
-					else dist += toLastPointMag;
+					else _dist += _toLastPointMag;
 
 					if (t >= 1f) break;
 					t = (t + increment).Min(1f);
-					currentPoint = nextPoint;
-					nextPoint = CurveUtils.Evaluate(t + increment, segment);
-					previousAngle = angle;
+					_currentPoint = _nextPoint;
+					_nextPoint = CurveUtils.Evaluate(t + increment, segment);
+					_previousAngle = _angle;
 				}
 
 				i++;

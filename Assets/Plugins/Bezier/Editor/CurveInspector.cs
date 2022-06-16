@@ -433,7 +433,7 @@ namespace BezierCurveZ
 				}
 				else if (currentInternalTool == Tool.Rotate && curve.IsControlPoint(closestIndex))
 				{
-					Quaternion worldRotation = curve.GetRotation(curve.GetSegmentIndex(closestIndex),0f) * targetTransform.rotation;
+					Quaternion worldRotation = curve.GetCPRotation(curve.GetSegmentIndex(closestIndex)) * targetTransform.rotation;
 					float handleSize = HandleUtility.GetHandleSize(editedPosition);
 
 					//var rot = AxisRotation.Do(controlID, worldRotation, editedPosition, Vector3.f, handleSize);
@@ -442,10 +442,14 @@ namespace BezierCurveZ
 					Handles.color = Color.yellow;
 					Handles.DrawAAPolyLine(editedPosition, editedPosition + worldRotation * Vector3.up * handleSize);
 
+					//Handles.BeginGUI();
+					//GUI.Label(new Rect(Event.current.mousePosition + Vector2.up * 30, new Vector2(100, 20)), curve.Points[closestIndex].angle.ToString());
+					//Handles.EndGUI();
+
 					if (EditorGUI.EndChangeCheck())
 					{
 						Undo.RecordObject(targetObject, "Point rotation changed");
-						curve.SetCPRotation(closestIndex, rot * targetTransform.rotation.Inverted());
+						curve.SetCPRotation(curve.GetSegmentIndex(closestIndex), rot * targetTransform.rotation.Inverted());
 					}
 				}
 			}
@@ -485,8 +489,8 @@ namespace BezierCurveZ
 			Handles.color = Color.red / 2 + Color.white / 2;
 			foreach (var vert in curve.VertexData)
 			{
-				//Handles.DrawSolidDisc(vert.point, -Camera.current.transform.forward, HandleUtility.GetHandleSize(vert.point) * .05f);
 				Handles.DrawAAPolyLine(vert.point, vert.point + vert.normal * .2f);
+
 			}
 
 			Handles.matrix = m;

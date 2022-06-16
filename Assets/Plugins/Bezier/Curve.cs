@@ -141,13 +141,15 @@ namespace BezierCurveZ
 		/// </summary>
 		/// <param name="index"></param>
 		/// <param name="rotation"></param>
-		public void SetCPRotation(int index, Quaternion rotation)
+		public void SetCPRotation(int segmentIndex, Quaternion rotation)
 		{
-			var segInd = GetSegmentIndex(index);
-			var tang = GetTangent(segInd, 0);
+			var index = GetPointIndex(segmentIndex);
+			var tang = GetTangent(segmentIndex, 0);
 			//Get euler z value from rotation relative default tangent look rotation
 			var pointDefaultRotation = Quaternion.LookRotation(tang);
-			var a = (pointDefaultRotation.Inverted() * rotation).eulerAngles.z;
+			var adjustedRotation = Quaternion.LookRotation(tang, rotation * Vector3.up);
+			var a = (pointDefaultRotation.Inverted() * adjustedRotation).eulerAngles.z;
+
 			_useRotations = true;
 			var newPoint = points[index].SetRotation(a);
 			if (!points[index].Equals(newPoint))
@@ -155,6 +157,12 @@ namespace BezierCurveZ
 				points[index] = newPoint;
 				_bVersion++;
 			}
+		}
+
+		public Quaternion GetCPRotation(int segmentIndex)
+		{
+			var index = GetPointIndex(segmentIndex);
+			return Quaternion.LookRotation(GetTangent(segmentIndex, 0)) * Quaternion.Euler(0, 0, points[index].angle);
 		}
 
 		public Quaternion GetRotation(int segmentIndex, float t)
@@ -384,7 +392,7 @@ namespace BezierCurveZ
 		public Vector3 GetTangent(int segmentIndex, float time)
 		{
 			Update();
-			return segmentIndex < SegmentCount - 1 ?
+			return segmentIndex < SegmentCount ?
 			CurveUtils.EvaluateDerivative(time, points[segmentIndex * 3], points[segmentIndex * 3 + 1], points[segmentIndex * 3 + 2], points[segmentIndex * 3 + 3]) :
 			CurveUtils.EvaluateDerivative(1, points[segmentIndex * 3 - 3], points[segmentIndex * 3 - 2], points[segmentIndex * 3 - 1], points[segmentIndex * 3]);
 		}
