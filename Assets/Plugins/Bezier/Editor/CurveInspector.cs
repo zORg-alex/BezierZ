@@ -33,6 +33,8 @@ namespace BezierCurveZ
 
 		public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
 		{
+			current = Event.current;
+
 			if (targetObject == null)
 			{
 				targetObject = (Component)property.serializedObject.targetObject;
@@ -49,7 +51,7 @@ namespace BezierCurveZ
 			{
 				StartEditor();
 			}
-			else if (IsCurrentlyEditedDrawer && Event.current.type != EventType.Layout)
+			else if (IsCurrentlyEditedDrawer && current.type != EventType.Layout)
 			{
 				DrawCurveEditor(rootRows[1], property);
 				var c = GUI.color;
@@ -69,7 +71,7 @@ namespace BezierCurveZ
 			}
 
 			//// Notify of undo/redo that might modify the path
-			//if (Event.current.type == EventType.ValidateCommand && Event.current.commandName == "UndoRedoPerformed")
+			//if (current.type == EventType.ValidateCommand && current.commandName == "UndoRedoPerformed")
 			//{
 			//	//data.PathModifiedByUndo();
 			//}
@@ -105,7 +107,7 @@ namespace BezierCurveZ
 		/// </summary>
 		private void CheckIfMouseIsOver(Rect position)
 		{
-			if (!IsCurrentlyEditedDrawer && position.Contains(Event.current.mousePosition))
+			if (!IsCurrentlyEditedDrawer && position.Contains(current.mousePosition))
 			{
 				if (!isMouseOver)
 				{
@@ -192,7 +194,7 @@ namespace BezierCurveZ
 		private void DrawCurveEditor(Rect position, SerializedProperty property)
 		{
 			var lines = position.Column(4);
-			var firstLine = lines[0].Row(2);
+			var firstLine = lines[0].Row(2, 10);
 			EditorGUI.BeginChangeCheck();
 			EditorGUI.PropertyField(firstLine[0],property.FindPropertyRelative("_maxAngleError"));
 			EditorGUI.PropertyField(firstLine[1], property.FindPropertyRelative("_minSamplingDistance"));
@@ -219,6 +221,7 @@ namespace BezierCurveZ
 		private bool cuttingInitialized;
 		private Vector3 closestPointToMouseOnCurve;
 		private int controlID;
+		private Event current;
 		private bool selectControlPointsOnly;
 		private Curve.BezierPoint closestPoint;
 		private Vector3 editedPosition;
@@ -227,11 +230,12 @@ namespace BezierCurveZ
 		private void OnSceneGUI(SceneView scene)
 		{
 			controlID = GUIUtility.GetControlID(932795648, FocusType.Passive);
-			if (Event.current.type == EventType.Layout)
+			current = Event.current;
+			if (current.type == EventType.Layout)
 				//Magic thing to stop mouse from selecting other objects
 				HandleUtility.AddDefaultControl(controlID);
 
-			if (Event.current.type == EventType.ValidateCommand && Event.current.commandName == "UndoRedoPerformed")
+			if (current.type == EventType.ValidateCommand && current.commandName == "UndoRedoPerformed")
 				curve.Update(true);
 			EditorGUI.BeginChangeCheck();
 			Input();
@@ -242,8 +246,6 @@ namespace BezierCurveZ
 
 		private void Input()
 		{
-			Event current = Event.current;
-
 			if (Tools.current != Tool.None && (Tools.current == Tool.Move || Tools.current == Tool.Rotate))
 			{
 				currentInternalTool = Tools.current;
@@ -335,20 +337,16 @@ namespace BezierCurveZ
 			}
 
 			//Handle alternative selection mode
-			if (GetKeyDown(KeyCode.C))
+			if (GetKeyDown(KeyCode.LeftShift))
 			{
 				current.Use();
 				selectControlPointsOnly = true;
 				SelectClosestPointToMouse(current);
 
-			} else if (selectControlPointsOnly && GetKeyUp(KeyCode.C))
+			} else if (selectControlPointsOnly && GetKeyUp(KeyCode.LeftShift))
 			{
 				selectControlPointsOnly = false;
 			}
-			//else if (altSelectionMode && current.type == EventType.MouseDrag)
-			//{
-			//	GUIUtility.hotControl = controlID;
-			//}
 
 			if (current.type == EventType.MouseMove)
 			{
@@ -359,9 +357,6 @@ namespace BezierCurveZ
 
 				SelectClosestPointToMouse(current);
 			}
-
-			//if (current.type == EventType.MouseDown)
-			//	current.Use();
 
 			bool GetKeyDown(KeyCode key) => current.type == EventType.KeyDown && current.keyCode == key;
 			bool GetKeyUp(KeyCode key) => current.type == EventType.KeyUp && current.keyCode == key;
@@ -402,7 +397,7 @@ namespace BezierCurveZ
 
 			//Draw GUI
 			Handles.BeginGUI();
-			GUI.Label(new Rect(Event.current.mousePosition, new Vector2(200, 22)), "hotControl " + GUIUtility.hotControl);
+			GUI.Label(new Rect(current.mousePosition, new Vector2(200, 22)), "hotControl " + GUIUtility.hotControl);
 
 			Handles.EndGUI();
 
@@ -443,7 +438,7 @@ namespace BezierCurveZ
 					Handles.DrawAAPolyLine(editedPosition, editedPosition + worldRotation * Vector3.up * handleSize);
 
 					//Handles.BeginGUI();
-					//GUI.Label(new Rect(Event.current.mousePosition + Vector2.up * 30, new Vector2(100, 20)), curve.Points[closestIndex].angle.ToString());
+					//GUI.Label(new Rect(current.mousePosition + Vector2.up * 30, new Vector2(100, 20)), curve.Points[closestIndex].angle.ToString());
 					//Handles.EndGUI();
 
 					if (EditorGUI.EndChangeCheck())
