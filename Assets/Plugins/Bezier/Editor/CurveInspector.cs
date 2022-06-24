@@ -145,7 +145,7 @@ namespace BezierCurveZ
 			currentlyEditedPropertyDrawer = this;
 			CurveEditorOverlay.Show();
 			lastTool = Tools.current;
-			Tools.current = Tool.None;
+			Tools.current = Tools.current == Tool.Move || Tools.current == Tool.Rotate ? Tools.current : Tool.None;
 		}
 
 		private void FinishEditor(UnityEngine.SceneManagement.Scene scene) => FinishEditor();
@@ -222,10 +222,11 @@ namespace BezierCurveZ
 		private Vector3 closestPointToMouseOnCurve;
 		private int controlID;
 		private Event current;
-		private bool selectControlPointsOnly;
+		private bool selectHandlesOnly;
 		private Curve.BezierPoint closestPoint;
 		private Vector3 editedPosition;
 		private int closestIndex;
+		private bool sKeyDown;
 
 		private void OnSceneGUI(SceneView scene)
 		{
@@ -305,7 +306,8 @@ namespace BezierCurveZ
 				{
 					var mode = val;
 					contextMenu.AddItem(new GUIContent(mode.ToString()),
-						closestPoint.mode == mode, () => {
+						closestPoint.mode == mode, () =>
+						{
 							EditorGUI.BeginChangeCheck();
 							curve.SetPointMode(closestIndex, mode);
 							drawContextMenu = false;
@@ -315,7 +317,8 @@ namespace BezierCurveZ
 				contextMenu.DropDown(new Rect(mouse1Position, Vector2.zero));
 
 				drawContextMenu = true;
-			} else if (cuttingInitialized && GetMouseDown(0))
+			}
+			else if (cuttingInitialized && GetMouseDown(0))
 			{
 				cuttingInitialized = false;
 				GUIUtility.hotControl = 0;
@@ -337,15 +340,16 @@ namespace BezierCurveZ
 			}
 
 			//Handle alternative selection mode
-			if (GetKeyDown(KeyCode.LeftShift))
+			if (GetKeyDown(KeyCode.C))
 			{
 				current.Use();
-				selectControlPointsOnly = true;
+				selectHandlesOnly = true;
 				SelectClosestPointToMouse(current);
 
-			} else if (selectControlPointsOnly && GetKeyUp(KeyCode.LeftShift))
+			}
+			else if (selectHandlesOnly && GetKeyUp(KeyCode.C))
 			{
-				selectControlPointsOnly = false;
+				selectHandlesOnly = false;
 			}
 
 			if (current.type == EventType.MouseMove)
@@ -357,11 +361,98 @@ namespace BezierCurveZ
 
 				SelectClosestPointToMouse(current);
 			}
+			if (GetKeyDown(KeyCode.S))
+				sKeyDown = true;
+			else if (GetKeyUp(KeyCode.S)) sKeyDown = false;
 
 			bool GetKeyDown(KeyCode key) => current.type == EventType.KeyDown && current.keyCode == key;
 			bool GetKeyUp(KeyCode key) => current.type == EventType.KeyUp && current.keyCode == key;
 			bool GetMouseDown(int button) => current.type == EventType.MouseDown && current.button == button;
 			bool GetMouseUp(int button) => current.type == EventType.MouseUp && current.button == button;
+		}
+
+		private void SnapPointToCurvePoints(ref Vector3 pos, int index)
+		{
+			var senseDist = HandleUtility.GetHandleSize(targetTransform.TransformPoint(pos)) * .2f;
+			if (!current.shift && sKeyDown)
+			{
+				var c = Handles.color;
+				var m = Handles.matrix;
+				Handles.color = Color.yellow;
+				Handles.matrix = targetTransform.localToWorldMatrix;
+
+				var minDist = float.MaxValue;
+				var minAxis = 0;
+				var minPoint = Vector3.zero;
+				Func<int,bool> predicate = i => i != index;
+				if (curve.IsControlPoint(index))
+					predicate = i => i < index - 1 || i > index + 1;
+				foreach (var point in curve.Points.Where((p,i)=>predicate(i)))
+				{
+					var dist = DistanceToAxis(pos, point, senseDist, out int axis);
+					if (dist < minDist && dist < senseDist)
+					{
+						minPoint = point;
+						minDist = dist;
+						minAxis = axis;
+					}
+					if (dist < senseDist)
+					{
+						switch (axis)
+						{
+							case 0:
+								Handles.DrawAAPolyLine(point, new Vector3(pos.x, point.point.y, point.point.z));
+								break;
+							case 1:
+								Handles.DrawAAPolyLine(point, new Vector3(point.point.x, pos.y, point.point.z));
+								break;
+							case 2:
+								Handles.DrawAAPolyLine(point, new Vector3(point.point.x, point.point.y, pos.z));
+								break;
+							default:
+								break;
+						}
+					}
+				}
+				if (minDist < senseDist)
+				{
+					pos = minAxis switch
+					{
+						0 => new Vector3(pos.x, minPoint.y, minPoint.z),
+						1 => new Vector3(minPoint.x, pos.y, minPoint.z),
+						2 => new Vector3(minPoint.x, minPoint.y, pos.z),
+						_ => pos
+					};
+				}
+
+				Handles.color = c;
+				Handles.matrix = m;
+			}
+
+			static float DistanceToAxis(Vector3 vector1, Vector3 vector2, float senseDistance, out int axis)
+			{
+				float x = (vector1.x - vector2.x).Abs();
+				float y = (vector1.y - vector2.y).Abs();
+				float z = (vector1.z - vector2.z).Abs();
+
+				if (x < senseDistance && y < senseDistance)
+				{
+					axis = 2;
+					return (float)Math.Sqrt(x * x + y * y);
+				}
+				else if (x < senseDistance && z < senseDistance)
+				{
+					axis = 1;
+					return (float)Math.Sqrt(x * x + z * z);
+				}
+				else if (y < senseDistance && z < senseDistance)
+				{
+					axis = 0;
+					return (float)Mathf.Sqrt(y * y + z * z);
+				}
+				axis = -1;
+				return (float)Math.Sqrt(x * x + y * y + z * z);
+			}
 		}
 
 		private void SelectClosestPointToMouse(Event current)
@@ -375,7 +466,7 @@ namespace BezierCurveZ
 			{
 				Vector3 point = curve.Points[i];
 				//Skip Control Points while altSelectionMode
-				if ((selectControlPointsOnly && curve.IsControlPoint(i)) || (currentInternalTool == Tool.Rotate && !curve.IsControlPoint(i)))
+				if ((selectHandlesOnly && curve.IsControlPoint(i)) || (currentInternalTool == Tool.Rotate && !curve.IsControlPoint(i)))
 					continue;
 
 				var dist = HandleUtility.WorldToGUIPoint(targetTransform.TransformPoint(curve.Points[i])).DistanceTo(mousePos);
@@ -418,12 +509,19 @@ namespace BezierCurveZ
 				Vector3 pos = default;
 				if (currentInternalTool == Tool.Move)
 				{
-					pos = Handles.PositionHandle(editedPosition, CurveEditorTransformOrientation.rotation);
+					if (!current.shift)
+					{
+						pos = Handles.PositionHandle(editedPosition, CurveEditorTransformOrientation.rotation);
+						SnapPointToCurvePoints(ref pos, closestIndex);
+					}
+					else
+						pos = Handles.FreeMoveHandle(editedPosition, CurveEditorTransformOrientation.rotation, HandleUtility.GetHandleSize(editedPosition) * .2f, Vector3.one * .2f, Handles.RectangleHandleCap);
 
 					if (EditorGUI.EndChangeCheck())
 					{
 						Undo.RecordObject(targetObject, "Point position changed");
 						curve.SetPoint(closestIndex, targetTransform.InverseTransformPoint(pos));
+						editedPosition = pos;
 					}
 				}
 				else if (currentInternalTool == Tool.Rotate && curve.IsControlPoint(closestIndex))

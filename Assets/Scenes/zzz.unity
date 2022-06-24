@@ -283,43 +283,43 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   curve:
     points:
-    - point: {x: 0, y: 0, z: 0}
+    - point: {x: 0, y: 0.00001013279, z: -0.0044721365}
       angle: 92.36628
       mode: 2
       type: 0
-    - point: {x: 1, y: 0, z: 0}
+    - point: {x: 1.0182785, y: 0.00001013279, z: 0.025014997}
       angle: 0
       mode: 2
       type: 1
-    - point: {x: 1, y: 3, z: 0}
+    - point: {x: 0.99274397, y: 3, z: 0.009890318}
       angle: 0
       mode: 2
       type: 2
-    - point: {x: 0, y: 3, z: 0}
+    - point: {x: 0, y: 3, z: 0.009890318}
       angle: 267.90363
       mode: 2
       type: 0
-    - point: {x: -1, y: 3, z: 0}
+    - point: {x: -0.99274397, y: 3, z: 0.009890318}
       angle: 0
       mode: 2
       type: 1
-    - point: {x: -1, y: 3, z: 4}
+    - point: {x: -0.99646187, y: 3, z: 3.9957054}
       angle: 0
       mode: 2
       type: 2
-    - point: {x: 0, y: 3, z: 4}
+    - point: {x: 0, y: 3, z: 3.9957054}
       angle: 269.95013
       mode: 2
       type: 0
-    - point: {x: 1, y: 3, z: 4}
+    - point: {x: 0.99646246, y: 3, z: 3.9957054}
       angle: 0
       mode: 2
       type: 1
-    - point: {x: -0.36773145, y: 0, z: 3.5743227}
+    - point: {x: 1.0182785, y: 0.00001013279, z: 3.994009}
       angle: 0
       mode: 2
       type: 2
-    - point: {x: 2.431605, y: 0, z: 4.1924567}
+    - point: {x: 0, y: 0.00001013279, z: 3.994009}
       angle: 293.42798
       mode: 2
       type: 0
@@ -328,23 +328,35 @@ MonoBehaviour:
     _maxAngleError: 1.92
   anotherCurve:
     points:
-    - point: {x: -0.5548982, y: 0, z: 0.62654305}
-      angle: 355.09943
+    - point: {x: -1.4878793, y: 0, z: -0.4289434}
+      angle: 0
       mode: 2
       type: 0
-    - point: {x: 3.928708, y: 0, z: -1.4412924}
+    - point: {x: -2.4985156, y: -0.008466154, z: -0.40867567}
       angle: 0
       mode: 2
       type: 1
-    - point: {x: 0.403166, y: 0, z: 3.0164697}
+    - point: {x: -1.5496686, y: 0.000014781952, z: 0.8770652}
       angle: 0
       mode: 2
       type: 2
-    - point: {x: 0.58687353, y: 0, z: 0.020510077}
-      angle: 357.916
+    - point: {x: -0.56221604, y: 0, z: 0.38695255}
+      angle: 348.3479
       mode: 2
       type: 0
-    - point: {x: 0.77058107, y: 0, z: -2.9754496}
+    - point: {x: 0.42523652, y: -0.000014781952, z: -0.103159934}
+      angle: 0
+      mode: 2
+      type: 1
+    - point: {x: -0.19661951, y: 0, z: -2.2549586}
+      angle: 0
+      mode: 2
+      type: 2
+    - point: {x: 0.6318182, y: 0, z: -2.2549586}
+      angle: 104.469
+      mode: 2
+      type: 0
+    - point: {x: 1.4602559, y: 0, z: -2.2549586}
       angle: 0
       mode: 2
       type: 1
@@ -353,31 +365,55 @@ MonoBehaviour:
       mode: 2
       type: 2
     - point: {x: 1.3890525, y: 0.8719882, z: -0.5320941}
-      angle: 346.9243
+      angle: 81.15162
       mode: 2
       type: 0
     - point: {x: 1.8188733, y: 1.5573173, z: 0.12670395}
       angle: 0
       mode: 2
       type: 1
-    - point: {x: 1.211277, y: 1.935996, z: 0.68504906}
+    - point: {x: 1.2280349, y: 1.935996, z: 0.590209}
       angle: 0
       mode: 2
       type: 2
     - point: {x: 0.7457492, y: 1.935996, z: 0.549289}
-      angle: 30.059254
+      angle: 21.903852
       mode: 2
       type: 0
-    - point: {x: -0.0007522702, y: 1.935996, z: 0.33158967}
+    - point: {x: 0.2634635, y: 1.935996, z: 0.50836897}
       angle: 0
       mode: 2
       type: 1
-    - point: {x: -1.0051388, y: 1.935996, z: -2.0956454}
+    - point: {x: 0.64310944, y: 1.935996, z: -2.123611}
       angle: 0
       mode: 2
       type: 2
-    - point: {x: 1.809092, y: 1.935996, z: -1.0430012}
-      angle: 23.720598
+    - point: {x: 1.9693483, y: 1.935996, z: -1.2806693}
+      angle: 4.359339
+      mode: 2
+      type: 0
+    - point: {x: 3.295587, y: 1.935996, z: -0.4377277}
+      angle: 0
+      mode: 2
+      type: 1
+    - point: {x: 1.5937644, y: -0.0000014305115, z: -0.20951939}
+      angle: 0
+      mode: 2
+      type: 2
+    - point: {x: 1.7574089, y: -0.0000014305115, z: 0.43151778}
+      angle: 0
+      mode: 2
+      type: 0
+    - point: {x: 1.9210539, y: -0.0000014305115, z: 1.0725548}
+      angle: 0
+      mode: 2
+      type: 1
+    - point: {x: 0.22447073, y: -0.0000047683716, z: 1.7313311}
+      angle: 0
+      mode: 2
+      type: 2
+    - point: {x: 0.27566683, y: -0.0000047683716, z: -0.45868677}
+      angle: 0
       mode: 2
       type: 0
     _isClosed: 0
