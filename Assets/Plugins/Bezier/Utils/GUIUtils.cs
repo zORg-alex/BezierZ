@@ -20,12 +20,6 @@ namespace Utility.Editor {
 
 		public static void DrawCircle(Vector3 center, Vector3 normal, float radius, bool filled = false, int quality = 12, Vector3 startFrom = default)
 		{
-			var m = Handles.matrix;
-			//Handles.matrix = targetTransform.localToWorldMatrix;
-			Handles.matrix = Matrix4x4.identity;
-			var c = Handles.color;
-			Handles.color = Color.white.MultiplyAlpha(.66f);
-
 			if (startFrom == default) startFrom = Vector3.up;
 			Vector3 from = Vector3.Cross(normal, Vector3.Cross(normal, startFrom)).normalized;
 			Quaternion q = Quaternion.AngleAxis(360f / quality, normal);
@@ -43,33 +37,19 @@ namespace Utility.Editor {
 			{
 				Handles.DrawAAPolyLine(points);
 			}
-
-			Handles.matrix = m;
-			Handles.color = c;
-
 		}
 
 		public static void DrawRectangle(Vector3 position, Quaternion rotation, Vector2 size)
 		{
-			var m = Handles.matrix;
-			//Handles.matrix = targetTransform.localToWorldMatrix;
-			Handles.matrix = Matrix4x4.identity;
-			var c = Handles.color;
-			Handles.color = Color.white.MultiplyAlpha(.66f);
-
 			Vector3 vector = rotation * new Vector3(size.x, 0f, 0f);
 			Vector3 vector2 = rotation * new Vector3(0f, size.y, 0f);
-			Vector3[] s_RectangleHandlePointsCache = new Vector3[5];
-			s_RectangleHandlePointsCache[0] = position + vector + vector2;
-			s_RectangleHandlePointsCache[1] = position + vector - vector2;
-			s_RectangleHandlePointsCache[2] = position - vector - vector2;
-			s_RectangleHandlePointsCache[3] = position - vector + vector2;
-			s_RectangleHandlePointsCache[4] = position + vector + vector2;
-			Handles.DrawAAPolyLine(s_RectangleHandlePointsCache);
-
-			Handles.matrix = m;
-			Handles.color = c;
-
+			Vector3[] points = new Vector3[5];
+			points[0] = position + vector + vector2;
+			points[1] = position + vector - vector2;
+			points[2] = position - vector - vector2;
+			points[3] = position - vector + vector2;
+			points[4] = position + vector + vector2;
+			Handles.DrawAAPolyLine(points);
 		}
 	}
 }
