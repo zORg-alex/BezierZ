@@ -497,10 +497,16 @@ namespace BezierCurveZ
 			{
 				var globalPointPos = transform(curve.Points[i]);
 				bool isControlPoint = curve.IsControlPoint(i);
-				var dir = isControlPoint ? getHandleFromDirection(i) : Vector3.up;
-				var normal = isControlPoint ? -Camera.current.transform.forward : Vector3.Cross(dir, Vector3.Cross(dir, globalPointPos - Camera.current.transform.position)).normalized;
-				GUIUtils.DrawCircle(globalPointPos, normal, .2f * HandleUtility.GetHandleSize(globalPointPos),
-					false, isControlPoint ? 12 : 4, dir);
+				float size = HandleUtility.GetHandleSize(globalPointPos) * (isControlPoint ? .2f : .1f);
+				var segInd = curve.GetSegmentIndex(i);
+
+				if (isControlPoint)
+					GUIUtils.DrawCircle(globalPointPos, Camera.current.transform.position - globalPointPos, size);
+				else
+				{
+					float time = curve.Points[i].type == Curve.BezierPoint.Type.RightHandle ? 0f : 1f;
+					GUIUtils.DrawRectangle(globalPointPos, Quaternion.LookRotation(Camera.current.transform.position - globalPointPos, curve.GetTangent(segInd, time)), Vector2.one * size);
+				}
 			}
 
 			//Draw tool
