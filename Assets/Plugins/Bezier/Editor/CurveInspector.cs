@@ -497,11 +497,11 @@ namespace BezierCurveZ
 			{
 				var globalPointPos = transform(curve.Points[i]);
 				bool isControlPoint = curve.IsControlPoint(i);
-				float size = HandleUtility.GetHandleSize(globalPointPos) * (isControlPoint ? .2f : .1f);
+				float size = HandleUtility.GetHandleSize(globalPointPos) * (isControlPoint ? .2f : .15f);
 				var segInd = curve.GetSegmentIndex(i);
 
 				if (isControlPoint)
-					GUIUtils.DrawCircle(globalPointPos, Camera.current.transform.position - globalPointPos, size);
+					GUIUtils.DrawCircle(globalPointPos, (Camera.current.transform.position - globalPointPos).normalized, size);
 				else
 				{
 					float time = curve.Points[i].type == Curve.BezierPoint.Type.RightHandle ? 0f : 1f;

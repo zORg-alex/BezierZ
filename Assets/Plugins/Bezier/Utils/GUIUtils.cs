@@ -26,10 +26,8 @@ namespace Utility.Editor {
 			var c = Handles.color;
 			Handles.color = Color.white.MultiplyAlpha(.66f);
 
-			normal = normal.normalized;
-
 			if (startFrom == default) startFrom = Vector3.up;
-			Vector3 from = Vector3.Cross(normal, Vector3.Cross(normal, startFrom));
+			Vector3 from = Vector3.Cross(normal, Vector3.Cross(normal, startFrom)).normalized;
 			Quaternion q = Quaternion.AngleAxis(360f / quality, normal);
 			var points = new Vector3[quality + 1];
 			for (int i = 0; i <= quality; i++)
