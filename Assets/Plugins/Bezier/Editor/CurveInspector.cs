@@ -486,12 +486,6 @@ namespace BezierCurveZ
 			var c = Handles.color;
 			Handles.color = Color.white.MultiplyAlpha(.66f);
 
-			//Draw GUI
-			Handles.BeginGUI();
-			GUI.Label(new Rect(current.mousePosition, new Vector2(200, 22)), "hotControl " + GUIUtility.hotControl);
-
-			Handles.EndGUI();
-
 			//Draw points
 			for (int i = 0; i < curve.Points.Count; i++)
 			{
@@ -505,7 +499,9 @@ namespace BezierCurveZ
 				else
 				{
 					float time = curve.Points[i].type == Curve.BezierPoint.Type.RightHandle ? 0f : 1f;
-					GUIUtils.DrawRectangle(globalPointPos, Quaternion.LookRotation(Camera.current.transform.position - globalPointPos, curve.GetTangent(segInd, time)), Vector2.one * size);
+					GUIUtils.DrawRectangle(globalPointPos,
+						Quaternion.LookRotation(Camera.current.transform.position - globalPointPos, targetTransform.TransformDirection(curve.GetTangent(segInd, time))),
+						Vector2.one * size);
 				}
 			}
 

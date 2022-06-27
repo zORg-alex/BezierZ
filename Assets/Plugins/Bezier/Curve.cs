@@ -67,8 +67,9 @@ namespace BezierCurveZ
 
 		public int GetPointIndex(int segmentIndex) =>
 			segmentIndex.Min(SegmentCount) * 3 + (IsClosed ? 1 : 0);
-		public int GetSegmentIndex(int index) =>
-			((IsClosed? index - 1 : index) / 3f).FloorToInt();
+		public int GetSegmentIndex(int index) => IsClosed ?
+			((SegmentCount - 1 + index) / 3f).FloorToInt() % (SegmentCount - 1) :
+			((SegmentCount + index) / 3f).FloorToInt() % SegmentCount;
 		public bool IsControlPoint(int index) =>
 			index < 0 || index >= points.Count ? false :
 			points[index].type == BezierPoint.Type.Control;
@@ -392,9 +393,10 @@ namespace BezierCurveZ
 		public Vector3 GetTangent(int segmentIndex, float time)
 		{
 			Update();
+			int index = GetPointIndex(segmentIndex);
 			return segmentIndex < SegmentCount ?
-			CurveUtils.EvaluateDerivative(time, points[segmentIndex * 3], points[segmentIndex * 3 + 1], points[segmentIndex * 3 + 2], points[segmentIndex * 3 + 3]) :
-			CurveUtils.EvaluateDerivative(1, points[segmentIndex * 3 - 3], points[segmentIndex * 3 - 2], points[segmentIndex * 3 - 1], points[segmentIndex * 3]);
+			CurveUtils.EvaluateDerivative(time, points[index], points[index + 1], points[index + 2], points[index + 3]) :
+			CurveUtils.EvaluateDerivative(1, points[index - 3], points[index - 2], points[index - 1], points[index]);
 		}
 
 		/// <summary>
