@@ -18,7 +18,7 @@ namespace Utility.Editor {
 			}
 		}
 
-		public static void DrawCircle(Vector3 center, Vector3 normal, float radius, bool filled = false, int quality = 12, Vector3 startFrom = default)
+		public static void DrawCircle(Vector3 center, Vector3 normal, float radius, bool filled = false, float width = 1f, int quality = 12, Vector3 startFrom = default)
 		{
 			if (startFrom == default) startFrom = Vector3.up;
 			Vector3 from = Vector3.Cross(normal, Vector3.Cross(normal, startFrom)).normalized;
@@ -35,11 +35,11 @@ namespace Utility.Editor {
 			}
 			else
 			{
-				Handles.DrawAAPolyLine(points);
+				Handles.DrawAAPolyLine(width, points);
 			}
 		}
 
-		public static void DrawRectangle(Vector3 position, Quaternion rotation, Vector2 size)
+		public static void DrawRectangle(Vector3 position, Quaternion rotation, Vector2 size, float width = 1f)
 		{
 			Vector3 vector = rotation * new Vector3(size.x, 0f, 0f);
 			Vector3 vector2 = rotation * new Vector3(0f, size.y, 0f);
@@ -49,7 +49,7 @@ namespace Utility.Editor {
 			points[2] = position - vector - vector2;
 			points[3] = position - vector + vector2;
 			points[4] = position + vector + vector2;
-			Handles.DrawAAPolyLine(points);
+			Handles.DrawAAPolyLine(width, points);
 		}
 	}
 }

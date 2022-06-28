@@ -6,6 +6,7 @@ using UnityEditor.Toolbars;
 using System.Linq;
 using Utility.Editor;
 using UnityEditor.SceneManagement;
+using System.Collections.Generic;
 
 namespace BezierCurveZ
 {
@@ -227,6 +228,9 @@ namespace BezierCurveZ
 		private Vector3 editedPosition;
 		private int closestIndex;
 		private bool sKeyDown;
+		private bool mouse0DragRect;
+		private Vector2 mouse0DownPosition;
+		private List<int> selectedPointIdexes = new List<int>();
 
 		private void OnSceneGUI(SceneView scene)
 		{
@@ -339,6 +343,38 @@ namespace BezierCurveZ
 				}
 			}
 
+			//Selection Rect
+			if (GetMouseDown(0))
+				mouse0DownPosition = current.mousePosition;
+			if (current.type == EventType.MouseDrag && GUIUtility.hotControl == 0 && current.button == 0)
+			{
+				mouse0DragRect = true;
+				SceneView.currentDrawingSceneView.Repaint();
+			}
+			else if (GetMouseUp(0) && mouse0DragRect)
+			{
+				//Finalize Rect Selection
+				mouse0DragRect = false;
+				var d = HandleUtility.GUIPointToScreenPixelCoordinate(mouse0DownPosition);
+				var u = HandleUtility.GUIPointToScreenPixelCoordinate(current.mousePosition);
+				var x0 = d.x.Min(u.x);
+				var x1 = d.x.Max(u.x);
+				var y0 = d.y.Min(u.y);
+				var y1 = d.y.Max(u.y);
+
+				var rect = Rect.MinMaxRect(x0,y0, x1, y1);
+
+				selectedPointIdexes.Clear();
+				for (int i = 0; i < curve.Points.Count; i++)
+				{
+					var p = SceneView.currentDrawingSceneView.camera.WorldToScreenPoint(curve.Points[i]);
+					if (rect.Contains(p))
+					{
+						selectedPointIdexes.Add(i);
+					}
+				}
+			}
+
 			//Handle alternative selection mode
 			if (GetKeyDown(KeyCode.C))
 			{
@@ -350,6 +386,7 @@ namespace BezierCurveZ
 			else if (selectHandlesOnly && GetKeyUp(KeyCode.C))
 			{
 				selectHandlesOnly = false;
+				CallSceneRedraw();
 			}
 
 			if (current.type == EventType.MouseMove)
@@ -494,14 +531,15 @@ namespace BezierCurveZ
 				float size = HandleUtility.GetHandleSize(globalPointPos) * (isControlPoint ? .2f : .15f);
 				var segInd = curve.GetSegmentIndex(i);
 
+				var selected = selectedPointIdexes.Contains(i);
 				if (isControlPoint)
-					GUIUtils.DrawCircle(globalPointPos, (Camera.current.transform.position - globalPointPos).normalized, size);
+					GUIUtils.DrawCircle(globalPointPos, (Camera.current.transform.position - globalPointPos).normalized, size, width: selected ? 2f : 1f);
 				else
 				{
 					float time = curve.Points[i].type == Curve.BezierPoint.Type.RightHandle ? 0f : 1f;
 					GUIUtils.DrawRectangle(globalPointPos,
 						Quaternion.LookRotation(Camera.current.transform.position - globalPointPos, targetTransform.TransformDirection(curve.GetTangent(segInd, time))),
-						Vector2.one * size);
+						Vector2.one * size, width: selected ? 2f : 1f);
 				}
 			}
 
@@ -554,6 +592,23 @@ namespace BezierCurveZ
 			{
 				Handles.color = Color.red / 2 + Color.white / 2;
 				Handles.DrawSolidDisc(closestPointToMouseOnCurve, -Camera.current.transform.forward, .1f * HandleUtility.GetHandleSize(closestPointToMouseOnCurve));
+			}
+			var cam = Camera.current;
+			//DrawSelectionRect
+			if (mouse0DragRect)
+			{
+				var mpos = current.mousePosition;
+				var rect = new Vector3[] {
+					HandleUtility.GUIPointToWorldRay(mpos).GetPoint(.1f),
+					HandleUtility.GUIPointToWorldRay(new Vector2(mpos.x, mouse0DownPosition.y)).GetPoint(.1f),
+					HandleUtility.GUIPointToWorldRay(mouse0DownPosition).GetPoint(.1f),
+					HandleUtility.GUIPointToWorldRay(new Vector2(mouse0DownPosition.x, mpos.y)).GetPoint(.1f),
+					HandleUtility.GUIPointToWorldRay(mpos).GetPoint(.1f)
+				};
+				Handles.color = Color.gray / 3;
+				Handles.DrawAAConvexPolygon(rect);
+				Handles.color = Color.gray / 3 + Color.white / 3;
+				Handles.DrawAAPolyLine(rect);
 			}
 
 			Handles.matrix = m;
