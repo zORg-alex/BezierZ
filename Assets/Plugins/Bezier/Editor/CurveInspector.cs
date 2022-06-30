@@ -353,11 +353,18 @@ namespace BezierCurveZ
 			if (GetKeyDown(KeyCode.X))
 			{
 				SelectClosestPointToMouse(current);
-				if (curve.IsControlPoint(closestIndex))
+				if (selectedPointIdexes.Count > 0)
 				{
-					Undo.RecordObject(targetObject, "Delete selected point");
+					Undo.RecordObject(targetObject, "Delete selected points");
+					curve.RemoveMany(selectedPointIdexes);
+					selectedPointIdexes.Clear();
+					SelectClosestPointToMouse(current);
+				}
+				else if (curve.IsControlPoint(closestIndex))
+				{
+					Undo.RecordObject(targetObject, "Delete closest point");
 					curve.RemoveAt(closestIndex);
-					closestIndex = -1;
+					SelectClosestPointToMouse(current);
 				}
 			}
 

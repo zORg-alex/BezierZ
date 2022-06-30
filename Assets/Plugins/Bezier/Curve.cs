@@ -92,7 +92,7 @@ namespace BezierCurveZ
 			else
 			{
 				var controlPoint = points[index].type == BezierPoint.Type.LeftHandle ? points[index + 1] : points[index - 1];
-				var otherHandleIndex = points[index].type == BezierPoint.Type.LeftHandle ? index + 2 : index - 2;
+				var otherHandleIndex = ((points[index].type == BezierPoint.Type.LeftHandle ? index + 2 : index - 2) + points.Count) % points.Count;
 
 				if (controlPoint.mode.HasFlag(BezierPoint.Mode.Automatic))
 				{
@@ -318,6 +318,31 @@ namespace BezierCurveZ
 			_bVersion++;
 		}
 
+		public void RemoveMany(IEnumerable<int> indexes)
+		{
+			foreach (var index in indexes.Where(i=>IsControlPoint(i)).OrderByDescending(i=>i))
+			{
+				if (points.Count < 4)
+				{
+					_bVersion++;
+					return;
+				}
+				else if (index == 0 + (IsClosed ? 1 : 0))
+					points.RemoveRange(0, 3);
+				else if (index == lastPointInd - (IsClosed ? 1 : 0))
+					points.RemoveRange(points.Count + (IsClosed ? -3 : -3), 3);
+				else
+				{
+					//Cancel if not a control point
+					if (!IsControlPoint(index)) return;
+					//First just remove that point
+					points.RemoveRange(index - 1, 3);
+
+				}
+			}
+			_bVersion++;
+		}
+
 		private void ReplaceSegment(int segmentInd, Vector3[] newSegments)
 		{
 			if (newSegments.Length % 3 != 1) return;
@@ -449,6 +474,7 @@ namespace BezierCurveZ
 		{
 			Update();
 			int index = GetPointIndex(segmentIndex);
+			if (SegmentCount == 0) return Vector3.forward;
 			return segmentIndex < SegmentCount ?
 			CurveUtils.EvaluateDerivative(time, points[index], points[index + 1], points[(index + 2)%points.Count], points[(index + 3)%points.Count]) :
 			CurveUtils.EvaluateDerivative(1, points[index - 3], points[index - 2], points[index - 1], points[index]);
@@ -463,6 +489,7 @@ namespace BezierCurveZ
 		public Vector3 GetNormal(int segmentIndex, float time)
 		{
 			Update();
+			if (SegmentCount == 0) return Vector3.right;
 			return segmentIndex < SegmentCount ?
 			CurveUtils.EvaluateHackNormal(time, points[segmentIndex * 3], points[segmentIndex * 3 + 1], points[segmentIndex * 3 + 2], points[segmentIndex * 3 + 3], out _) :
 			CurveUtils.EvaluateHackNormal(1, points[segmentIndex * 3 - 3], points[segmentIndex * 3 - 2], points[segmentIndex * 3 - 1], points[segmentIndex * 3], out _);
