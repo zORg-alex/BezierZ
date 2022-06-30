@@ -68,8 +68,8 @@ namespace BezierCurveZ
 		public int GetPointIndex(int segmentIndex) =>
 			segmentIndex.Min(SegmentCount) * 3 + (IsClosed ? 1 : 0);
 		public int GetSegmentIndex(int index) => IsClosed ?
-			((SegmentCount - 1 + index) / 3f).FloorToInt() % (SegmentCount - 1) :
-			((SegmentCount + index) / 3f).FloorToInt() % SegmentCount;
+			((points.Count + (index - 1)) % points.Count / 3f).FloorToInt() :
+			((points.Count + index) % points.Count / 3f).FloorToInt();
 		public bool IsControlPoint(int index) =>
 			index < 0 || index >= points.Count ? false :
 			points[index].type == BezierPoint.Type.Control;
@@ -138,7 +138,7 @@ namespace BezierCurveZ
 		}
 
 		/// <summary>
-		/// Set point rotation in object-space relative to Vector3.up
+		/// Set point angle in object-space relative to Vector3.up
 		/// </summary>
 		/// <param name="index"></param>
 		/// <param name="rotation"></param>
@@ -158,6 +158,45 @@ namespace BezierCurveZ
 				points[index] = newPoint;
 				_bVersion++;
 			}
+		}
+
+		/// <summary>
+		/// Rotate point angle and handles
+		/// </summary>
+		/// <param name="segmentIndex"></param>
+		/// <param name="deltaRotation"></param>
+		public void RotateCPWithHandles(int segmentIndex, Quaternion deltaRotation)
+		{
+			var deltaEuler = deltaRotation.eulerAngles;
+			var index = GetPointIndex(segmentIndex);
+			var tang = GetTangent(segmentIndex, 0);
+			//Get euler z value from rotation relative default tangent look rotation
+			var pointDefaultRotation = Quaternion.LookRotation(tang);
+			var adjustedRotation = Quaternion.LookRotation(tang, deltaRotation * Vector3.up);
+			var a = (pointDefaultRotation.Inverted() * adjustedRotation).eulerAngles.z;
+			_useRotations = true;
+			var newPoint = points[index].SetRotation(points[index].angle + a);
+			if (!points[index].Equals(newPoint))
+			{
+				points[index] = newPoint;
+				_bVersion++;
+			}
+
+			if (deltaEuler.x == 0 && deltaEuler.y == 0) return;
+
+			//Rotate handles if rotation is other than z azis
+			var point = points[index];
+			if (index > 0)
+			{
+				var leftHandle = points[index - 1];
+				points[index - 1] = leftHandle.SetPosition(point + deltaRotation * (leftHandle - point));
+			}
+			if (index < lastPointInd)
+			{
+				var rightHandle = points[index + 1];
+				points[index + 1] = rightHandle.SetPosition(point + deltaRotation * (rightHandle - point));
+			}
+			_bVersion++;
 		}
 
 		public Quaternion GetCPRotation(int segmentIndex)
@@ -395,7 +434,7 @@ namespace BezierCurveZ
 			Update();
 			int index = GetPointIndex(segmentIndex);
 			return segmentIndex < SegmentCount ?
-			CurveUtils.EvaluateDerivative(time, points[index], points[index + 1], points[index + 2], points[index + 3]) :
+			CurveUtils.EvaluateDerivative(time, points[index], points[index + 1], points[(index + 2)%points.Count], points[(index + 3)%points.Count]) :
 			CurveUtils.EvaluateDerivative(1, points[index - 3], points[index - 2], points[index - 1], points[index]);
 		}
 

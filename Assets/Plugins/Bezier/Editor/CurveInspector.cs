@@ -116,7 +116,7 @@ namespace BezierCurveZ
 					SceneView.duringSceneGui -= _OnScenePreviewInternal;
 					SceneView.duringSceneGui += _OnScenePreviewInternal;
 					Selection.selectionChanged = UnsubscribeSetUpPreview;
-					CallSceneRedraw();
+					CallAllSceneViewRepaint();
 				}
 			}
 			else if (isMouseOver)
@@ -124,7 +124,7 @@ namespace BezierCurveZ
 				isMouseOver = false;
 				if (!previewAlways)
 					SceneView.duringSceneGui -= _OnScenePreviewInternal;
-				CallSceneRedraw();
+				CallAllSceneViewRepaint();
 			}
 
 			void UnsubscribeSetUpPreview()
@@ -142,7 +142,7 @@ namespace BezierCurveZ
 			EditorSceneManager.sceneClosed += FinishEditor;
 			AssemblyReloadEvents.beforeAssemblyReload += FinishEditor;
 			SceneView.duringSceneGui += OnSceneGUI;
-			CallSceneRedraw();
+			CallAllSceneViewRepaint();
 			currentlyEditedPropertyDrawer = this;
 			CurveEditorOverlay.Show();
 			lastTool = Tools.current;
@@ -158,7 +158,7 @@ namespace BezierCurveZ
 			EditorSceneManager.sceneClosed += FinishEditor;
 			AssemblyReloadEvents.beforeAssemblyReload -= FinishEditor;
 			SceneView.duringSceneGui -= OnSceneGUI;
-			CallSceneRedraw();
+			CallAllSceneViewRepaint();
 			currentlyEditedPropertyDrawer = null;
 			CurveEditorOverlay.Hide();
 			Tools.current = lastTool;
@@ -185,7 +185,7 @@ namespace BezierCurveZ
 			DrawCurveAndPoints(isMouseOver);
 		}
 
-		private void CallSceneRedraw()
+		private void CallAllSceneViewRepaint()
 		{
 			foreach (var scene in SceneView.sceneViews)
 				((SceneView)scene).Repaint();
@@ -209,7 +209,7 @@ namespace BezierCurveZ
 			{
 				Undo.RecordObject(targetObject, "Curve Is Closed changed");
 				curve.CloseCurve(closed);
-				CallSceneRedraw();
+				CallAllSceneViewRepaint();
 			}
 		}
 
@@ -224,13 +224,23 @@ namespace BezierCurveZ
 		private int controlID;
 		private Event current;
 		private bool selectHandlesOnly;
+		/// <summary>
+		/// Hovered point
+		/// </summary>
 		private Curve.BezierPoint closestPoint;
+		/// <summary>
+		/// World position of <see cref="closestPoint"/>
+		/// </summary>
 		private Vector3 editedPosition;
+		/// <summary>
+		/// Index of <see cref="closestPoint"/>
+		/// </summary>
 		private int closestIndex;
 		private bool sKeyDown;
 		private bool mouse0DragRect;
 		private Vector2 mouse0DownPosition;
 		private List<int> selectedPointIdexes = new List<int>();
+		private Quaternion toolRotation;
 
 		private void OnSceneGUI(SceneView scene)
 		{
@@ -251,11 +261,15 @@ namespace BezierCurveZ
 
 		private void Input()
 		{
-			if (Tools.current != Tool.None && (Tools.current == Tool.Move || Tools.current == Tool.Rotate))
+			if (Tools.current == Tool.Move || Tools.current == Tool.Rotate)
 			{
 				currentInternalTool = Tools.current;
 				Tools.current = Tool.None;
 			}
+
+
+			if (current.type == EventType.Repaint || current.type == EventType.Layout)
+				return;
 
 			//ControlPoint mode selection Dropdown menu
 			#region CP Mode Dropdown
@@ -344,37 +358,43 @@ namespace BezierCurveZ
 			}
 
 			//Selection Rect
-			if (GetMouseDown(0))
+			if (GetMouseDown(0) && GUIUtility.hotControl == 0)
+			{
 				mouse0DownPosition = current.mousePosition;
+			}
 			if (current.type == EventType.MouseDrag && GUIUtility.hotControl == 0 && current.button == 0)
 			{
 				mouse0DragRect = true;
-				SceneView.currentDrawingSceneView.Repaint();
-			}
-			else if (GetMouseUp(0) && mouse0DragRect)
-			{
-				//Finalize Rect Selection
-				mouse0DragRect = false;
-				var d = HandleUtility.GUIPointToScreenPixelCoordinate(mouse0DownPosition);
-				var u = HandleUtility.GUIPointToScreenPixelCoordinate(current.mousePosition);
-				var x0 = d.x.Min(u.x);
-				var x1 = d.x.Max(u.x);
-				var y0 = d.y.Min(u.y);
-				var y1 = d.y.Max(u.y);
-
-				var rect = Rect.MinMaxRect(x0,y0, x1, y1);
+				CallAllSceneViewRepaint();
 
 				selectedPointIdexes.Clear();
+				Rect rect = GetRectFromTwoPonts(mouse0DownPosition, current.mousePosition);
 				for (int i = 0; i < curve.Points.Count; i++)
 				{
-					var p = SceneView.currentDrawingSceneView.camera.WorldToScreenPoint(curve.Points[i]);
-					if (rect.Contains(p))
+					Curve.BezierPoint point = curve.Points[i];
+					if (point.type != Curve.BezierPoint.Type.Control) continue;
+
+					if (rect.Contains(SceneView.currentDrawingSceneView.camera.WorldToScreenPoint(point)))
 					{
 						selectedPointIdexes.Add(i);
 					}
 				}
 			}
+			else if (GetMouseUp(0) && mouse0DragRect && GUIUtility.hotControl == 0)
+			{
+				mouse0DragRect = false;
+				CallAllSceneViewRepaint();
+			}
+			else if (GetMouseUp(0) && !mouse0DragRect)
+			{
+				selectedPointIdexes.Clear();
+				CallAllSceneViewRepaint();
+			}
 
+			//Cancel if any rotation
+			else if (GetMouseUp(0))
+				toolRotation = GetToolRotation();
+			
 			//Handle alternative selection mode
 			if (GetKeyDown(KeyCode.C))
 			{
@@ -386,13 +406,14 @@ namespace BezierCurveZ
 			else if (selectHandlesOnly && GetKeyUp(KeyCode.C))
 			{
 				selectHandlesOnly = false;
-				CallSceneRedraw();
+				CallAllSceneViewRepaint();
 			}
 
 			if (current.type == EventType.MouseMove)
 			{
 				//Trigger repainting if it is needed by tool
-				if (cuttingInitialized) SceneView.currentDrawingSceneView.Repaint();
+				if (cuttingInitialized)
+					CallAllSceneViewRepaint();
 
 				closestPointToMouseOnCurve = HandleUtility.ClosestPointToPolyLine(curve.Vertices.SelectArray(v => targetTransform.TransformPoint(v)));
 
@@ -406,6 +427,19 @@ namespace BezierCurveZ
 			bool GetKeyUp(KeyCode key) => current.type == EventType.KeyUp && current.keyCode == key;
 			bool GetMouseDown(int button) => current.type == EventType.MouseDown && current.button == button;
 			bool GetMouseUp(int button) => current.type == EventType.MouseUp && current.button == button;
+		}
+
+		private Rect GetRectFromTwoPonts(Vector2 a, Vector2 b)
+		{
+			var aa = HandleUtility.GUIPointToScreenPixelCoordinate(a);
+			var u = HandleUtility.GUIPointToScreenPixelCoordinate(b);
+			var x0 = aa.x.Min(u.x);
+			var x1 = aa.x.Max(u.x);
+			var y0 = aa.y.Min(u.y);
+			var y1 = aa.y.Max(u.y);
+
+			var rect = Rect.MinMaxRect(x0, y0, x1, y1);
+			return rect;
 		}
 
 		private void SnapPointToCurvePoints(ref Vector3 pos, int index)
@@ -511,6 +545,7 @@ namespace BezierCurveZ
 			}
 			closestPoint = curve.Points[closestIndex];
 			editedPosition = targetTransform.TransformPoint(closestPoint.point);
+			toolRotation = GetToolRotation();
 			if (minDist > 100)
 				closestIndex = -1;
 		}
@@ -522,6 +557,7 @@ namespace BezierCurveZ
 			Handles.matrix = Matrix4x4.identity;
 			var c = Handles.color;
 			Handles.color = Color.white.MultiplyAlpha(.66f);
+			var cam = Camera.current;
 
 			//Draw points
 			for (int i = 0; i < curve.Points.Count; i++)
@@ -532,14 +568,21 @@ namespace BezierCurveZ
 				var segInd = curve.GetSegmentIndex(i);
 
 				var selected = selectedPointIdexes.Contains(i);
+				float width = selected ? 3f : 1f;
+				Handles.color = selected ? Color.white : Color.white.MultiplyAlpha(.66f);
+
 				if (isControlPoint)
-					GUIUtils.DrawCircle(globalPointPos, (Camera.current.transform.position - globalPointPos).normalized, size, width: selected ? 2f : 1f);
+				{
+					GUIUtils.DrawCircle(globalPointPos, (cam.transform.position - globalPointPos).normalized, size, width: width);
+					Handles.DrawAAPolyLine(globalPointPos, globalPointPos + transformDirection(curve.GetRotation(segInd, 0f) * Vector3.up) * .2f);
+					Handles.Label(globalPointPos, $"{i}, a={curve.Points[i].angle}");
+				}
 				else
 				{
 					float time = curve.Points[i].type == Curve.BezierPoint.Type.RightHandle ? 0f : 1f;
 					GUIUtils.DrawRectangle(globalPointPos,
-						Quaternion.LookRotation(Camera.current.transform.position - globalPointPos, targetTransform.TransformDirection(curve.GetTangent(segInd, time))),
-						Vector2.one * size, width: selected ? 2f : 1f);
+						Quaternion.LookRotation(cam.transform.position - globalPointPos, transformDirection(curve.GetTangent(segInd, time))),
+						Vector2.one * size, width);
 				}
 			}
 
@@ -560,29 +603,51 @@ namespace BezierCurveZ
 					if (EditorGUI.EndChangeCheck())
 					{
 						Undo.RecordObject(targetObject, "Point position changed");
-						curve.SetPoint(closestIndex, targetTransform.InverseTransformPoint(pos));
+						if (selectedPointIdexes.Count == 0)
+						{
+							curve.SetPoint(closestIndex, targetTransform.InverseTransformPoint(pos));
+						}
+						else
+						{
+							var delta = targetTransform.InverseTransformPoint(pos) - curve.Points[closestIndex];
+							foreach (var ind in selectedPointIdexes)
+							{
+								var point = curve.Points[ind];
+								curve.SetPoint(ind, point + delta);
+							}
+						}
 						editedPosition = pos;
 					}
 				}
 				else if (currentInternalTool == Tool.Rotate && curve.IsControlPoint(closestIndex))
 				{
-					Quaternion worldRotation = curve.GetCPRotation(curve.GetSegmentIndex(closestIndex)) * targetTransform.rotation;
+					if (selectedPointIdexes.Count == 0)
+						toolRotation = curve.GetCPRotation(curve.GetSegmentIndex(closestIndex)) * targetTransform.rotation;
 					float handleSize = HandleUtility.GetHandleSize(editedPosition);
 
 					//var rot = AxisRotation.Do(controlID, worldRotation, editedPosition, Vector3.f, handleSize);
-					var rot = Handles.RotationHandle(worldRotation, editedPosition);
+					var rot = Handles.DoRotationHandle(toolRotation, editedPosition);
 
 					Handles.color = Color.yellow;
-					Handles.DrawAAPolyLine(editedPosition, editedPosition + worldRotation * Vector3.up * handleSize);
-
-					//Handles.BeginGUI();
-					//GUI.Label(new Rect(current.mousePosition + Vector2.up * 30, new Vector2(100, 20)), curve.Points[closestIndex].angle.ToString());
-					//Handles.EndGUI();
+					Handles.DrawAAPolyLine(editedPosition, editedPosition + toolRotation * Vector3.up * handleSize);
 
 					if (EditorGUI.EndChangeCheck())
 					{
 						Undo.RecordObject(targetObject, "Point rotation changed");
-						curve.SetCPRotation(curve.GetSegmentIndex(closestIndex), rot * targetTransform.rotation.Inverted());
+						if (selectedPointIdexes.Count == 0)
+							curve.RotateCPWithHandles(curve.GetSegmentIndex(closestIndex), rot * toolRotation.Inverted());
+						else
+						{
+							var delta = rot * toolRotation.Inverted();
+							foreach (var ind in selectedPointIdexes)
+							{
+								var rotatedRelativeEditedPoint = delta * (transform(curve.Points[ind]) - editedPosition);
+								curve.SetPoint(ind, closestPoint + rotatedRelativeEditedPoint);
+								int segmentIndex = curve.GetSegmentIndex(ind);
+								curve.RotateCPWithHandles(segmentIndex, delta);
+							}
+							toolRotation = rot;
+						}
 					}
 				}
 			}
@@ -591,9 +656,9 @@ namespace BezierCurveZ
 			if (cuttingInitialized)
 			{
 				Handles.color = Color.red / 2 + Color.white / 2;
-				Handles.DrawSolidDisc(closestPointToMouseOnCurve, -Camera.current.transform.forward, .1f * HandleUtility.GetHandleSize(closestPointToMouseOnCurve));
+				Handles.DrawSolidDisc(closestPointToMouseOnCurve, -cam.transform.forward, .1f * HandleUtility.GetHandleSize(closestPointToMouseOnCurve));
 			}
-			var cam = Camera.current;
+
 			//DrawSelectionRect
 			if (mouse0DragRect)
 			{
@@ -617,10 +682,7 @@ namespace BezierCurveZ
 			//Local methods
 
 			Vector3 transform(Vector3 pos) => targetTransform.TransformPoint(pos);
-
-			Vector3 getHandleFromDirection(int i) =>
-				curve.Points[i].type == Curve.BezierPoint.Type.LeftHandle ? targetTransform.TransformDirection(curve.Points[i+1] - curve.Points[i]) :
-				curve.Points[i].type == Curve.BezierPoint.Type.RightHandle ? targetTransform.TransformDirection(curve.Points[i-1] - curve.Points[i]) : default;
+			Vector3 transformDirection(Vector3 normal) => targetTransform.TransformDirection(normal);
 		}
 
 		private void DrawCurveAndPoints(bool Highlight = false)
@@ -646,5 +708,13 @@ namespace BezierCurveZ
 			Handles.matrix = m;
 			Handles.color = c;
 		}
+
+		private Quaternion GetToolRotation() => Tools.pivotRotation switch
+		{
+			PivotRotation.Global => Tools.handleRotation,
+			PivotRotation.Local => targetTransform.rotation * curve.GetCPRotation(curve.GetSegmentIndex(closestIndex)),
+			_ => Quaternion.identity
+		};
+
 	}
 }
