@@ -19,13 +19,13 @@ namespace BezierCurveZ
 			public float angle;
 
 			[Flags]
-			public enum Mode { None = 0, Linear = 1, Automatic = 2, Manual = 4, Proportional = Automatic | Manual }
+			public enum Mode { None = 0, Zero = 1, Automatic = 2, Manual = 4, Proportional = Automatic | Manual }
 			public Mode mode;
 			public static Mode[] AllModes = new Mode[]
 			{
 				Mode.Automatic,
 				Mode.Manual,
-				Mode.Linear,
+				Mode.Zero,
 				Mode.Proportional
 			};
 

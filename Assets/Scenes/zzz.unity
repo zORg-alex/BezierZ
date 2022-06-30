@@ -328,44 +328,48 @@ MonoBehaviour:
     _maxAngleError: 1.92
   anotherCurve:
     points:
-    - point: {x: -1.4878793, y: 0, z: -0.4289434}
-      angle: 4.7549434
-      mode: 2
-      type: 0
-    - point: {x: -2.0472612, y: -0.008466154, z: -0.44374633}
-      angle: 0
-      mode: 2
-      type: 1
-    - point: {x: -2.0472612, y: -0.008466154, z: 0.5991021}
+    - point: {x: -1.0692482, y: 0.0000053304866, z: 0.019834042}
       angle: 0
       mode: 6
       type: 2
-    - point: {x: -0.97612095, y: 0, z: 0.5277144}
-      angle: 5.798612
+    - point: {x: -1.9773415, y: 0.000009059906, z: 0.026164293}
+      angle: 57603.72
       mode: 6
       type: 0
-    - point: {x: 0.8291608, y: 0.014268713, z: 0.40739873}
+    - point: {x: -3.0487847, y: 0.000013460178, z: 0.033633232}
       angle: 0
       mode: 6
       type: 1
-    - point: {x: -0.19661951, y: 0, z: -2.2549586}
+    - point: {x: -3.050034, y: 0.08110938, z: 2.0020602}
       angle: 0
-      mode: 2
+      mode: 6
+      type: 2
+    - point: {x: -2.0126493, y: 0.0000021457672, z: 2.0087345}
+      angle: 722156.56
+      mode: 6
+      type: 0
+    - point: {x: 0.7794697, y: -0.21829778, z: 2.0266974}
+      angle: 0
+      mode: 6
+      type: 1
+    - point: {x: -0.70712316, y: -0.036296315, z: -2.229164}
+      angle: 0
+      mode: 6
       type: 2
     - point: {x: 0.6318182, y: 0, z: -2.2549586}
-      angle: 355.73666
-      mode: 2
+      angle: 616675.44
+      mode: 6
       type: 0
-    - point: {x: 1.4602559, y: 0, z: -2.2549586}
+    - point: {x: 1.4853675, y: 0.023138205, z: -2.2714024}
       angle: 0
-      mode: 2
+      mode: 6
       type: 1
     - point: {x: 1.3890525, y: 0.36105072, z: -1.2649052}
       angle: 0
       mode: 2
       type: 2
     - point: {x: 1.3890525, y: 0.8719882, z: -0.5320941}
-      angle: 0
+      angle: 136461.73
       mode: 2
       type: 0
     - point: {x: 1.3890526, y: 1.2504613, z: 0.010730505}
@@ -377,7 +381,7 @@ MonoBehaviour:
       mode: 2
       type: 2
     - point: {x: 1.3890526, y: 1.935996, z: 0.549289}
-      angle: 0
+      angle: 3.6056476
       mode: 2
       type: 0
     - point: {x: 1.3890526, y: 1.935996, z: 0.9626564}
@@ -396,39 +400,43 @@ MonoBehaviour:
       angle: 0
       mode: 2
       type: 1
-    - point: {x: 0.39567924, y: 1.935996, z: -1.4620969}
+    - point: {x: 0.7457492, y: 1.935996, z: -1.4142331}
       angle: 0
       mode: 2
       type: 2
-    - point: {x: 1.1961764, y: 1.935996, z: -1.4184222}
-      angle: 4.359339
+    - point: {x: 1.3890526, y: 1.935996, z: -1.4184222}
+      angle: 27725.375
       mode: 2
       type: 0
-    - point: {x: 1.996673, y: 1.935996, z: -1.3747475}
+    - point: {x: 2.032356, y: 1.935996, z: -1.4226114}
       angle: 0
       mode: 2
       type: 1
-    - point: {x: 1.7574089, y: -0.0000014305115, z: -0.5651858}
+    - point: {x: 1.7646394, y: 0.62566316, z: -0.5268874}
       angle: 0
       mode: 2
       type: 2
-    - point: {x: 1.7574089, y: -0.0000014305115, z: 0.43151778}
+    - point: {x: 1.7574089, y: 0.62566316, z: 0.46726596}
       angle: 0
       mode: 2
       type: 0
-    - point: {x: 1.7574089, y: -0.0000014305115, z: 1.4282213}
+    - point: {x: 1.7501783, y: 0.62566316, z: 1.4614193}
       angle: 0
       mode: 2
       type: 1
-    - point: {x: 0.55798554, y: -0.0000047683716, z: 1.4320678}
+    - point: {x: 0.21040751, y: 1.008708, z: 1.2527459}
       angle: 0
-      mode: 2
+      mode: 6
       type: 2
-    - point: {x: 0.55798554, y: -0.0000047683716, z: 0.5770276}
-      angle: 0
-      mode: 2
+    - point: {x: 0.19834208, y: 0.62566316, z: 0.46726596}
+      angle: 26644.055
+      mode: 6
       type: 0
-    _isClosed: 0
+    - point: {x: 0.1911131, y: 0.39616442, z: -0.0033489466}
+      angle: 0
+      mode: 6
+      type: 1
+    _isClosed: 1
     _minSamplingDistance: 0
     _maxAngleError: 0
   useRMFrames: 0

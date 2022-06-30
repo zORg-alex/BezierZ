@@ -236,6 +236,8 @@ namespace BezierCurveZ
 		/// Index of <see cref="closestPoint"/>
 		/// </summary>
 		private int closestIndex;
+		private int closestControlIndex;
+		private int closestHandleIndex;
 		private bool sKeyDown;
 		private bool mouse0DragRect;
 		private Vector2 mouse0DownPosition;
@@ -271,13 +273,6 @@ namespace BezierCurveZ
 			if (current.type == EventType.Repaint || current.type == EventType.Layout)
 				return;
 
-			//ControlPoint mode selection Dropdown menu
-			#region CP Mode Dropdown
-			//Cancel Dropdown
-			if (drawContextMenu && (current.type == EventType.Layout || GetMouseDown(0) || GetKeyDown(KeyCode.Escape)))
-			{
-				drawContextMenu = false;
-			}
 			//Cut/Extrude
 			if (GetKeyUp(KeyCode.V))
 			{
@@ -302,18 +297,34 @@ namespace BezierCurveZ
 				}
 			}
 			//Cancel Cut
-			if ((GetMouseDown(1) || GetKeyDown(KeyCode.Escape)) && cuttingInitialized)
+			else if (cuttingInitialized && (GetMouseDown(1) || GetKeyDown(KeyCode.Escape)))
 			{
 				cuttingInitialized = false;
 				GUIUtility.hotControl = 0;
 			}
-			else if (GetMouseDown(1) && closestIndex != -1 && curve.IsControlPoint(closestIndex))
+			//Apply cut
+			else if (cuttingInitialized && GetMouseDown(0))
+			{
+				cuttingInitialized = false;
+				GUIUtility.hotControl = 0;
+				Undo.RecordObject(targetObject, $"Curve split at {closestPointToMouseOnCurve}");
+				curve.SplitAt(closestPointToMouseOnCurve);
+			}
+
+			//ControlPoint mode selection Dropdown menu
+			#region CP Mode Dropdown
+			//Cancel Dropdown
+			if (drawContextMenu && (current.type == EventType.Layout || GetMouseDown(0) || GetKeyDown(KeyCode.Escape)))
+			{
+				drawContextMenu = false;
+			}
+			if (GetMouseDown(1) && closestControlIndex != -1)
 			{
 				mouse1Position = current.mousePosition;
 				mouse1PressedTime = Time.time;
 			}
 			//Open Context Menu for control points
-			else if (!drawContextMenu && closestIndex != -1 && mouse1PressedTime > 0 && Time.time - mouse1PressedTime < .5f &&
+			else if (!drawContextMenu && closestControlIndex != -1 && mouse1PressedTime > 0 && Time.time - mouse1PressedTime < .5f &&
 				GetMouseUp(1) && (mouse1Position - current.mousePosition).magnitude < 5f)
 			{
 				mouse1PressedTime = 0;
@@ -327,21 +338,14 @@ namespace BezierCurveZ
 						closestPoint.mode == mode, () =>
 						{
 							EditorGUI.BeginChangeCheck();
-							curve.SetPointMode(closestIndex, mode);
+							curve.SetPointMode(closestControlIndex, mode);
 							drawContextMenu = false;
-							Undo.RecordObject(targetObject, $"Curve {closestIndex} point mode changed to {mode}");
+							Undo.RecordObject(targetObject, $"Curve {closestControlIndex} point mode changed to {mode}");
 						});
 				}
 				contextMenu.DropDown(new Rect(mouse1Position, Vector2.zero));
 
 				drawContextMenu = true;
-			}
-			else if (cuttingInitialized && GetMouseDown(0))
-			{
-				cuttingInitialized = false;
-				GUIUtility.hotControl = 0;
-				Undo.RecordObject(targetObject, $"Curve split at {closestPointToMouseOnCurve}");
-				curve.SplitAt(closestPointToMouseOnCurve);
 			}
 			#endregion
 
@@ -533,6 +537,8 @@ namespace BezierCurveZ
 			Vector2 mousePos = current.mousePosition;
 			var minDist = float.MaxValue;
 			closestIndex = -1;
+			closestControlIndex = -1;
+			closestHandleIndex = -1;
 			for (int i = 0; i < curve.Points.Count; i++)
 			{
 				Vector3 point = curve.Points[i];
@@ -541,7 +547,14 @@ namespace BezierCurveZ
 					continue;
 
 				var dist = HandleUtility.WorldToGUIPoint(targetTransform.TransformPoint(curve.Points[i])).DistanceTo(mousePos);
-				if (dist < minDist) { minDist = dist; closestIndex = i; }
+				if (dist <= minDist + .01f) {
+					minDist = dist;
+					closestIndex = i;
+					if (curve.IsControlPoint(i))
+						closestControlIndex = i;
+					else
+						closestHandleIndex = i;
+				}
 			}
 			closestPoint = curve.Points[closestIndex];
 			editedPosition = targetTransform.TransformPoint(closestPoint.point);
@@ -558,6 +571,7 @@ namespace BezierCurveZ
 			var c = Handles.color;
 			Handles.color = Color.white.MultiplyAlpha(.66f);
 			var cam = Camera.current;
+			Handles.Label(targetTransform.position, $"{closestControlIndex}");
 
 			//Draw points
 			for (int i = 0; i < curve.Points.Count; i++)
@@ -616,7 +630,7 @@ namespace BezierCurveZ
 								curve.SetPoint(ind, point + delta);
 							}
 						}
-						editedPosition = pos;
+						editedPosition = transform(curve.Points[closestIndex]);
 					}
 				}
 				else if (currentInternalTool == Tool.Rotate && curve.IsControlPoint(closestIndex))

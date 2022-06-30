@@ -83,7 +83,7 @@ namespace BezierCurveZ
 			if (thisPoint.type == BezierPoint.Type.Control)
 			{
 				var diff = position - points[index];
-				var isLinear = thisPoint.mode == BezierPoint.Mode.Linear;
+				var isLinear = thisPoint.mode == BezierPoint.Mode.Zero;
 				if (index > 0)
 					points[index - 1] = points[index - 1].SetPosition(isLinear ? points[index] : points[index - 1] + diff);
 				if (index < lastPointInd)
@@ -94,17 +94,17 @@ namespace BezierCurveZ
 				var controlPoint = points[index].type == BezierPoint.Type.LeftHandle ? points[index + 1] : points[index - 1];
 				var otherHandleIndex = points[index].type == BezierPoint.Type.LeftHandle ? index + 2 : index - 2;
 
-				if (controlPoint.mode.HasFlag(BezierPoint.Mode.Automatic) && index > 1 && index < lastPointInd - 1)
+				if (controlPoint.mode.HasFlag(BezierPoint.Mode.Automatic))
 				{
 					var otherHandle = points[otherHandleIndex];
 
 					if (controlPoint.mode.HasFlag(BezierPoint.Mode.Manual))
 					{
 						//Proportional
-						var diff = position - thisPoint;
-						var otherRelToControl = (controlPoint - position) * ((controlPoint - otherHandle).magnitude / (controlPoint - thisPoint).magnitude);
-						if (index > 1 && index < lastPointInd - 1)
-							points[otherHandleIndex] = otherHandle.SetPosition(controlPoint + otherRelToControl);
+						var diff = position - controlPoint;
+						points[index] = points[index].SetPosition(controlPoint - (otherHandle - controlPoint).normalized * diff.magnitude);
+						_bVersion++;
+						return;
 					}
 					else
 					{
@@ -112,6 +112,12 @@ namespace BezierCurveZ
 						if (index > 1 && index < lastPointInd - 1)
 							points[otherHandleIndex] = otherHandle.SetPosition(controlPoint + controlPoint - position);
 					}
+				}
+				else if (controlPoint.mode.HasFlag(BezierPoint.Mode.Zero))
+				{
+					points[index] = points[index].SetPosition(controlPoint);
+					_bVersion++;
+					return;
 				}
 			}
 			points[index] = points[index].SetPosition(position);
@@ -227,7 +233,7 @@ namespace BezierCurveZ
 
 		public void AddPointAtEnd(Vector3 point) {
 			BezierPoint[] addedPoints = new BezierPoint[3];
-			if (DefaultAddedPointMode == BezierPoint.Mode.Linear)
+			if (DefaultAddedPointMode == BezierPoint.Mode.Zero)
 			{
 				var leftHandle = (points[lastPointInd] - point) / 3f;
 				addedPoints[0] = BezierPoint.RightHandle(points[lastPointInd] + leftHandle);
@@ -250,7 +256,7 @@ namespace BezierCurveZ
 		{
 			BezierPoint[] addedPoints = new BezierPoint[3];
 			addedPoints[0] = BezierPoint.Control(point);
-			if (points.Count == 1 || DefaultAddedPointMode == BezierPoint.Mode.Linear)
+			if (points.Count == 1 || DefaultAddedPointMode == BezierPoint.Mode.Zero)
 			{
 				var rightHandle = (points[0] - point) / 3f;
 				addedPoints[1] = BezierPoint.RightHandle(point - rightHandle);
