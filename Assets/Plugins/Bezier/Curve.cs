@@ -180,6 +180,7 @@ namespace BezierCurveZ
 			var pointDefaultRotation = Quaternion.LookRotation(tang);
 			var adjustedRotation = Quaternion.LookRotation(tang, deltaRotation * Vector3.up);
 			var a = (pointDefaultRotation.Inverted() * adjustedRotation).eulerAngles.z;
+			if (a > 180) a -= 360;
 			_useRotations = true;
 			var newPoint = points[index].SetRotation(points[index].angle + a);
 			if (!points[index].Equals(newPoint))
@@ -295,14 +296,14 @@ namespace BezierCurveZ
 
 		public void RemoveAt(int index)
 		{
-			if (index == 0)
+			if (index == 0 + (IsClosed ? 1 : 0))
 				points.RemoveRange(0, 3);
-			else if (index == lastPointInd)
-				points.RemoveRange(points.Count - 4, 3);
+			else if (index == lastPointInd - (IsClosed ? 1 : 0))
+				points.RemoveRange(points.Count + (IsClosed ? - 3 : - 3), 3);
 			else
 			{
 				//Cancel if not a control point
-				if (index > 1 && index % 3 != 0) return;
+				if (!IsControlPoint(index)) return;
 				//Then compensate neighbouring handles
 				var prevCP = index - 3;
 				var prevHandle = index - 2;
@@ -330,8 +331,17 @@ namespace BezierCurveZ
 				type = (BezierPoint.Type)((int)type % 3);
 			}
 
-			points.RemoveRange(segmentInd * 3, 4);
-			points.InsertRange(segmentInd * 3, newPoints);
+			if (IsClosed && segmentInd == SegmentCount - 1) {
+				points.RemoveRange(GetPointIndex(segmentInd), 2);
+				points.AddRange(newPoints.Take(newPoints.Length - 2));
+				points[0] = newPoints[newPoints.Length - 2];
+				points[1] = newPoints[newPoints.Length - 1];
+			}
+			else
+			{
+				points.RemoveRange(GetPointIndex(segmentInd), 4);
+				points.InsertRange(GetPointIndex(segmentInd), newPoints);
+			}
 
 			_bVersion++;
 		}

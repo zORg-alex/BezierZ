@@ -366,12 +366,15 @@ namespace BezierCurveZ
 			{
 				mouse0DownPosition = current.mousePosition;
 			}
+			//Add/Remove points in rect if
 			if (current.type == EventType.MouseDrag && GUIUtility.hotControl == 0 && current.button == 0)
 			{
 				mouse0DragRect = true;
 				CallAllSceneViewRepaint();
 
-				selectedPointIdexes.Clear();
+				if(!current.shift && ! EditorGUI.actionKey)
+					selectedPointIdexes.Clear();
+
 				Rect rect = GetRectFromTwoPonts(mouse0DownPosition, current.mousePosition);
 				for (int i = 0; i < curve.Points.Count; i++)
 				{
@@ -380,7 +383,10 @@ namespace BezierCurveZ
 
 					if (rect.Contains(SceneView.currentDrawingSceneView.camera.WorldToScreenPoint(point)))
 					{
-						selectedPointIdexes.Add(i);
+						if (!EditorGUI.actionKey && !selectedPointIdexes.Contains(i))
+							selectedPointIdexes.Add(i);
+						else if (EditorGUI.actionKey)
+							selectedPointIdexes.Remove(i);
 					}
 				}
 			}
