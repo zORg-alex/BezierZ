@@ -296,26 +296,28 @@ namespace BezierCurveZ
 
 		public void RemoveAt(int index)
 		{
-			if (index == 0 + (IsClosed ? 1 : 0))
+			if (!IsClosed && index == 0)
 				points.RemoveRange(0, 3);
-			else if (index == lastPointInd - (IsClosed ? 1 : 0))
+			else if (!IsClosed && index == lastPointInd)
 				points.RemoveRange(points.Count + (IsClosed ? - 3 : - 3), 3);
 			else
 			{
 				//Cancel if not a control point
 				if (!IsControlPoint(index)) return;
-				//Then compensate neighbouring handles
-				var prevCP = index - 3;
-				var prevHandle = index - 2;
-				var nextHandle = index + 2;
-				var nextCP = index + 3;
-				points[prevHandle] = points[prevHandle].SetPosition(-points[prevCP].point + points[prevHandle].point * 2f);
-				points[nextHandle] = points[nextHandle].SetPosition(-points[nextCP].point + points[nextHandle].point * 2f);
-				//First just remove that point
-				points.RemoveRange(index - 1, 3);
-
+			
+				DissolveCP(GetSegmentIndex(index));
 			}
 			_bVersion++;
+		}
+
+		public void DissolveCP(int segmentIndex)
+		{
+			if (segmentIndex <= 0 && segmentIndex >= SegmentCount) return;
+
+			var s = Segments.Skip(segmentIndex - 1).Take(2);
+			var segment = CasteljauUtility.JoinSegments(s);
+
+			ReplaceSegments(segmentIndex - 1, 2, segment);
 		}
 
 		public void RemoveMany(IEnumerable<int> indexes)
@@ -343,7 +345,9 @@ namespace BezierCurveZ
 			_bVersion++;
 		}
 
-		private void ReplaceSegment(int segmentInd, Vector3[] newSegments)
+
+		private void ReplaceSegment(int segmentInd, Vector3[] newSegments) => ReplaceSegments(segmentInd, 1, newSegments);
+		private void ReplaceSegments(int segmentInd, int replaceCount, Vector3[] newSegments)
 		{
 			if (newSegments.Length % 3 != 1) return;
 
@@ -356,21 +360,20 @@ namespace BezierCurveZ
 				type = (BezierPoint.Type)((int)type % 3);
 			}
 
-			if (IsClosed && segmentInd == SegmentCount - 1) {
-				points.RemoveRange(GetPointIndex(segmentInd), 2);
+			if (IsClosed && segmentInd >= SegmentCount - replaceCount) {
+				points.RemoveRange(GetPointIndex(segmentInd), replaceCount * 3 - 1);
 				points.AddRange(newPoints.Take(newPoints.Length - 2));
 				points[0] = newPoints[newPoints.Length - 2];
 				points[1] = newPoints[newPoints.Length - 1];
 			}
 			else
 			{
-				points.RemoveRange(GetPointIndex(segmentInd), 4);
+				points.RemoveRange(GetPointIndex(segmentInd), replaceCount * 3 + 1);
 				points.InsertRange(GetPointIndex(segmentInd), newPoints);
 			}
 
 			_bVersion++;
 		}
-
 
 		//===== Vertex Curve =====
 		[NonSerialized]

@@ -276,24 +276,24 @@ namespace BezierCurveZ
 			//Cut/Extrude
 			if (GetKeyUp(KeyCode.V))
 			{
-				if (closestIndex == 0)
+				if (curve.IsClosed || (closestIndex > 0 && closestIndex < curve.Points.Count - 1))
+				{
+					cuttingInitialized = true;
+					GUIUtility.hotControl = controlID;
+				}
+				else if (closestIndex == 0)
 				{
 					Undo.RecordObject(targetObject, $"Added new point to a curve");
 					curve.AddPointAtStart(curve.Points[closestIndex]);
 					closestIndex = 0;
 					closestPoint = curve.Points[closestIndex];
 				}
-				else if (closestIndex == curve.Points.Count - 1)
+				else
 				{
 					Undo.RecordObject(targetObject, $"Added new point to a curve");
 					curve.AddPointAtEnd(curve.Points[closestIndex]);
 					closestIndex++;
 					closestPoint = curve.Points[closestIndex];
-				}
-				else
-				{
-					cuttingInitialized = true;
-					GUIUtility.hotControl = controlID;
 				}
 			}
 			//Cancel Cut
@@ -353,18 +353,22 @@ namespace BezierCurveZ
 			if (GetKeyDown(KeyCode.X))
 			{
 				SelectClosestPointToMouse(current);
-				if (selectedPointIdexes.Count > 0)
+				if (selectedPointIdexes.Count > 1)
 				{
 					Undo.RecordObject(targetObject, "Delete selected points");
 					curve.RemoveMany(selectedPointIdexes);
 					selectedPointIdexes.Clear();
 					SelectClosestPointToMouse(current);
 				}
-				else if (curve.IsControlPoint(closestIndex))
+				else if (selectedPointIdexes.Count == 1 || closestIndex != -1)
 				{
-					Undo.RecordObject(targetObject, "Delete closest point");
-					curve.RemoveAt(closestIndex);
-					SelectClosestPointToMouse(current);
+					var ind = selectedPointIdexes.Count == 1 ? selectedPointIdexes[0] : closestIndex;
+					if (curve.IsControlPoint(ind))
+					{
+						Undo.RecordObject(targetObject, "Delete closest point");
+						curve.RemoveAt(ind);
+						SelectClosestPointToMouse(current);
+					}
 				}
 			}
 

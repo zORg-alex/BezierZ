@@ -283,53 +283,53 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   curve:
     points:
-    - point: {x: -1.9752777, y: 0, z: 4.006031}
+    - point: {x: -1, y: 0, z: 0}
       angle: 0
       mode: 4
       type: 2
-    - point: {x: 0.024722338, y: 0, z: 4.006031}
+    - point: {x: 0, y: 0, z: 0}
       angle: 0
       mode: 4
       type: 0
-    - point: {x: 2.0247223, y: 0, z: 4.006031}
+    - point: {x: 1, y: 0, z: 0}
       angle: 0
       mode: 2
       type: 1
-    - point: {x: 2.0247223, y: 0, z: 0.0060310364}
+    - point: {x: 1, y: 3, z: 0}
       angle: 0
       mode: 2
       type: 2
-    - point: {x: 0.024722338, y: 0, z: 0.0060310364}
+    - point: {x: 0, y: 3, z: 0}
       angle: 0
       mode: 2
       type: 0
-    - point: {x: -1.9752777, y: 0, z: 0.0060310364}
+    - point: {x: -1, y: 3, z: 0}
       angle: 0
       mode: 2
       type: 1
-    - point: {x: -1.9752777, y: 2.25, z: 0.0060310364}
+    - point: {x: -1, y: 3, z: 4}
       angle: 0
       mode: 2
       type: 2
-    - point: {x: 0.024722338, y: 2.25, z: 0.0060310364}
+    - point: {x: 0, y: 3, z: 4}
       angle: 0
       mode: 2
       type: 0
-    - point: {x: 2.0247223, y: 2.25, z: 0.0060310364}
+    - point: {x: 1, y: 3, z: 4}
       angle: 0
       mode: 2
       type: 1
-    - point: {x: 2.024722, y: 2.25, z: 4.006031}
+    - point: {x: 1, y: 0, z: 4}
       angle: 0
       mode: 2
       type: 2
-    - point: {x: 0.024722338, y: 2.25, z: 4.006031}
+    - point: {x: 0, y: 0, z: 4}
       angle: 0
-      mode: 2
+      mode: 4
       type: 0
-    - point: {x: -1.9752774, y: 2.25, z: 4.006031}
+    - point: {x: -1, y: 0, z: 4}
       angle: 0
-      mode: 2
+      mode: 4
       type: 1
     _isClosed: 1
     _minSamplingDistance: 0
