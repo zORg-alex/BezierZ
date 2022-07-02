@@ -4,8 +4,9 @@ using UnityEngine;
 
 namespace BezierCurveZ
 {
-	public static class CurveInterpolation {
-		public static SplitData SplitCurveByAngleError(Curve curve, float maxAngleError, float minSplitDistance, int accuracy = 10)
+	public static class CurveInterpolation
+	{
+		public static SplitData SplitCurveByAngleError(Curve curve, float maxAngleError, float minSplitDistance, int accuracy = 10, bool useRotationMinimisation = false)
 		{
 			if (curve.Points.Count == 1)
 				return new SplitData()
@@ -48,25 +49,27 @@ namespace BezierCurveZ
 			for (int j = 1; j < angles.Length; j++)
 			{
 				var d = Mathf.DeltaAngle(angles[j - 1], angles[j]);
-				angles[j] = angles[j-1] + d;
+				angles[j] = angles[j - 1] + d;
 			}
 
-			i = 0;
+			var prevUp = Vector3.up;
+
+			var k = 0;
 			foreach (var segment in curve.Segments)
 			{
 				var estimatedSegmentLength = CurveUtils.EstimateSegmentLength(segment);
 				int divisions = (estimatedSegmentLength * accuracy).CeilToInt();
 				float increment = 1f / divisions;
-				if (i == 0)
+				if (k == 0)
 					_nextPoint = CurveUtils.Evaluate(increment, segment);
 
-				int lastSegmentIndex = (curve.GetPointIndex(i) + 3).Min(curve.Points.Count - 1);
+				int lastSegmentIndex = (curve.GetPointIndex(k) + 3).Min(curve.Points.Count - 1);
 				Vector3 finalTangent = CurveUtils.EvaluateDerivative(1, segment).normalized;
 
 				float t = 0f;
 				while (true)
 				{
-					var _edgePoint = (t == 0) || (t >= 1 && i == curve.SegmentCount - 1);
+					var _edgePoint = (t == 0) || (t >= 1 && k == curve.SegmentCount - 1);
 
 					Vector3 _toLastPoint = _previousPoint - _currentPoint;
 					var _toLastPointMag = _toLastPoint.magnitude;
@@ -77,14 +80,23 @@ namespace BezierCurveZ
 					if (_edgePoint || _angleError > maxAngleError && _dist >= minSplitDistance)
 					{
 						Vector3 tang = CurveUtils.EvaluateDerivative(t, segment).normalized;
-						var approxAngle = CatmullRomCurveUtility.Evaluate(t, .5f, angles[i], angles[i + 1], angles[i + 2], angles[i + 3]);
-						var rotation = Quaternion.LookRotation(tang) * Quaternion.Euler(0, 0, approxAngle);
+						var approxAngle = CatmullRomCurveUtility.Evaluate(t, .5f, angles[k], angles[k + 1], angles[k + 2], angles[k + 3]);
+						Quaternion rotation;
+						if (!useRotationMinimisation)
+						{
+							rotation = Quaternion.LookRotation(tang) * Quaternion.Euler(0, 0, approxAngle);
+						}
+						else
+						{
+							rotation = Quaternion.LookRotation(tang, prevUp) * Quaternion.Euler(0, 0, approxAngle);
+							prevUp = rotation * Vector3.up;
+						}
 
 						data.points.Add(_currentPoint);
 						data.tangents.Add(tang);
 						data.segmentTime.Add(t);
 						data.cumulativeLength.Add(length);
-						data.segmentIndices.Add(i);
+						data.segmentIndices.Add(k);
 						data.rotations.Add(rotation);
 						_dist = 0;
 						_previousPoint = _currentPoint;
@@ -98,7 +110,7 @@ namespace BezierCurveZ
 					_previousAngle = _angle;
 				}
 
-				i++;
+				k++;
 			}
 
 			return data;

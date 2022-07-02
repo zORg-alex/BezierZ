@@ -18,8 +18,14 @@ namespace BezierCurveZ
 	{
 		private Component targetObject;
 		private Transform targetTransform;
-
 		private Curve curve;
+
+		private bool _initialized;
+		private Texture2D rotationMinimizationTexture;
+		private Texture2D lookUpTexture;
+		private Texture2D isOpenTexture;
+		private Texture2D isClosedTexture;
+
 		[NonSerialized]
 		private static CurvePropertyDrawer currentlyEditedPropertyDrawer;
 		private bool isInEditMode;
@@ -32,8 +38,29 @@ namespace BezierCurveZ
 		public override float GetPropertyHeight(SerializedProperty property, GUIContent label) =>
 			IsCurrentlyEditedDrawer ? EditorGUIUtility.singleLineHeight + 2 + editorHeight : EditorGUIUtility.singleLineHeight;
 
+		private void Initialize(SerializedProperty property)
+		{
+			if (EditorGUIUtility.isProSkin)
+			{
+				rotationMinimizationTexture = Resources.Load<Texture2D>("Bezier.RM_d");
+				lookUpTexture = Resources.Load<Texture2D>("Bezier.LookUp_d");
+				isOpenTexture = Resources.Load<Texture2D>("Bezier.IsOpen_d");
+				isClosedTexture = Resources.Load<Texture2D>("Bezier.IsClosed_d");
+			}
+			else
+			{
+				rotationMinimizationTexture = Resources.Load<Texture2D>("Bezier.RM");
+				lookUpTexture = Resources.Load<Texture2D>("Bezier.LookUp");
+				isOpenTexture = Resources.Load<Texture2D>("Bezier.IsOpen");
+				isClosedTexture = Resources.Load<Texture2D>("Bezier.IsClosed");
+			}
+			_initialized = true;
+		}
+
 		public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
 		{
+			if (!_initialized) Initialize(property);
+
 			current = Event.current;
 
 			if (targetObject == null)
@@ -191,10 +218,12 @@ namespace BezierCurveZ
 				((SceneView)scene).Repaint();
 		}
 
-		private float editorHeight = EditorGUIUtility.singleLineHeight * 4;
+		private float editorHeight = EditorGUIUtility.singleLineHeight * 2 + 64;
 		private void DrawCurveEditor(Rect position, SerializedProperty property)
 		{
-			var lines = position.Column(4);
+			var lines = position.Column(
+				new float[] { 0f,0f,1f},
+				new float[] { EditorGUIUtility.singleLineHeight, 64, 0f });
 			var firstLine = lines[0].Row(2, 10);
 			EditorGUI.BeginChangeCheck();
 			EditorGUI.PropertyField(firstLine[0],property.FindPropertyRelative("_maxAngleError"));
@@ -203,8 +232,21 @@ namespace BezierCurveZ
 			{
 				curve.Update(force: true);
 			}
+			var bigButtons = lines[1].Row(new float[] { 0, 0, 1 }, new float[] { 64, 64, 0 });
 			EditorGUI.BeginChangeCheck();
-			var closed = EditorGUI.Toggle(lines[1], "Is Closed", curve.IsClosed);
+			var rm = GUI.Toggle(bigButtons[0], curve.UseRotationMinimization, new GUIContent(curve.UseRotationMinimization ? rotationMinimizationTexture : lookUpTexture,
+				"Use Rotation Minimization, rotations will change while editing point positions\nLookup, will have stable rotations, but will fail on vertical segments"
+				), "Button");
+			if (EditorGUI.EndChangeCheck())
+			{
+				Undo.RecordObject(targetObject, "Curve Use Rotation Minimization changed");
+				curve.UseRotationMinimization = rm;
+				CallAllSceneViewRepaint();
+			}
+			EditorGUI.BeginChangeCheck();
+			var closed = GUI.Toggle(bigButtons[1], curve.IsClosed, new GUIContent(curve.IsClosed ? isClosedTexture : isOpenTexture,
+				"IsClosed, curve loops\nIsOpen curve has start and end"
+				), "Button");
 			if (EditorGUI.EndChangeCheck())
 			{
 				Undo.RecordObject(targetObject, "Curve Is Closed changed");

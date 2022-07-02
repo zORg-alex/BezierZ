@@ -41,9 +41,9 @@ namespace BezierCurveZ
 		private int[] _segmentIndexes;
 		public int[] SegmentIndexes => _segmentIndexes;
 
-		public BezierCurveVertexData(Curve bezierCurve, float minSamplingDistance = .001f, float maxAngleError = .05f)
+		public BezierCurveVertexData(Curve bezierCurve, float minSamplingDistance = .001f, float maxAngleError = .05f, bool _useRotationMinimization = false)
 		{
-			var data = CurveInterpolation.SplitCurveByAngleError(bezierCurve, maxAngleError, minSamplingDistance);
+			var data = CurveInterpolation.SplitCurveByAngleError(bezierCurve, maxAngleError, minSamplingDistance, useRotationMinimisation: _useRotationMinimization);
 
 			_points = data.points.ToArray();
 			_segmentIndexes = data.segmentIndices.ToArray();

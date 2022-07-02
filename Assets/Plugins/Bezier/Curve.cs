@@ -39,7 +39,9 @@ namespace BezierCurveZ
 		public bool IsClosed { get => _isClosed; set { CloseCurve(value); _bVersion++; } }
 		private Curve.BezierPoint.Mode[] _preservedNodeModesWhileClosed = new BezierPoint.Mode[2];
 
-		internal bool _useRotations;
+		[SerializeField]
+		internal bool _useRotationMinimization;
+		public bool UseRotationMinimization { get => _useRotationMinimization; set { _useRotationMinimization = value; _bVersion++; } }
 
 		public void CloseCurve(bool value)
 		{
@@ -157,7 +159,6 @@ namespace BezierCurveZ
 			var adjustedRotation = Quaternion.LookRotation(tang, rotation * Vector3.up);
 			var a = (pointDefaultRotation.Inverted() * adjustedRotation).eulerAngles.z;
 
-			_useRotations = true;
 			var newPoint = points[index].SetRotation(a);
 			if (!points[index].Equals(newPoint))
 			{
@@ -181,7 +182,6 @@ namespace BezierCurveZ
 			var adjustedRotation = Quaternion.LookRotation(tang, deltaRotation * Vector3.up);
 			var a = (pointDefaultRotation.Inverted() * adjustedRotation).eulerAngles.z;
 			if (a > 180) a -= 360;
-			_useRotations = true;
 			var newPoint = points[index].SetRotation(points[index].angle + a);
 			if (!points[index].Equals(newPoint))
 			{
@@ -400,7 +400,7 @@ namespace BezierCurveZ
 		public void Update(bool force = false)
 		{
 			if (vertexCurveIsUpToDate && !force) return;
-			_vertexData = new BezierCurveVertexData(this, _minSamplingDistance, _maxAngleError);
+			_vertexData = new BezierCurveVertexData(this, _minSamplingDistance, _maxAngleError, _useRotationMinimization);
 			_vVersion = _bVersion;
 		}
 		//Curve will be restored on deserialization, we won't serialize generated data
