@@ -16,7 +16,15 @@ namespace BezierCurveZ
 			public Vector3 point;
 			public static implicit operator Vector3(BezierPoint cp) => cp.point;
 
-			public float angle;
+			public float angle { get => _rotation.eulerAngles.z; }
+
+			[SerializeField]
+			private Quaternion _rotation;
+			public Quaternion rotation { get => _rotation; set
+				{
+					_rotation = value;
+				}
+			}
 
 			[Flags]
 			public enum Mode { None = 0, Zero = 1, Automatic = 2, Manual = 4, Proportional = Automatic | Manual }
@@ -36,24 +44,21 @@ namespace BezierCurveZ
 			{
 				point = position;
 			}
-			public BezierPoint(Vector3 position, Type type)
+			public BezierPoint(Vector3 position, Type type) : this()
 			{
 				point = position;
-				angle = 0f;
 				mode = Mode.Automatic;
 				this.type = type;
 			}
-			public BezierPoint(Vector3 position, Mode mode)
+			public BezierPoint(Vector3 position, Mode mode) : this()
 			{
 				point = position;
-				angle = 0f;
 				this.mode = mode;
 				type = Type.Control;
 			}
-			public BezierPoint(Vector3 position, Type type, Mode mode)
+			public BezierPoint(Vector3 position, Type type, Mode mode) : this()
 			{
-				this.point = position;
-				this.angle = 0f;
+				point = position;
 				this.type = type;
 				this.mode = mode;
 			}
@@ -73,15 +78,25 @@ namespace BezierCurveZ
 				return this;
 			}
 
-			public BezierPoint SetRotation(float rotation)
+			public BezierPoint SetTangent(Vector3 tangent)
 			{
-				this.angle = rotation;
+				rotation = Quaternion.LookRotation(tangent, rotation * Vector3.up);
+				return this;
+			}
+			public BezierPoint SetRotation(Quaternion rotation)
+			{
+				this.rotation = rotation;
 				return this;
 			}
 
 			public static Vector3 operator +(BezierPoint a, BezierPoint b) => a.point + b.point;
 			public static Vector3 operator -(BezierPoint a, BezierPoint b) => a.point - b.point;
 			public static Vector3 operator -(BezierPoint a) => -a.point;
+
+			internal Quaternion GetRotation(Vector3 tangent)
+			{
+				return Quaternion.LookRotation(tangent, rotation * Vector3.up);
+			}
 		}
 	}
 }

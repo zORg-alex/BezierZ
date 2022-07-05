@@ -339,11 +339,11 @@ MonoBehaviour:
     points:
     - point: {x: -0.8898784, y: 0.000009059906, z: -0.9975621}
       angle: 0
-      mode: 2
+      mode: 4
       type: 2
     - point: {x: -1.2128532, y: 0.000009059906, z: -0.9979268}
       angle: 0
-      mode: 2
+      mode: 4
       type: 0
     - point: {x: -1.535828, y: 0.000009059906, z: -0.99829143}
       angle: 0
@@ -535,11 +535,11 @@ MonoBehaviour:
       type: 2
     - point: {x: -0.34053865, y: 0.29462668, z: -0.67870665}
       angle: -39.218258
-      mode: 2
+      mode: 4
       type: 0
-    - point: {x: -0.5806216, y: 0.10917288, z: -0.8928112}
+    - point: {x: -0.58320636, y: 0.10717654, z: -0.895116}
       angle: 0
-      mode: 2
+      mode: 4
       type: 1
     _isClosed: 1
     _useRotationMinimization: 0

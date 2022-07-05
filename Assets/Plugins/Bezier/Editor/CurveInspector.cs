@@ -234,13 +234,13 @@ namespace BezierCurveZ
 			}
 			var bigButtons = lines[1].Row(new float[] { 0, 0, 1 }, new float[] { 64, 64, 0 });
 			EditorGUI.BeginChangeCheck();
-			var rm = GUI.Toggle(bigButtons[0], curve.UseRotationMinimization, new GUIContent(curve.UseRotationMinimization ? rotationMinimizationTexture : lookUpTexture,
-				"Use Rotation Minimization, rotations will change while editing point positions\nLookup, will have stable rotations, but will fail on vertical segments"
+			var rm = GUI.Toggle(bigButtons[0], curve.UseRotations, new GUIContent(curve.UseRotations ? rotationMinimizationTexture : lookUpTexture,
+				"Use Rotations and interpolate them through curve\nLookup, will have stable rotations, but will fail on vertical segments"
 				), "Button");
 			if (EditorGUI.EndChangeCheck())
 			{
-				Undo.RecordObject(targetObject, "Curve Use Rotation Minimization changed");
-				curve.UseRotationMinimization = rm;
+				Undo.RecordObject(targetObject, "Curve Use Rotations changed");
+				curve.UseRotations = rm;
 				CallAllSceneViewRepaint();
 			}
 			EditorGUI.BeginChangeCheck();
@@ -652,9 +652,9 @@ namespace BezierCurveZ
 				}
 				else
 				{
-					float time = curve.Points[i].type == Curve.BezierPoint.Type.RightHandle ? 0f : 1f;
+					//float time = curve.Points[i].type == Curve.BezierPoint.Type.RightHandle ? 0f : 1f;
 					GUIUtils.DrawRectangle(globalPointPos,
-						Quaternion.LookRotation(cam.transform.position - globalPointPos, transformDirection(curve.GetTangent(segInd, time))),
+						Quaternion.LookRotation(cam.transform.position - globalPointPos, transformDirection(curve.GetCPTangent(segInd))),
 						Vector2.one * size, width);
 				}
 			}

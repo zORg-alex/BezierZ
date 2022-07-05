@@ -40,8 +40,8 @@ namespace BezierCurveZ
 		private Curve.BezierPoint.Mode[] _preservedNodeModesWhileClosed = new BezierPoint.Mode[2];
 
 		[SerializeField]
-		internal bool _useRotationMinimization;
-		public bool UseRotationMinimization { get => _useRotationMinimization; set { _useRotationMinimization = value; _bVersion++; } }
+		internal bool _useRotations;
+		public bool UseRotations { get => _useRotations; set { _useRotations = value; _bVersion++; } }
 
 		public void CloseCurve(bool value)
 		{
@@ -68,7 +68,7 @@ namespace BezierCurveZ
 		public int SegmentCount => (points?.Count ?? 0) / 3;
 
 		public int GetPointIndex(int segmentIndex) =>
-			segmentIndex.Min(SegmentCount) * 3 + (IsClosed ? 1 : 0);
+			segmentIndex % SegmentCount * 3 + (IsClosed ? 1 : 0);
 		public int GetSegmentIndex(int index) => IsClosed ?
 			((points.Count + (index - 1)) % points.Count / 3f).FloorToInt() :
 			((points.Count + index) % points.Count / 3f).FloorToInt();
@@ -87,9 +87,14 @@ namespace BezierCurveZ
 				var diff = position - points[index];
 				var isLinear = thisPoint.mode == BezierPoint.Mode.Zero;
 				if (index > 0)
+				{
 					points[index - 1] = points[index - 1].SetPosition(isLinear ? points[index] : points[index - 1] + diff);
+				}
 				if (index < lastPointInd)
+				{
 					points[index + 1] = points[index + 1].SetPosition(isLinear ? points[index] : points[index + 1] + diff);
+				}
+				points[index] = thisPoint.SetPosition(position).SetTangent(index < lastPointInd ? points[index] - points[index + 1] : points[index - 1] - points[index]);
 			}
 			else
 			{
@@ -105,8 +110,6 @@ namespace BezierCurveZ
 						//Proportional
 						var diff = position - controlPoint;
 						points[index] = points[index].SetPosition(controlPoint - (otherHandle - controlPoint).normalized * diff.magnitude);
-						_bVersion++;
-						return;
 					}
 					else
 					{
@@ -118,11 +121,8 @@ namespace BezierCurveZ
 				else if (controlPoint.mode.HasFlag(BezierPoint.Mode.Zero))
 				{
 					points[index] = points[index].SetPosition(controlPoint);
-					_bVersion++;
-					return;
 				}
 			}
-			points[index] = points[index].SetPosition(position);
 			_bVersion++;
 		}
 
@@ -153,18 +153,14 @@ namespace BezierCurveZ
 		public void SetCPRotation(int segmentIndex, Quaternion rotation)
 		{
 			var index = GetPointIndex(segmentIndex);
-			var tang = GetTangent(segmentIndex, 0);
+			var tang = GetCPTangent(segmentIndex);
 			//Get euler z value from rotation relative default tangent look rotation
 			var pointDefaultRotation = Quaternion.LookRotation(tang);
 			var adjustedRotation = Quaternion.LookRotation(tang, rotation * Vector3.up);
-			var a = (pointDefaultRotation.Inverted() * adjustedRotation).eulerAngles.z;
-
-			var newPoint = points[index].SetRotation(a);
-			if (!points[index].Equals(newPoint))
-			{
-				points[index] = newPoint;
-				_bVersion++;
-			}
+			
+			points[index] = points[index].SetRotation(adjustedRotation);
+			
+			_bVersion++;
 		}
 
 		/// <summary>
@@ -176,18 +172,14 @@ namespace BezierCurveZ
 		{
 			var deltaEuler = deltaRotation.eulerAngles;
 			var index = GetPointIndex(segmentIndex);
-			var tang = GetTangent(segmentIndex, 0);
+			var tang = GetCPTangent(segmentIndex);
 			//Get euler z value from rotation relative default tangent look rotation
-			var pointDefaultRotation = Quaternion.LookRotation(tang);
+			//var pointDefaultRotation = Quaternion.LookRotation(tang);
 			var adjustedRotation = Quaternion.LookRotation(tang, deltaRotation * Vector3.up);
-			var a = (pointDefaultRotation.Inverted() * adjustedRotation).eulerAngles.z;
-			if (a > 180) a -= 360;
-			var newPoint = points[index].SetRotation(points[index].angle + a);
-			if (!points[index].Equals(newPoint))
-			{
-				points[index] = newPoint;
-				_bVersion++;
-			}
+
+			points[index] = points[index].SetRotation(adjustedRotation);
+			
+			_bVersion++;
 
 			if (deltaEuler.x == 0 && deltaEuler.y == 0) return;
 
@@ -203,13 +195,31 @@ namespace BezierCurveZ
 				var rightHandle = points[index + 1];
 				points[index + 1] = rightHandle.SetPosition(point + deltaRotation * (rightHandle - point));
 			}
-			_bVersion++;
 		}
 
 		public Quaternion GetCPRotation(int segmentIndex)
 		{
 			var index = GetPointIndex(segmentIndex);
-			return Quaternion.LookRotation(GetTangent(segmentIndex, 0)) * Quaternion.Euler(0, 0, points[index].angle);
+			return points[index].GetRotation(GetCPTangent(segmentIndex));
+		}
+
+		public Vector3 GetCPTangent(int segmentIndex)
+		{
+			var index = GetPointIndex(segmentIndex);
+			var point = points[index];
+			var nextPoint = index < lastPointInd ? points[index + 1] : IsClosed ? points[0] : point;
+			return (point.mode.HasFlag(BezierPoint.Mode.Automatic)) ? getAutoTangent() : getAvgTangent();
+
+			Vector3 getAutoTangent()
+			{
+				return (nextPoint - point).normalized;
+			}
+
+			Vector3 getAvgTangent()
+			{
+				var prevPoint = index > 0 ? points[index - 1] : IsClosed ? points[lastPointInd] : point;
+				return (nextPoint - prevPoint).normalized;
+			}
 		}
 
 		public Quaternion GetRotation(int segmentIndex, float t)
@@ -400,7 +410,7 @@ namespace BezierCurveZ
 		public void Update(bool force = false)
 		{
 			if (vertexCurveIsUpToDate && !force) return;
-			_vertexData = new BezierCurveVertexData(this, _minSamplingDistance, _maxAngleError, _useRotationMinimization);
+			_vertexData = new BezierCurveVertexData(this, _minSamplingDistance, _maxAngleError, _useRotations);
 			_vVersion = _bVersion;
 		}
 		//Curve will be restored on deserialization, we won't serialize generated data
