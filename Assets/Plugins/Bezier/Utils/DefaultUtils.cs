@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using UnityEngine;
 
@@ -148,4 +149,26 @@ public static class DefaultUtils {
 		return transform;
 	}
 
+	/// <summary>
+	/// Pretty much identical to {
+	/// (index % length + length) % length
+	/// }
+	/// but a tiny bit faster in rare off range cases
+	/// </summary>
+	/// <param name="index"></param>
+	/// <param name="length"></param>
+	/// <returns></returns>
+	[DebuggerStepThrough]
+	public static int LoopedIndex(int index, int length) =>
+		index > 0 && index < length ? index : index > 0 ? index % length : index > -length ? (length + index) % length : (length + index % length) % length;
+	/// <summary>
+	/// Get value with looped index
+	/// </summary>
+	[DebuggerStepThrough]
+	public static T Get<T>(this List<T> list, int index) => list[LoopedIndex(index, list.Count)];
+	/// <summary>
+	/// Get value with looped index
+	/// </summary>
+	[DebuggerStepThrough]
+	public static T Get<T>(this T[] array, int index) => array[LoopedIndex(index, array.Length)];
 }

@@ -234,13 +234,13 @@ namespace BezierCurveZ
 			}
 			var bigButtons = lines[1].Row(new float[] { 0, 0, 1 }, new float[] { 64, 64, 0 });
 			EditorGUI.BeginChangeCheck();
-			var rm = GUI.Toggle(bigButtons[0], curve.UseRotationMinimization, new GUIContent(curve.UseRotationMinimization ? rotationMinimizationTexture : lookUpTexture,
-				"Use Rotation Minimization, rotations will change while editing point positions\nLookup, will have stable rotations, but will fail on vertical segments"
+			var rm = GUI.Toggle(bigButtons[0], curve.UseRotations, new GUIContent(curve.UseRotations ? rotationMinimizationTexture : lookUpTexture,
+				"TODO"
 				), "Button");
 			if (EditorGUI.EndChangeCheck())
 			{
-				Undo.RecordObject(targetObject, "Curve Use Rotation Minimization changed");
-				curve.UseRotationMinimization = rm;
+				Undo.RecordObject(targetObject, "Curve Use Rotations");
+				curve.UseRotations = rm;
 				CallAllSceneViewRepaint();
 			}
 			EditorGUI.BeginChangeCheck();
@@ -617,7 +617,7 @@ namespace BezierCurveZ
 			}
 			closestPoint = curve.Points[closestIndex];
 			editedPosition = targetTransform.TransformPoint(closestPoint.point);
-			toolRotation = GetToolRotation();
+			toolRotation = GetToolRotation().normalized;
 			if (minDist > 100)
 				closestIndex = -1;
 		}
@@ -647,8 +647,8 @@ namespace BezierCurveZ
 				if (isControlPoint)
 				{
 					GUIUtils.DrawCircle(globalPointPos, (cam.transform.position - globalPointPos).normalized, size, width: width);
-					Handles.DrawAAPolyLine(globalPointPos, globalPointPos + transformDirection(curve.GetRotation(segInd, 0f) * Vector3.up) * .2f);
-					Handles.Label(globalPointPos, $"{i}, a={curve.Points[i].angle}");
+					Handles.DrawAAPolyLine(globalPointPos, globalPointPos + transformDirection(curve.GetCPRotation(segInd) * Vector3.up) * .3f);
+					Handles.Label(globalPointPos, $"{i}, eulers={curve.Points[i].rotation.eulerAngles}");
 				}
 				else
 				{
@@ -694,8 +694,6 @@ namespace BezierCurveZ
 				}
 				else if (currentInternalTool == Tool.Rotate && curve.IsControlPoint(closestIndex))
 				{
-					if (selectedPointIdexes.Count == 0)
-						toolRotation = curve.GetCPRotation(curve.GetSegmentIndex(closestIndex)) * targetTransform.rotation;
 					float handleSize = HandleUtility.GetHandleSize(editedPosition);
 
 					//var rot = AxisRotation.Do(controlID, worldRotation, editedPosition, Vector3.f, handleSize);
@@ -706,21 +704,25 @@ namespace BezierCurveZ
 
 					if (EditorGUI.EndChangeCheck())
 					{
+						var delta = rot * toolRotation.Inverted();
 						Undo.RecordObject(targetObject, "Point rotation changed");
 						if (selectedPointIdexes.Count == 0)
-							curve.RotateCPWithHandles(curve.GetSegmentIndex(closestIndex), rot * toolRotation.Inverted());
+						{
+							int segmentIndex = curve.GetSegmentIndex(closestIndex);
+							curve.RotateCPWithHandles(segmentIndex, delta);
+						}
 						else
 						{
-							var delta = rot * toolRotation.Inverted();
 							foreach (var ind in selectedPointIdexes)
 							{
-								var rotatedRelativeEditedPoint = delta * (transform(curve.Points[ind]) - editedPosition);
-								curve.SetPoint(ind, closestPoint + rotatedRelativeEditedPoint);
 								int segmentIndex = curve.GetSegmentIndex(ind);
-								curve.RotateCPWithHandles(segmentIndex, delta);
+								var rotatedRelativeEditedPoint = (delta * curve.Points[ind].rotation.Inverted()) * (transform(curve.Points[ind]) - editedPosition);
+								curve.SetPoint(ind, closestPoint + rotatedRelativeEditedPoint);
+								curve.SetCPRotationWithHandles(segmentIndex, delta);
 							}
-							toolRotation = rot;
 						}
+
+						toolRotation = rot;
 					}
 				}
 			}

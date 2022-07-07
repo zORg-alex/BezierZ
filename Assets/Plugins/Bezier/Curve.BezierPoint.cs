@@ -16,7 +16,7 @@ namespace BezierCurveZ
 			public Vector3 point;
 			public static implicit operator Vector3(BezierPoint cp) => cp.point;
 
-			public float angle;
+			public Quaternion rotation;
 
 			[Flags]
 			public enum Mode { None = 0, Zero = 1, Automatic = 2, Manual = 4, Proportional = Automatic | Manual }
@@ -35,27 +35,28 @@ namespace BezierCurveZ
 			public BezierPoint(Vector3 position) : this()
 			{
 				point = position;
+				rotation = Quaternion.identity;
 			}
-			public BezierPoint(Vector3 position, Type type)
+			public BezierPoint(Vector3 position, Type type) : this()
 			{
 				point = position;
-				angle = 0f;
 				mode = Mode.Automatic;
 				this.type = type;
+				rotation = Quaternion.identity;
 			}
-			public BezierPoint(Vector3 position, Mode mode)
+			public BezierPoint(Vector3 position, Mode mode) : this()
 			{
 				point = position;
-				angle = 0f;
 				this.mode = mode;
 				type = Type.Control;
+				rotation = Quaternion.identity;
 			}
-			public BezierPoint(Vector3 position, Type type, Mode mode)
+			public BezierPoint(Vector3 position, Type type, Mode mode) : this()
 			{
 				this.point = position;
-				this.angle = 0f;
 				this.type = type;
 				this.mode = mode;
+				rotation = Quaternion.identity;
 			}
 			public static BezierPoint Control(Vector3 position, Mode mode = Mode.Automatic) => new BezierPoint(position, Type.Control, mode);
 			public static BezierPoint LeftHandle(Vector3 position, Mode mode = Mode.Automatic) => new BezierPoint(position, Type.LeftHandle, mode);
@@ -73,9 +74,15 @@ namespace BezierCurveZ
 				return this;
 			}
 
-			public BezierPoint SetRotation(float rotation)
+			public BezierPoint SetRotation(Quaternion rotation)
 			{
-				this.angle = rotation;
+				this.rotation = rotation;
+				return this;
+			}
+
+			public BezierPoint Rotate(Quaternion delta)
+			{
+				this.rotation *= delta;
 				return this;
 			}
 

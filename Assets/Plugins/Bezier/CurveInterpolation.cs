@@ -6,7 +6,7 @@ namespace BezierCurveZ
 {
 	public static class CurveInterpolation
 	{
-		public static SplitData SplitCurveByAngleError(Curve curve, float maxAngleError, float minSplitDistance, int accuracy = 10, bool useRotationMinimisation = false)
+		public static SplitData SplitCurveByAngleError(Curve curve, float maxAngleError, float minSplitDistance, int accuracy = 10, bool useRotations = false)
 		{
 			if (curve.Points.Count == 1)
 				return new SplitData()
@@ -33,43 +33,44 @@ namespace BezierCurveZ
 			var _dist = -1f;
 			var length = -1f;
 
-			var angles = new float[curve.ControlPointCount + 2];
-			angles[0] = curve.IsClosed ? curve.Points[curve.lastPointInd].angle : curve.Points[0].angle;
-			angles[angles.Length - 2] = curve.Points[curve.lastPointInd].angle;
-			angles[angles.Length - 2] = curve.IsClosed ? curve.Points[0].angle : curve.Points[curve.lastPointInd].angle;
-			var i = 0;
-			foreach (var segment in curve.Segments)
-			{
-				angles[i + 1] = curve.Points[curve.GetPointIndex(i)].angle;
-				var d = Mathf.DeltaAngle(angles[i], angles[i + 1]);
-				angles[i + 1] = angles[i] + d;
-				i++;
-			}
-			//loop angles around, so that change would be minimum, since we can't set rotation past 360deg
-			for (int j = 1; j < angles.Length; j++)
-			{
-				var d = Mathf.DeltaAngle(angles[j - 1], angles[j]);
-				angles[j] = angles[j - 1] + d;
-			}
+			//var angles = new float[curve.ControlPointCount + 2];
+			//angles[0] = curve.IsClosed ? curve.Points[curve.lastPointInd].angle : curve.Points[0].angle;
+			//angles[angles.Length - 2] = curve.Points[curve.lastPointInd].angle;
+			//angles[angles.Length - 2] = curve.IsClosed ? curve.Points[0].angle : curve.Points[curve.lastPointInd].angle;
+			//var i = 0;
+			//foreach (var segment in curve.Segments)
+			//{
+			//	angles[i + 1] = curve.Points[curve.GetPointIndex(i)].angle;
+			//	var d = Mathf.DeltaAngle(angles[i], angles[i + 1]);
+			//	angles[i + 1] = angles[i] + d;
+			//	i++;
+			//}
+			////loop angles around, so that change would be minimum, since we can't set rotation past 360deg
+			//for (int j = 1; j < angles.Length; j++)
+			//{
+			//	var d = Mathf.DeltaAngle(angles[j - 1], angles[j]);
+			//	angles[j] = angles[j - 1] + d;
+			//}
 
 			var prevUp = Vector3.up;
 
-			var k = 0;
+			var segInd = 0;
 			foreach (var segment in curve.Segments)
 			{
 				var estimatedSegmentLength = CurveUtils.EstimateSegmentLength(segment);
 				int divisions = (estimatedSegmentLength * accuracy).CeilToInt();
 				float increment = 1f / divisions;
-				if (k == 0)
+				if (segInd == 0)
 					_nextPoint = CurveUtils.Evaluate(increment, segment);
 
-				int lastSegmentIndex = (curve.GetPointIndex(k) + 3).Min(curve.Points.Count - 1);
+				int lastSegmentIndex = (curve.GetPointIndex(segInd) + 3).Min(curve.Points.Count - 1);
 				Vector3 finalTangent = CurveUtils.EvaluateDerivative(1, segment).normalized;
 
 				float t = 0f;
+				var segmentDataFirstIndex = data.points.Count;
 				while (true)
 				{
-					var _edgePoint = (t == 0) || (t >= 1 && k == curve.SegmentCount - 1);
+					var _edgePoint = (t == 0) || (t >= 1 && segInd == curve.SegmentCount - 1);
 
 					Vector3 _toLastPoint = _previousPoint - _currentPoint;
 					var _toLastPointMag = _toLastPoint.magnitude;
@@ -80,23 +81,26 @@ namespace BezierCurveZ
 					if (_edgePoint || _angleError > maxAngleError && _dist >= minSplitDistance)
 					{
 						Vector3 tang = CurveUtils.EvaluateDerivative(t, segment).normalized;
-						var approxAngle = CatmullRomCurveUtility.Evaluate(t, .5f, angles[k], angles[k + 1], angles[k + 2], angles[k + 3]);
-						Quaternion rotation;
-						if (!useRotationMinimisation)
-						{
-							rotation = Quaternion.LookRotation(tang) * Quaternion.Euler(0, 0, approxAngle);
-						}
-						else
-						{
-							rotation = Quaternion.LookRotation(tang, prevUp) * Quaternion.Euler(0, 0, approxAngle);
-							prevUp = rotation * Vector3.up;
-						}
+						//var approxAngle = CatmullRomCurveUtility.Evaluate(t, .5f, angles[k], angles[k + 1], angles[k + 2], angles[k + 3]);
+						Quaternion rotation = Quaternion.identity;
+						//if (!useRotations)
+						//{
+						//	rotation = Quaternion.LookRotation(tang) * Quaternion.Euler(0, 0, approxAngle);
+						//}
+						//else
+						//{
+						//	rotation = Quaternion.LookRotation(tang, prevUp) * Quaternion.Euler(0, 0, approxAngle);
+						//	prevUp = rotation * Vector3.up;
+						//}
+						if (t==0f) rotation = curve.GetCPRotation(segInd);
+						else rotation = Quaternion.LookRotation(tang, prevUp);
+						prevUp = rotation * Vector3.up;
 
 						data.points.Add(_currentPoint);
 						data.tangents.Add(tang);
 						data.segmentTime.Add(t);
 						data.cumulativeLength.Add(length);
-						data.segmentIndices.Add(k);
+						data.segmentIndices.Add(segInd);
 						data.rotations.Add(rotation);
 						_dist = 0;
 						_previousPoint = _currentPoint;
@@ -110,7 +114,18 @@ namespace BezierCurveZ
 					_previousAngle = _angle;
 				}
 
-				k++;
+				//Quaternion segmentLastRotation = curve.Points[curve.GetPointIndex(segInd)].mode.HasFlag(Curve.BezierPoint.Mode.Automatic) ?
+				//	curve.GetCPRotation(segInd + 1) : Quaternion.LookRotation(curve.GetTangent(segInd, 1f), curve.GetCPRotation(segInd + 1) * Vector3.up);
+				//var rotationError = (data.rotations[data.rotations.Count - 1] * segmentLastRotation.Inverted()).normalized;
+
+				////Trace back last segment
+				//for (int i = data.points.Count - 1; i > segmentDataFirstIndex; i--)
+				//{
+				//	//Correct rotations to rotate to next point rotation
+				//	data.rotations[i] *= Quaternion.Slerp(Quaternion.identity, rotationError, data.segmentTime[i]);
+				//}
+
+				segInd++;
 			}
 
 			return data;
