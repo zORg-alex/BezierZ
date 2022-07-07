@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using System.Linq;
+using System.Diagnostics;
 
 namespace BezierCurveZ
 {
@@ -36,12 +37,12 @@ namespace BezierCurveZ
 
 		[SerializeField]
 		private bool _isClosed;
-		public bool IsClosed { get => _isClosed; set { CloseCurve(value); _bVersion++; } }
+		public bool IsClosed { [DebuggerStepThrough] get => _isClosed; [DebuggerStepThrough] set { CloseCurve(value); _bVersion++; } }
 		private Curve.BezierPoint.Mode[] _preservedNodeModesWhileClosed = new BezierPoint.Mode[2];
 
 		[SerializeField]
 		internal bool _useRotations;
-		public bool UseRotations { get => _useRotations; set { _useRotations = value; _bVersion++; } }
+		public bool UseRotations { [DebuggerStepThrough] get => _useRotations; [DebuggerStepThrough] set { _useRotations = value; _bVersion++; } }
 
 		public void CloseCurve(bool value)
 		{
@@ -64,14 +65,20 @@ namespace BezierCurveZ
 			_isClosed = value;
 		}
 
-		public int ControlPointCount => points.Count / 3 + 1;
-		public int SegmentCount => (points?.Count ?? 0) / 3;
+		public int ControlPointCount { [DebuggerStepThrough] get => points.Count / 3 + 1; }
 
+		public int SegmentCount { [DebuggerStepThrough] get => (points?.Count ?? 0) / 3; }
+
+		[DebuggerStepThrough]
 		public int GetPointIndex(int segmentIndex) =>
 			segmentIndex % SegmentCount * 3 + (IsClosed ? 1 : 0);
+
+		[DebuggerStepThrough]
 		public int GetSegmentIndex(int index) => IsClosed ?
 			((points.Count + (index - 1)) % points.Count / 3f).FloorToInt() :
 			((points.Count + index) % points.Count / 3f).FloorToInt();
+
+		[DebuggerStepThrough]
 		public bool IsControlPoint(int index) =>
 			index < 0 || index >= points.Count ? false :
 			points[index].type == BezierPoint.Type.Control;
@@ -146,45 +153,20 @@ namespace BezierCurveZ
 		}
 
 		/// <summary>
-		/// Set point angle in object-space relative to Vector3.up
-		/// </summary>
-		/// <param name="index"></param>
-		/// <param name="rotation"></param>
-		public void SetCPRotation(int segmentIndex, Quaternion rotation)
-		{
-			var index = GetPointIndex(segmentIndex);
-			var tang = GetCPTangent(segmentIndex);
-			//Get euler z value from rotation relative default tangent look rotation
-			var pointDefaultRotation = Quaternion.LookRotation(tang);
-			var adjustedRotation = Quaternion.LookRotation(tang, rotation * Vector3.up);
-			
-			points[index] = points[index].SetRotation(adjustedRotation);
-			
-			_bVersion++;
-		}
-
-		/// <summary>
 		/// Rotate point angle and handles
 		/// </summary>
 		/// <param name="segmentIndex"></param>
-		/// <param name="deltaRotation"></param>
-		public void RotateCPWithHandles(int segmentIndex, Quaternion deltaRotation)
+		/// <param name="rotation"></param>
+		public void SetCPRotationWithHandles(int segmentIndex, Quaternion rotation)
 		{
-			var deltaEuler = deltaRotation.eulerAngles;
 			var index = GetPointIndex(segmentIndex);
-			var tang = GetCPTangent(segmentIndex);
-			//Get euler z value from rotation relative default tangent look rotation
-			//var pointDefaultRotation = Quaternion.LookRotation(tang);
-			var adjustedRotation = Quaternion.LookRotation(tang, deltaRotation * Vector3.up);
+			BezierPoint point = points[index];
+			var deltaRotation = rotation * point.rotation.Inverted();
 
-			points[index] = points[index].SetRotation(adjustedRotation);
+			points[index] = point.SetRotation(rotation);
 			
 			_bVersion++;
 
-			if (deltaEuler.x == 0 && deltaEuler.y == 0) return;
-
-			//Rotate handles if rotation is other than z azis
-			var point = points[index];
 			if (index > 0)
 			{
 				var leftHandle = points[index - 1];
@@ -207,7 +189,8 @@ namespace BezierCurveZ
 		{
 			var index = GetPointIndex(segmentIndex);
 			var point = points[index];
-			var nextPoint = index < lastPointInd ? points[index + 1] : IsClosed ? points[0] : point;
+			var isZero = point.mode == BezierPoint.Mode.Zero;
+			var nextPoint = IsClosed ? points[(index + (isZero ? 2 : 1)) % points.Count] : point;
 			return (point.mode.HasFlag(BezierPoint.Mode.Automatic)) ? getAutoTangent() : getAvgTangent();
 
 			Vector3 getAutoTangent()
@@ -217,7 +200,7 @@ namespace BezierCurveZ
 
 			Vector3 getAvgTangent()
 			{
-				var prevPoint = index > 0 ? points[index - 1] : IsClosed ? points[lastPointInd] : point;
+				var prevPoint = IsClosed ? points[(index - (isZero ? 2 : 1)) % points.Count] : point;
 				return (nextPoint - prevPoint).normalized;
 			}
 		}

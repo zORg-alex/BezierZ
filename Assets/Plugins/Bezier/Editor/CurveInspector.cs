@@ -630,7 +630,6 @@ namespace BezierCurveZ
 			var c = Handles.color;
 			Handles.color = Color.white.MultiplyAlpha(.66f);
 			var cam = Camera.current;
-			Handles.Label(targetTransform.position, $"{closestControlIndex}");
 
 			//Draw points
 			for (int i = 0; i < curve.Points.Count; i++)
@@ -648,7 +647,7 @@ namespace BezierCurveZ
 				{
 					GUIUtils.DrawCircle(globalPointPos, (cam.transform.position - globalPointPos).normalized, size, width: width);
 					Handles.DrawAAPolyLine(globalPointPos, globalPointPos + transformDirection(curve.GetRotation(segInd, 0f) * Vector3.up) * .2f);
-					Handles.Label(globalPointPos, $"{i}, a={curve.Points[i].angle}");
+					Handles.Label(globalPointPos, $"{i}, eulers={curve.Points[i].rotation.eulerAngles}");
 				}
 				else
 				{
@@ -694,30 +693,35 @@ namespace BezierCurveZ
 				}
 				else if (currentInternalTool == Tool.Rotate && curve.IsControlPoint(closestIndex))
 				{
-					if (selectedPointIdexes.Count == 0)
-						toolRotation = curve.GetCPRotation(curve.GetSegmentIndex(closestIndex)) * targetTransform.rotation;
+					//if (selectedPointIdexes.Count == 0)
+					//	toolRotation = curve.GetCPRotation(curve.GetSegmentIndex(closestIndex)) * targetTransform.rotation;
 					float handleSize = HandleUtility.GetHandleSize(editedPosition);
 
 					//var rot = AxisRotation.Do(controlID, worldRotation, editedPosition, Vector3.f, handleSize);
 					var rot = Handles.DoRotationHandle(toolRotation, editedPosition);
 
-					Handles.color = Color.yellow;
-					Handles.DrawAAPolyLine(editedPosition, editedPosition + toolRotation * Vector3.up * handleSize);
+					Handles.color = Color.blue;
+					Handles.DrawAAPolyLine(editedPosition, editedPosition + rot * Vector3.up * handleSize);
+
+					Handles.color = Color.red;
+					Handles.DrawAAPolyLine(editedPosition, editedPosition + rot * Vector3.right * handleSize);
+					Handles.color = Color.green;
+					Handles.DrawAAPolyLine(editedPosition, editedPosition + rot * Vector3.forward * handleSize);
 
 					if (EditorGUI.EndChangeCheck())
 					{
 						Undo.RecordObject(targetObject, "Point rotation changed");
+						var local = rot * toolRotation.Inverted();  
 						if (selectedPointIdexes.Count == 0)
-							curve.RotateCPWithHandles(curve.GetSegmentIndex(closestIndex), rot * toolRotation.Inverted());
+							curve.SetCPRotationWithHandles(curve.GetSegmentIndex(closestIndex), local);
 						else
 						{
-							var delta = rot * toolRotation.Inverted();
 							foreach (var ind in selectedPointIdexes)
 							{
-								var rotatedRelativeEditedPoint = delta * (transform(curve.Points[ind]) - editedPosition);
+								var rotatedRelativeEditedPoint = local * (transform(curve.Points[ind]) - editedPosition);
 								curve.SetPoint(ind, closestPoint + rotatedRelativeEditedPoint);
 								int segmentIndex = curve.GetSegmentIndex(ind);
-								curve.RotateCPWithHandles(segmentIndex, delta);
+								curve.SetCPRotationWithHandles(segmentIndex, local);
 							}
 							toolRotation = rot;
 						}
