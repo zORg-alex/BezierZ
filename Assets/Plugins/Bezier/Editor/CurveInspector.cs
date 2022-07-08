@@ -617,7 +617,7 @@ namespace BezierCurveZ
 			}
 			closestPoint = curve.Points[closestIndex];
 			editedPosition = targetTransform.TransformPoint(closestPoint.point);
-			toolRotation = GetToolRotation().normalized;
+			toolRotation = GetToolRotation();
 			if (minDist > 100)
 				closestIndex = -1;
 		}
@@ -647,8 +647,14 @@ namespace BezierCurveZ
 				if (isControlPoint)
 				{
 					GUIUtils.DrawCircle(globalPointPos, (cam.transform.position - globalPointPos).normalized, size, width: width);
-					Handles.DrawAAPolyLine(globalPointPos, globalPointPos + transformDirection(curve.GetCPRotation(segInd) * Vector3.up) * .3f);
 					Handles.Label(globalPointPos, $"{i}, eulers={curve.Points[i].rotation.eulerAngles}");
+
+					Handles.color = Color.red;
+					Handles.DrawAAPolyLine(globalPointPos, globalPointPos + transformDirection(curve.GetCPRotation(segInd) * Vector3.right) * .3f);
+					Handles.color = Color.green;
+					Handles.DrawAAPolyLine(globalPointPos, globalPointPos + transformDirection(curve.GetCPRotation(segInd) * Vector3.up) * .3f);
+					Handles.color = Color.blue;
+					Handles.DrawAAPolyLine(globalPointPos, globalPointPos + transformDirection(curve.GetCPRotation(segInd) * Vector3.forward) * .3f);
 				}
 				else
 				{
@@ -695,16 +701,17 @@ namespace BezierCurveZ
 				else if (currentInternalTool == Tool.Rotate && curve.IsControlPoint(closestIndex))
 				{
 					float handleSize = HandleUtility.GetHandleSize(editedPosition);
+					var rotation = curve.Points[closestIndex].rotation * targetTransform.rotation;
 
 					//var rot = AxisRotation.Do(controlID, worldRotation, editedPosition, Vector3.f, handleSize);
-					var rot = Handles.DoRotationHandle(toolRotation, editedPosition);
+					var rot = Handles.DoRotationHandle(rotation, editedPosition);
 
 					Handles.color = Color.yellow;
 					Handles.DrawAAPolyLine(editedPosition, editedPosition + toolRotation * Vector3.up * handleSize);
 
 					if (EditorGUI.EndChangeCheck())
 					{
-						var delta = rot * toolRotation.Inverted();
+						var delta = rot * rotation.Inverted();
 						Undo.RecordObject(targetObject, "Point rotation changed");
 						if (selectedPointIdexes.Count == 0)
 						{

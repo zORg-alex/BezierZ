@@ -114,16 +114,16 @@ namespace BezierCurveZ
 					_previousAngle = _angle;
 				}
 
-				//Quaternion segmentLastRotation = curve.Points[curve.GetPointIndex(segInd)].mode.HasFlag(Curve.BezierPoint.Mode.Automatic) ?
-				//	curve.GetCPRotation(segInd + 1) : Quaternion.LookRotation(curve.GetTangent(segInd, 1f), curve.GetCPRotation(segInd + 1) * Vector3.up);
-				//var rotationError = (data.rotations[data.rotations.Count - 1] * segmentLastRotation.Inverted()).normalized;
+				Quaternion segmentLastRotation = curve.Points[curve.GetPointIndex(segInd)].mode.HasFlag(Curve.BezierPoint.Mode.Automatic) ?
+					curve.GetCPRotation(segInd + 1) : Quaternion.LookRotation(curve.GetTangent(segInd, 1f), curve.GetCPRotation(segInd + 1) * Vector3.up);
+				var rotationError = (data.rotations[data.rotations.Count - 1] * segmentLastRotation.Inverted()).normalized;
 
-				////Trace back last segment
-				//for (int i = data.points.Count - 1; i > segmentDataFirstIndex; i--)
-				//{
-				//	//Correct rotations to rotate to next point rotation
-				//	data.rotations[i] *= Quaternion.Slerp(Quaternion.identity, rotationError, data.segmentTime[i]);
-				//}
+				//Trace back last segment
+				for (int i = data.points.Count - 1; i > segmentDataFirstIndex; i--)
+				{
+					//Correct rotations to rotate to next point rotation
+					data.rotations[i] *= Quaternion.Slerp(Quaternion.identity, rotationError, data.segmentTime[i]);
+				}
 
 				segInd++;
 			}

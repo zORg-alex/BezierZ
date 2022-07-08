@@ -82,9 +82,10 @@ namespace BezierCurveZ
 			index = Mathf.Clamp(index, 0, lastPointInd);
 
 			var thisPoint = points[index];
+			var diff = position - points[index];
+			points[index] = thisPoint.SetPosition(position);
 			if (thisPoint.type == BezierPoint.Type.Control)
 			{
-				var diff = position - points[index];
 				var isLinear = thisPoint.mode == BezierPoint.Mode.Zero;
 				if (index > 0)
 					points[index - 1] = points[index - 1].SetPosition(isLinear ? points[index] : points[index - 1] + diff);
@@ -93,8 +94,10 @@ namespace BezierCurveZ
 			}
 			else
 			{
-				var controlPoint = points[index].type == BezierPoint.Type.LeftHandle ? points[index + 1] : points[index - 1];
-				var otherHandleIndex = ((points[index].type == BezierPoint.Type.LeftHandle ? index + 2 : index - 2) + points.Count) % points.Count;
+				var controlPointInd = points[index].type == BezierPoint.Type.LeftHandle ? index + 1 : index - 1;
+				var controlPoint = points[controlPointInd];
+				bool isLeftHandle = points[index].type == BezierPoint.Type.LeftHandle;
+				var otherHandleIndex = ((isLeftHandle ? index + 2 : index - 2) + points.Count) % points.Count;
 
 				if (controlPoint.mode.HasFlag(BezierPoint.Mode.Automatic))
 				{
@@ -103,10 +106,8 @@ namespace BezierCurveZ
 					if (controlPoint.mode.HasFlag(BezierPoint.Mode.Manual))
 					{
 						//Proportional
-						var diff = position - controlPoint;
+						diff = position - controlPoint;
 						points[index] = points[index].SetPosition(controlPoint - (otherHandle - controlPoint).normalized * diff.magnitude);
-						_bVersion++;
-						return;
 					}
 					else
 					{
@@ -119,11 +120,11 @@ namespace BezierCurveZ
 				else if (controlPoint.mode.HasFlag(BezierPoint.Mode.Zero))
 				{
 					points[index] = points[index].SetPosition(controlPoint);
-					_bVersion++;
-					return;
 				}
+
+				//Correct rotaion
+				points[controlPointInd] = controlPoint.SetRotation(Quaternion.LookRotation((thisPoint - points[otherHandleIndex]) * (isLeftHandle ? -1 : 1), controlPoint.rotation * Vector3.up));
 			}
-			points[index] = points[index].SetPosition(position);
 			_bVersion++;
 		}
 
@@ -148,7 +149,8 @@ namespace BezierCurveZ
 		public void RotateCPWithHandles(int segmentIndex, Quaternion deltaRot)
 		{
 			var index = GetPointIndex(segmentIndex);
-			var newPoint = points[index].Rotate(deltaRot);
+			BezierPoint p = points[index];
+			var newPoint = p.SetRotation((p.rotation * deltaRot).normalized);
 
 			points[index] = newPoint;
 
@@ -243,7 +245,7 @@ namespace BezierCurveZ
 			new Vector3[] { points[index * 3 + 1], points[index * 3 + 2], points[(index * 3 + 3) % points.Count], points[(index * 3 + 4) % points.Count] } :
 			new Vector3[] { points[index * 3], points[index * 3 + 1], points[index * 3 + 2], points[index * 3 + 3] };
 
-		public BezierPoint.Mode DefaultAddedPointMode { get; set; }
+		public BezierPoint.Mode DefaultAddedPointMode { get; set; } = BezierPoint.Mode.Automatic;
 
 		public void AddPointAtEnd(Vector3 point) {
 			BezierPoint[] addedPoints = new BezierPoint[3];
@@ -298,7 +300,14 @@ namespace BezierCurveZ
 			var type = IsClosed ? BezierPoint.Type.LeftHandle : BezierPoint.Type.Control;
 			for (int i = 0; i < newLength; i++)
 			{
-				newPoints[i] = new BezierPoint(points[i], type);
+				BezierPoint thisPoint = new BezierPoint(points[i], type, DefaultAddedPointMode);
+
+				if (type != BezierPoint.Type.Control)
+				{
+					var isLeftHandle = type == BezierPoint.Type.LeftHandle;
+					thisPoint.SetRotation(Quaternion.LookRotation((thisPoint - points[i + (isLeftHandle ? (i < newLength - 2 ? 2 : 1) : (i > 1 ? -2 : -1))]) * (isLeftHandle ? -1 : 1), Vector3.up));
+				}
+				newPoints[i] = thisPoint;
 				type++;
 				type = (BezierPoint.Type)((int)type % 3);
 			}
