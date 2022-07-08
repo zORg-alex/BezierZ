@@ -116,11 +116,13 @@ namespace BezierCurveZ
 					{
 						//Proportional
 						var diff = position - controlPoint;
-						points[index] = points[index].SetPosition(controlPoint - (otherHandle - controlPoint).normalized * diff.magnitude);
+						points[index] = points[index].SetPosition(position);
+						if (IsClosed || (index > 1 && index < lastPointInd - 1))
+							points[otherHandleIndex] = otherHandle.SetPosition(controlPoint - diff * ((otherHandle - controlPoint).magnitude / diff.magnitude));
 					}
 					else
 					{
-						//Automatic
+						//Automatic, edit both handles mirrored
 						points[index] = points[index].SetPosition(position);
 						if (IsClosed || (index > 1 && index < lastPointInd - 1))
 							points[otherHandleIndex] = otherHandle.SetPosition(controlPoint + controlPoint - position);
