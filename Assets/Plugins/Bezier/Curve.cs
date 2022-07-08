@@ -121,6 +121,7 @@ namespace BezierCurveZ
 					else
 					{
 						//Automatic
+						points[index] = points[index].SetPosition(position);
 						if (IsClosed || (index > 1 && index < lastPointInd - 1))
 							points[otherHandleIndex] = otherHandle.SetPosition(controlPoint + controlPoint - position);
 					}
