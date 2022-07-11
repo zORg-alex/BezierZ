@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
@@ -33,31 +34,38 @@ namespace BezierCurveZ
 			var _dist = -1f;
 			var length = -1f;
 
-			var angles = new float[curve.ControlPointCount + 2];
+			var angles = new float[curve.SegmentCount + 3];
+			var rotations = new Quaternion[curve.SegmentCount + 3];
 			if (!useRotations)
 			{
-				angles[0] = curve.IsClosed ? curve.Points[curve.lastPointInd].angle : curve.Points[0].angle;
-				angles[angles.Length - 2] = curve.Points[curve.lastPointInd].angle;
-				angles[angles.Length - 2] = curve.IsClosed ? curve.Points[0].angle : curve.Points[curve.lastPointInd].angle;
-				var i = 0;
-				foreach (var segment in curve.Segments)
-				{
-					angles[i + 1] = curve.Points[curve.GetPointIndex(i)].angle;
-					var d = Mathf.DeltaAngle(angles[i], angles[i + 1]);
-					angles[i + 1] = angles[i] + d;
-					i++;
-				}
-				//loop angles around, so that change would be minimum, since we can't set rotation past 360deg
-				for (int j = 1; j < angles.Length; j++)
-				{
-					var d = Mathf.DeltaAngle(angles[j - 1], angles[j]);
-					angles[j] = angles[j - 1] + d;
-				}
+				FillArrayForCatmullRomThing(angles, i => curve.Points[curve.GetPointIndex(i)].angle, (a, b) => a + Mathf.DeltaAngle(a, b));
+			}
+			else
+			{
+				FillArrayForCatmullRomThing(rotations, i => curve.Points[curve.GetPointIndex(i)].rotation);
 			}
 
-			var prevUp = Vector3.up;
+			void FillArrayForCatmullRomThing<T>(T[] array, Func<int, T> getter, Func<T, T, T> fixWithPreviousValue = null)
+			{
+				int lastSeg = curve.SegmentCount - 1;
+				array[0] = curve.IsClosed ? getter(lastSeg) : getter(0);
+				array[array.Length - 3] = getter(lastSeg);
+				array[array.Length - 2] = curve.IsClosed ? getter(0) : getter(lastSeg);
+				array[array.Length - 1] = curve.IsClosed ? getter(1) : getter(0);
+				for (int i = 0; i < lastSeg; i++)
+				{
+					array[i + 1] = getter(i);
+				}
+				//loop angles around, so that change would be minimum, since we can't set rotation past 360deg
+				if (fixWithPreviousValue != null)
+					for (int j = 1; j < array.Length; j++)
+					{
+						array[j] = fixWithPreviousValue(array[j - 1], array[j]);
+					}
+			}
 
 			var segInd = 0;
+			var prevUp = curve.GetCPRotation(segInd) * Vector3.up;
 			foreach (var segment in curve.Segments)
 			{
 				var prevRotation = curve.Points[curve.GetPointIndex(segInd)].rotation.normalized;
@@ -92,7 +100,8 @@ namespace BezierCurveZ
 						}
 						else if (t == 0)
 						{
-							rotation = prevRotation;
+							rotation = Quaternion.LookRotation(tang, prevUp);
+							prevUp = rotation * Vector3.up;
 						}
 
 						data.points.Add(_currentPoint);

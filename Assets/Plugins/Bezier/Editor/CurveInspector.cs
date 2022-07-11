@@ -646,8 +646,8 @@ namespace BezierCurveZ
 				if (isControlPoint)
 				{
 					GUIUtils.DrawCircle(globalPointPos, (cam.transform.position - globalPointPos).normalized, size, width: width);
-					Handles.DrawAAPolyLine(globalPointPos, globalPointPos + transformDirection(curve.GetRotation(segInd, 0f) * Vector3.up) * .2f);
-					Handles.Label(globalPointPos, $"{i}, eulers={curve.Points[i].rotation.eulerAngles}");
+					Handles.Label(globalPointPos, $"{i}, eulers={curve.Points[i].rotation.eulerAngles}, angle={curve.Points[i].angle}");
+					DrawAxes(.3f, globalPointPos, curve.GetCPRotation(segInd) * targetTransform.rotation);
 				}
 				else
 				{
@@ -693,39 +693,33 @@ namespace BezierCurveZ
 				}
 				else if (currentInternalTool == Tool.Rotate && curve.IsControlPoint(closestIndex))
 				{
-					//if (selectedPointIdexes.Count == 0)
-					//	toolRotation = curve.GetCPRotation(curve.GetSegmentIndex(closestIndex)) * targetTransform.rotation;
+					int segmentIndex = curve.GetSegmentIndex(closestIndex);
+					toolRotation = targetTransform.rotation * curve.GetCPRotation(segmentIndex);
 					float handleSize = HandleUtility.GetHandleSize(editedPosition);
 
-					//var rot = AxisRotation.Do(controlID, worldRotation, editedPosition, Vector3.f, handleSize);
 					var rot = Handles.DoRotationHandle(toolRotation, editedPosition);
-
-					Handles.color = Color.blue;
-					Handles.DrawAAPolyLine(editedPosition, editedPosition + rot * Vector3.up * handleSize);
-
-					Handles.color = Color.red;
-					Handles.DrawAAPolyLine(editedPosition, editedPosition + rot * Vector3.right * handleSize);
-					Handles.color = Color.green;
-					Handles.DrawAAPolyLine(editedPosition, editedPosition + rot * Vector3.forward * handleSize);
 
 					if (EditorGUI.EndChangeCheck())
 					{
 						Undo.RecordObject(targetObject, "Point rotation changed");
-						var local = rot * toolRotation.Inverted();  
+						var local = rot * toolRotation.Inverted();
 						if (selectedPointIdexes.Count == 0)
-							curve.SetCPRotationWithHandles(curve.GetSegmentIndex(closestIndex), local);
+						{
+							curve.SetCPRotationWithHandles(segmentIndex, local, additive:true);
+						}
 						else
 						{
 							foreach (var ind in selectedPointIdexes)
 							{
+								segmentIndex = curve.GetSegmentIndex(ind);
 								var rotatedRelativeEditedPoint = local * (transform(curve.Points[ind]) - editedPosition);
 								curve.SetPoint(ind, closestPoint + rotatedRelativeEditedPoint);
-								int segmentIndex = curve.GetSegmentIndex(ind);
-								curve.SetCPRotationWithHandles(segmentIndex, local);
+								curve.SetCPRotationWithHandles(segmentIndex, local, additive:true);
 							}
 							toolRotation = rot;
 						}
 					}
+					DrawAxes(handleSize, editedPosition, curve.GetCPRotation(curve.GetSegmentIndex(closestIndex)));
 				}
 			}
 
@@ -761,7 +755,6 @@ namespace BezierCurveZ
 			Vector3 transform(Vector3 pos) => targetTransform.TransformPoint(pos);
 			Vector3 transformDirection(Vector3 normal) => targetTransform.TransformDirection(normal);
 		}
-
 		private void DrawCurveAndPoints(bool Highlight = false)
 		{
 			var m = Handles.matrix;
@@ -789,9 +782,21 @@ namespace BezierCurveZ
 		private Quaternion GetToolRotation() => Tools.pivotRotation switch
 		{
 			PivotRotation.Global => Tools.handleRotation,
-			PivotRotation.Local => targetTransform.rotation * curve.GetCPRotation(curve.GetSegmentIndex(closestIndex)),
+			PivotRotation.Local => targetTransform.rotation * curve.Points[closestIndex].rotation.normalized,
 			_ => Quaternion.identity
 		};
+
+		private void DrawAxes(float handleSize, Vector3 position, Quaternion rotation)
+		{
+			var c = Handles.color;
+			Handles.color = Color.red;
+			Handles.DrawAAPolyLine(position, position + rotation * Vector3.right * handleSize);
+			Handles.color = Color.green;
+			Handles.DrawAAPolyLine(position, position + rotation * Vector3.up * handleSize);
+			Handles.color = Color.blue;
+			Handles.DrawAAPolyLine(position, position + rotation * Vector3.forward * handleSize);
+			Handles.color = c;
+		}
 
 	}
 }

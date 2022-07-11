@@ -283,266 +283,258 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   curve:
     points:
-    - point: {x: -1, y: 0, z: 0}
-      angle: 0
-      mode: 4
-      type: 2
     - point: {x: 0, y: 0, z: 0}
-      angle: 0
-      mode: 4
+      _rotation: {x: 0, y: 0, z: 0, w: 0}
+      mode: 2
       type: 0
     - point: {x: 1, y: 0, z: 0}
-      angle: 0
+      _rotation: {x: 0, y: 0, z: 0, w: 0}
       mode: 2
       type: 1
     - point: {x: 1, y: 3, z: 0}
-      angle: 0
+      _rotation: {x: 0, y: 0, z: 0, w: 0}
       mode: 2
       type: 2
     - point: {x: 0, y: 3, z: 0}
-      angle: 0
+      _rotation: {x: 0, y: 0, z: 0, w: 0}
       mode: 2
       type: 0
     - point: {x: -1, y: 3, z: 0}
-      angle: 0
+      _rotation: {x: 0, y: 0, z: 0, w: 0}
       mode: 2
       type: 1
     - point: {x: -1, y: 3, z: 4}
-      angle: 0
+      _rotation: {x: 0, y: 0, z: 0, w: 0}
       mode: 2
       type: 2
     - point: {x: 0, y: 3, z: 4}
-      angle: 0
+      _rotation: {x: 0, y: 0, z: 0, w: 0}
       mode: 2
       type: 0
     - point: {x: 1, y: 3, z: 4}
-      angle: 0
+      _rotation: {x: 0, y: 0, z: 0, w: 0}
       mode: 2
       type: 1
     - point: {x: 1, y: 0, z: 4}
-      angle: 0
+      _rotation: {x: 0, y: 0, z: 0, w: 0}
       mode: 2
       type: 2
     - point: {x: 0, y: 0, z: 4}
-      angle: 0
-      mode: 4
+      _rotation: {x: 0, y: 0, z: 0, w: 0}
+      mode: 2
       type: 0
-    - point: {x: -1, y: 0, z: 4}
-      angle: 0
-      mode: 4
-      type: 1
-    _isClosed: 1
-    _useRotationMinimization: 1
+    _isClosed: 0
+    _useRotations: 0
     _minSamplingDistance: 0
     _maxAngleError: 0
   anotherCurve:
     points:
     - point: {x: -0.8898784, y: 0.000009059906, z: -0.9975621}
-      angle: 0
+      _rotation: {x: 0, y: 0, z: 0, w: 0}
       mode: 4
       type: 2
     - point: {x: -1.2128532, y: 0.000009059906, z: -0.9979268}
-      angle: 0
+      _rotation: {x: 0, y: 0, z: 0, w: 0}
       mode: 4
       type: 0
     - point: {x: -1.535828, y: 0.000009059906, z: -0.99829143}
-      angle: 0
+      _rotation: {x: 0, y: 0, z: 0, w: 0}
       mode: 2
       type: 1
     - point: {x: -1.7796695, y: -0.000489208, z: -0.99401486}
-      angle: 0
+      _rotation: {x: 0, y: 0, z: 0, w: 0}
       mode: 2
       type: 2
     - point: {x: -2.0074167, y: 0.000009059906, z: -0.99370277}
-      angle: -21.409077
+      _rotation: {x: 0, y: 0, z: 0, w: 0}
       mode: 0
       type: 0
     - point: {x: -3.0196168, y: 0.0005073278, z: -1.0062999}
-      angle: 0
+      _rotation: {x: 0, y: 0, z: 0, w: 0}
       mode: 6
       type: 1
     - point: {x: -3.0500338, y: 0.08110922, z: 0.99514943}
-      angle: 0
+      _rotation: {x: 0, y: 0, z: 0, w: 0}
       mode: 2
       type: 2
     - point: {x: -2.0126493, y: 0.0000021457672, z: 1.0018239}
-      angle: -30.149914
+      _rotation: {x: 0, y: 0, z: 0, w: 0}
       mode: 2
       type: 0
     - point: {x: -0.906312, y: -0.08649607, z: 1.0089415}
-      angle: 0
+      _rotation: {x: 0, y: 0, z: 0, w: 0}
       mode: 2
       type: 1
     - point: {x: 0.02225623, y: -0.10240615, z: 1.0458202}
-      angle: 0
+      _rotation: {x: 0, y: 0, z: 0, w: 0}
       mode: 2
       type: 2
     - point: {x: -0.0030455291, y: -0.09473107, z: -0.03897965}
-      angle: -13.010424
+      _rotation: {x: 0, y: 0, z: 0, w: 0}
       mode: 2
       type: 0
     - point: {x: -0.028347287, y: -0.08705599, z: -1.1237795}
-      angle: 0
+      _rotation: {x: 0, y: 0, z: 0, w: 0}
       mode: 2
       type: 1
     - point: {x: -0.004250875, y: -0.05238825, z: -0.96604717}
-      angle: 0
+      _rotation: {x: 0, y: 0, z: 0, w: 0}
       mode: 2
       type: 2
     - point: {x: -0.010443807, y: -0.040008258, z: -1.9970828}
-      angle: 32.247513
+      _rotation: {x: 0, y: 0, z: 0, w: 0}
       mode: 2
       type: 0
     - point: {x: -0.016636748, y: -0.027628269, z: -3.0281186}
-      angle: 0
+      _rotation: {x: 0, y: 0, z: 0, w: 0}
       mode: 2
       type: 1
     - point: {x: 1.0109689, y: -0.01669784, z: -3.0198011}
-      angle: 0
+      _rotation: {x: 0, y: 0, z: 0, w: 0}
       mode: 2
       type: 2
     - point: {x: 1.0113589, y: -0.00940238, z: -1.9922055}
-      angle: 25.491272
+      _rotation: {x: 0, y: 0, z: 0, w: 0}
       mode: 2
       type: 0
     - point: {x: 1.0114921, y: -0.0069096945, z: -1.641103}
-      angle: 0
+      _rotation: {x: 0, y: 0, z: 0, w: 0}
       mode: 2
       type: 1
     - point: {x: 1.0180995, y: -0.0047661886, z: -0.79150033}
-      angle: 0
+      _rotation: {x: 0, y: 0, z: 0, w: 0}
       mode: 2
       type: 2
     - point: {x: 1.0220461, y: -0.0032688417, z: 0.07396838}
-      angle: -0.63670474
+      _rotation: {x: 0, y: 0, z: 0, w: 0}
       mode: 2
       type: 0
     - point: {x: 1.0253947, y: -0.0019983654, z: 0.80830526}
-      angle: 0
+      _rotation: {x: 0, y: 0, z: 0, w: 0}
       mode: 2
       type: 1
     - point: {x: 1.0268276, y: -0.0011930706, z: 1.5540645}
-      angle: 0
+      _rotation: {x: 0, y: 0, z: 0, w: 0}
       mode: 2
       type: 2
     - point: {x: 1.0207646, y: -0.0010343828, z: 2.0164309}
-      angle: 35.851273
+      _rotation: {x: 0, y: 0, z: 0, w: 0}
       mode: 2
       type: 0
     - point: {x: 1.007556, y: -0.0006886589, z: 3.023729}
-      angle: 0
+      _rotation: {x: 0, y: 0, z: 0, w: 0}
       mode: 2
       type: 1
     - point: {x: -0.6749278, y: -0.00045630755, z: 3.0136163}
-      angle: 0
+      _rotation: {x: 0, y: 0, z: 0, w: 0}
       mode: 2
       type: 2
     - point: {x: -0.68093216, y: -0.00030057822, z: 1.993973}
-      angle: 0
+      _rotation: {x: 0, y: 0, z: 0, w: 0}
       mode: 2
       type: 0
     - point: {x: -0.682516, y: -0.00025949412, z: 1.7250237}
-      angle: 0
+      _rotation: {x: 0, y: 0, z: 0, w: 0}
       mode: 2
       type: 1
     - point: {x: -0.6859744, y: 0.6470912, z: 1.3428882}
-      angle: 0
+      _rotation: {x: 0, y: 0, z: 0, w: 0}
       mode: 2
       type: 2
     - point: {x: -0.6898634, y: 1.2100008, z: 0.9358189}
-      angle: 0
+      _rotation: {x: 0, y: 0, z: 0, w: 0}
       mode: 2
       type: 0
     - point: {x: -0.6928549, y: 1.6430081, z: 0.6226885}
-      angle: 0
+      _rotation: {x: 0, y: 0, z: 0, w: 0}
       mode: 2
       type: 1
     - point: {x: -0.6961012, y: 2.02605, z: 0.29480425}
-      angle: 0
+      _rotation: {x: 0, y: 0, z: 0, w: 0}
       mode: 2
       type: 2
     - point: {x: -0.69894487, y: 2.0260584, z: -0.0076643825}
-      angle: 32.4545
+      _rotation: {x: 0, y: 0, z: 0, w: 0}
       mode: 2
       type: 0
     - point: {x: -0.7054854, y: 2.0260775, z: -0.7033421}
-      angle: 0
+      _rotation: {x: 0, y: 0, z: 0, w: 0}
       mode: 2
       type: 1
     - point: {x: 0.6351884, y: 2.026096, z: -0.7190064}
-      angle: 0
+      _rotation: {x: 0, y: 0, z: 0, w: 0}
       mode: 2
       type: 2
     - point: {x: 0.62617695, y: 2.0261128, z: -0.011986852}
-      angle: 35.634445
+      _rotation: {x: 0, y: 0, z: 0, w: 0}
       mode: 2
       type: 0
     - point: {x: 0.6251529, y: 2.0261145, z: 0.068360284}
-      angle: 0
+      _rotation: {x: 0, y: 0, z: 0, w: 0}
       mode: 2
       type: 1
     - point: {x: 0.62294257, y: 1.7219445, z: 0.5487413}
-      angle: 0
+      _rotation: {x: 0, y: 0, z: 0, w: 0}
       mode: 2
       type: 2
     - point: {x: 0.6198752, y: 1.4438462, z: 1.0293095}
-      angle: 0
+      _rotation: {x: 0, y: 0, z: 0, w: 0}
       mode: 2
       type: 0
     - point: {x: 0.61729217, y: 1.2096584, z: 1.4339985}
-      angle: 0
+      _rotation: {x: 0, y: 0, z: 0, w: 0}
       mode: 2
       type: 1
     - point: {x: 0.6141015, y: 0.993959, z: 1.8388202}
-      angle: 0
+      _rotation: {x: 0, y: 0, z: 0, w: 0}
       mode: 2
       type: 2
     - point: {x: 0.61049986, y: 0.9939604, z: 2.004998}
-      angle: 50.91626
+      _rotation: {x: 0, y: 0, z: 0, w: 0}
       mode: 2
       type: 0
     - point: {x: 0.60262114, y: 0.99396336, z: 2.3685117}
-      angle: 0
+      _rotation: {x: 0, y: 0, z: 0, w: 0}
       mode: 2
       type: 1
     - point: {x: 0.18057358, y: 0.99397874, z: 2.3776035}
-      angle: 0
+      _rotation: {x: 0, y: 0, z: 0, w: 0}
       mode: 6
       type: 2
     - point: {x: 0.17849159, y: 0.99399126, z: 2.0069034}
-      angle: 38.453327
+      _rotation: {x: 0, y: 0, z: 0, w: 0}
       mode: 2
       type: 0
     - point: {x: 0.17622955, y: 0.99400485, z: 1.6041441}
-      angle: 0
+      _rotation: {x: 0, y: 0, z: 0, w: 0}
       mode: 2
       type: 1
     - point: {x: 0.16535687, y: 0.9718491, z: 1.2551136}
-      angle: 0
+      _rotation: {x: 0, y: 0, z: 0, w: 0}
       mode: 2
       type: 2
     - point: {x: 0.14271095, y: 0.93414474, z: 0.95267403}
-      angle: 0
+      _rotation: {x: 0, y: 0, z: 0, w: 0}
       mode: 2
       type: 0
     - point: {x: 0.07691086, y: 0.8245909, z: 0.07390422}
-      angle: 0
+      _rotation: {x: 0, y: 0, z: 0, w: 0}
       mode: 2
       type: 1
     - point: {x: -0.09787096, y: 0.48207682, z: -0.46229732}
-      angle: 0
+      _rotation: {x: 0, y: 0, z: 0, w: 0}
       mode: 2
       type: 2
     - point: {x: -0.34053865, y: 0.29462668, z: -0.67870665}
-      angle: -39.218258
+      _rotation: {x: 0, y: 0, z: 0, w: 0}
       mode: 4
       type: 0
     - point: {x: -0.58320636, y: 0.10717654, z: -0.895116}
-      angle: 0
+      _rotation: {x: 0, y: 0, z: 0, w: 0}
       mode: 4
       type: 1
     _isClosed: 1
-    _useRotationMinimization: 0
+    _useRotations: 0
     _minSamplingDistance: 0
     _maxAngleError: 0
   useRMFrames: 0
