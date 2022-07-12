@@ -65,10 +65,10 @@ namespace BezierCurveZ
 			}
 
 			var segInd = 0;
-			var prevUp = curve.GetCPRotation(segInd) * Vector3.up;
 			foreach (var segment in curve.Segments)
 			{
-				var prevRotation = curve.Points[curve.GetPointIndex(segInd)].rotation.normalized;
+				var prevUp = curve.GetCPRotation(segInd) * Vector3.up;
+				var firstIndex = data.segmentIndices.Count;
 				var estimatedSegmentLength = CurveUtils.EstimateSegmentLength(segment);
 				int divisions = (estimatedSegmentLength * accuracy).CeilToInt();
 				float increment = 1f / divisions;
@@ -98,7 +98,7 @@ namespace BezierCurveZ
 							var approxAngle = CatmullRomCurveUtility.Evaluate(t, .5f, angles[segInd], angles[segInd + 1], angles[segInd + 2], angles[segInd + 3]);
 							rotation = Quaternion.LookRotation(tang) * Quaternion.Euler(0, 0, approxAngle);
 						}
-						else if (t == 0)
+						else
 						{
 							rotation = Quaternion.LookRotation(tang, prevUp);
 							prevUp = rotation * Vector3.up;
@@ -126,12 +126,15 @@ namespace BezierCurveZ
 				{
 					//Go back and adjust angles
 					var i = data.rotations.Count - 1;
-					var lastRotation = curve.GetCPRotation(segInd + 1);
-					while (t > 0)
+
+					var right = curve.GetCPRotation(segInd + 1);
+					var rmLast = data.rotations[data.rotations.Count - 1];
+					var correction = Quaternion.Euler(0, 0, right.eulerAngles.z - rmLast.eulerAngles.z);
+					while (i > firstIndex)
 					{
 						t = data.segmentTime[i];
 
-						var r = Quaternion.LookRotation(data.tangents[i], Quaternion.Slerp(prevRotation, lastRotation, t) * Vector3.up);
+						var r = data.rotations[i] * Quaternion.Slerp(Quaternion.identity, correction, t);
 						data.rotations[i] = r;
 
 						i--;
