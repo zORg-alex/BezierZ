@@ -20,6 +20,14 @@ namespace MeshGeneration {
 		[SerializeField, HideInInspector]
 		bool[] _autoNormals;
 
+		public MeshProfile()
+		{
+			_points = new Vector2[] { Vector2.zero};
+			_normals = new Vector2[] { Vector2.up};
+			_uvs = new Vector2[] { Vector2.zero};
+			_autoNormals = new bool[] { true };
+		}
+
 		public Vector2 this[int index] {
 			get {
 				if (index < 0 || index >= _points.Length) return default;

@@ -19,6 +19,8 @@ namespace BezierCurveZ
 			public float time;
 
 			public Vector3 normal => rotation * Vector3.right;
+
+			public Vector3 up => rotation * Vector3.up;
 		}
 		[SerializeField, HideInInspector]
 		private Vector3[] _points;
