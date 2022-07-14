@@ -301,6 +301,10 @@ namespace BezierCurveZ
 
 			DrawCurveAndPoints();
 			DrawHandles();
+
+			Handles.BeginGUI();
+			GUI.Label(new Rect(current.mousePosition - Vector2.up * 30, new Vector2(300,30)), $"{GUIUtility.hotControl}, {GUIUtility.keyboardControl}");
+			Handles.EndGUI();
 		}
 
 		private void Input()
@@ -391,9 +395,6 @@ namespace BezierCurveZ
 				drawContextMenu = true;
 			}
 			#endregion
-
-			if (current.type == EventType.KeyDown || current.type == EventType.KeyUp)
-				Debug.Log(current);
 
 			//Delete selected point
 			if (GetKeyDown(KeyCode.Delete))
@@ -622,7 +623,8 @@ namespace BezierCurveZ
 			}
 			closestPoint = curve.Points[closestIndex];
 			editedPosition = targetTransform.TransformPoint(closestPoint.point);
-			toolRotation = GetToolRotation(curve.GetSegmentIndex(closestIndex));
+			if (GUIUtility.hotControl == 0)
+				toolRotation = GetToolRotation(curve.GetSegmentIndex(closestIndex));
 			if (minDist > 100)
 				closestIndex = -1;
 		}
@@ -700,7 +702,8 @@ namespace BezierCurveZ
 				else if (currentInternalTool == Tool.Rotate && curve.IsControlPoint(closestIndex))
 				{
 					int segmentIndex = curve.GetSegmentIndex(closestIndex);
-					toolRotation = GetToolRotation(segmentIndex);
+					if (Tools.pivotRotation == PivotRotation.Local)
+						toolRotation = GetToolRotation(segmentIndex);
 					float handleSize = HandleUtility.GetHandleSize(editedPosition);
 
 					var rot = Handles.DoRotationHandle(toolRotation, editedPosition);
@@ -708,22 +711,22 @@ namespace BezierCurveZ
 					if (EditorGUI.EndChangeCheck())
 					{
 						Undo.RecordObject(targetObject, "Point rotation changed");
-						var local = rot * toolRotation.Inverted();
+						var diff = rot * toolRotation.Inverted();
 						if (selectedPointIdexes.Count == 0)
 						{
-							curve.SetCPRotationWithHandles(segmentIndex, local, additive:true);
+							curve.SetCPRotationWithHandles(segmentIndex, diff, additive: true);
 						}
 						else
 						{
 							foreach (var ind in selectedPointIdexes)
 							{
 								segmentIndex = curve.GetSegmentIndex(ind);
-								var rotatedRelativeEditedPoint = local * (transform(curve.Points[ind]) - editedPosition);
+								var rotatedRelativeEditedPoint = diff * (transform(curve.Points[ind]) - editedPosition);
 								curve.SetPoint(ind, closestPoint + rotatedRelativeEditedPoint);
-								curve.SetCPRotationWithHandles(segmentIndex, local, additive:true);
+								curve.SetCPRotationWithHandles(segmentIndex, diff, additive: true);
 							}
-							toolRotation = rot;
 						}
+						toolRotation = rot;
 					}
 					DrawAxes(handleSize, editedPosition, curve.GetCPRotation(curve.GetSegmentIndex(closestIndex)));
 				}
@@ -791,7 +794,7 @@ namespace BezierCurveZ
 			PivotRotation.Local => targetTransform.rotation * curve.GetCPRotation(segmentInd),
 			_ => Quaternion.identity
 		};
-
+		//toolRotation = targetTransform.rotation* curve.GetCPRotation(segmentIndex);
 		private void DrawAxes(float handleSize, Vector3 position, Quaternion rotation)
 		{
 			var c = Handles.color;
