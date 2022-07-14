@@ -1,7 +1,7 @@
 {
   "name": "zorg.bezier-curve",
   "displayName": "BezierCurve",
-  "version": "0.0",
+  "version": "0.1",
   "unity": "2020.1",
   "description": "Basic curve class with Editor built into property drawer.",
   "keywords": [
