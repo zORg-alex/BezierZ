@@ -301,10 +301,6 @@ namespace BezierCurveZ
 
 			DrawCurveAndPoints();
 			DrawHandles();
-
-			Handles.BeginGUI();
-			GUI.Label(new Rect(current.mousePosition - Vector2.up * 30, new Vector2(300,30)), $"{GUIUtility.hotControl}, {GUIUtility.keyboardControl}");
-			Handles.EndGUI();
 		}
 
 		private void Input()
