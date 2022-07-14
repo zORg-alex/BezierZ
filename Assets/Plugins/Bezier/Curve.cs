@@ -132,6 +132,8 @@ namespace BezierCurveZ
 				{
 					points[index] = points[index].SetPosition(controlPoint);
 				}
+				else
+					points[index] = points[index].SetPosition(position);
 			}
 			_bVersion++;
 		}

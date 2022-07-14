@@ -385,7 +385,13 @@ namespace BezierCurveZ
 						closestPoint.mode == mode, () =>
 						{
 							EditorGUI.BeginChangeCheck();
-							curve.SetPointMode(closestControlIndex, mode);
+							if (selectedPointIdexes.Count > 0)
+								foreach (var ind in selectedPointIdexes)
+								{
+									curve.SetPointMode(ind, mode);
+								}
+							else
+								curve.SetPointMode(closestControlIndex, mode);
 							drawContextMenu = false;
 							Undo.RecordObject(targetObject, $"Curve {closestControlIndex} point mode changed to {mode}");
 						});
@@ -672,13 +678,14 @@ namespace BezierCurveZ
 				Vector3 pos = default;
 				if (currentInternalTool == Tool.Move)
 				{
+					var rotation = Tools.pivotRotation == PivotRotation.Local ? curve.Points[closestIndex].rotation * targetTransform.rotation : Tools.handleRotation;
 					if (!current.shift)
 					{
-						pos = Handles.PositionHandle(editedPosition, Tools.handleRotation);
+						pos = Handles.PositionHandle(editedPosition, rotation);
 						SnapPointToCurvePoints(ref pos, closestIndex);
 					}
 					else
-						pos = Handles.FreeMoveHandle(editedPosition, Tools.handleRotation, HandleUtility.GetHandleSize(editedPosition) * .2f, Vector3.one * .2f, Handles.RectangleHandleCap);
+						pos = Handles.FreeMoveHandle(editedPosition, rotation, HandleUtility.GetHandleSize(editedPosition) * .2f, Vector3.one * .2f, Handles.RectangleHandleCap);
 
 					if (EditorGUI.EndChangeCheck())
 					{
