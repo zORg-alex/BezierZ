@@ -305,6 +305,7 @@ namespace BezierCurveZ
 
 		private void Input()
 		{
+
 			if (Tools.current == Tool.Move || Tools.current == Tool.Rotate)
 			{
 				currentInternalTool = Tools.current;
@@ -391,8 +392,11 @@ namespace BezierCurveZ
 			}
 			#endregion
 
+			if (current.type == EventType.KeyDown || current.type == EventType.KeyUp)
+				Debug.Log(current);
+
 			//Delete selected point
-			if (GetKeyDown(KeyCode.X))
+			if (GetKeyDown(KeyCode.Delete))
 			{
 				SelectClosestPointToMouse(current);
 				if (selectedPointIdexes.Count > 1)
@@ -412,6 +416,7 @@ namespace BezierCurveZ
 						SelectClosestPointToMouse(current);
 					}
 				}
+				current.Use();
 			}
 
 			//Selection Rect
@@ -456,8 +461,8 @@ namespace BezierCurveZ
 
 			//Cancel if any rotation
 			else if (GetMouseUp(0))
-				toolRotation = GetToolRotation();
-			
+				toolRotation = GetToolRotation(curve.GetSegmentIndex(closestIndex));
+
 			//Handle alternative selection mode
 			if (GetKeyDown(KeyCode.C))
 			{
@@ -617,7 +622,7 @@ namespace BezierCurveZ
 			}
 			closestPoint = curve.Points[closestIndex];
 			editedPosition = targetTransform.TransformPoint(closestPoint.point);
-			toolRotation = GetToolRotation();
+			toolRotation = GetToolRotation(curve.GetSegmentIndex(closestIndex));
 			if (minDist > 100)
 				closestIndex = -1;
 		}
@@ -646,8 +651,9 @@ namespace BezierCurveZ
 				if (isControlPoint)
 				{
 					GUIUtils.DrawCircle(globalPointPos, (cam.transform.position - globalPointPos).normalized, size, width: width);
-					Handles.Label(globalPointPos, $"{i}, eulers={curve.Points[i].rotation.eulerAngles}, angle={curve.Points[i].angle}");
-					DrawAxes(.3f, globalPointPos, curve.GetCPRotation(segInd) * targetTransform.rotation);
+					//Handles.Label(globalPointPos, $"{i}, eulers={curve.Points[i].rotation.eulerAngles}, angle={curve.Points[i].angle}");
+					//DrawAxes(.3f, globalPointPos, curve.GetCPRotation(segInd) * targetTransform.rotation);
+					Handles.DrawAAPolyLine(globalPointPos, globalPointPos + curve.GetCPRotation(segInd) * targetTransform.rotation * Vector3.up * .25f);
 				}
 				else
 				{
@@ -666,11 +672,11 @@ namespace BezierCurveZ
 				{
 					if (!current.shift)
 					{
-						pos = Handles.PositionHandle(editedPosition, CurveEditorTransformOrientation.rotation);
+						pos = Handles.PositionHandle(editedPosition, Tools.handleRotation);
 						SnapPointToCurvePoints(ref pos, closestIndex);
 					}
 					else
-						pos = Handles.FreeMoveHandle(editedPosition, CurveEditorTransformOrientation.rotation, HandleUtility.GetHandleSize(editedPosition) * .2f, Vector3.one * .2f, Handles.RectangleHandleCap);
+						pos = Handles.FreeMoveHandle(editedPosition, Tools.handleRotation, HandleUtility.GetHandleSize(editedPosition) * .2f, Vector3.one * .2f, Handles.RectangleHandleCap);
 
 					if (EditorGUI.EndChangeCheck())
 					{
@@ -694,7 +700,7 @@ namespace BezierCurveZ
 				else if (currentInternalTool == Tool.Rotate && curve.IsControlPoint(closestIndex))
 				{
 					int segmentIndex = curve.GetSegmentIndex(closestIndex);
-					toolRotation = targetTransform.rotation * curve.GetCPRotation(segmentIndex);
+					toolRotation = GetToolRotation(segmentIndex);
 					float handleSize = HandleUtility.GetHandleSize(editedPosition);
 
 					var rot = Handles.DoRotationHandle(toolRotation, editedPosition);
@@ -779,10 +785,10 @@ namespace BezierCurveZ
 			Handles.color = c;
 		}
 
-		private Quaternion GetToolRotation() => Tools.pivotRotation switch
+		private Quaternion GetToolRotation(int segmentInd) => Tools.pivotRotation switch
 		{
 			PivotRotation.Global => Tools.handleRotation,
-			PivotRotation.Local => targetTransform.rotation * curve.Points[closestIndex].rotation.normalized,
+			PivotRotation.Local => targetTransform.rotation * curve.GetCPRotation(segmentInd),
 			_ => Quaternion.identity
 		};
 

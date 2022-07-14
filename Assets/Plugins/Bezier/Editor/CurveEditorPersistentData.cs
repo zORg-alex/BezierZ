@@ -9,6 +9,6 @@ namespace BezierCurveZ
 		public static CurveEditorPersistentData Instance => _instance;
 		public CurveEditorPersistentData() => _instance = this;
 
-		public CurveEditorTransformOrientation.TransformOrientation CurrentOrientation;
+		//public CurveEditorTransformOrientation.TransformOrientation CurrentOrientation;
 	}
 }

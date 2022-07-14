@@ -283,85 +283,93 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   curve:
     points:
-    - point: {x: 0, y: 0, z: 0}
+    - point: {x: -1, y: -0.00000038716783, z: 0.00000068916296}
       _rotation: {x: 0, y: 0, z: 0, w: 0}
-      mode: 2
+      mode: 4
+      type: 2
+    - point: {x: 0, y: 0, z: 0}
+      _rotation: {x: 0.6783257, y: -0.19968607, z: 0.67832524, w: -0.19968617}
+      mode: 4
       type: 0
-    - point: {x: 1, y: 0, z: 0}
+    - point: {x: 1, y: 0.00000038716783, z: -0.00000068916296}
       _rotation: {x: 0, y: 0, z: 0, w: 0}
       mode: 2
       type: 1
-    - point: {x: 1, y: 3, z: 0}
+    - point: {x: 1, y: 3.0000002, z: 0.00000047706334}
       _rotation: {x: 0, y: 0, z: 0, w: 0}
       mode: 2
       type: 2
     - point: {x: 0, y: 3, z: 0}
-      _rotation: {x: 0, y: 0, z: 0, w: 0}
+      _rotation: {x: -0.22412838, y: -0.67064655, z: 0.22412843, w: 0.6706461}
       mode: 2
       type: 0
-    - point: {x: -1, y: 3, z: 0}
+    - point: {x: -1, y: 2.9999998, z: -0.00000047706334}
       _rotation: {x: 0, y: 0, z: 0, w: 0}
       mode: 2
       type: 1
-    - point: {x: -1, y: 3, z: 4}
+    - point: {x: -1, y: 3.00002, z: 3.9999819}
       _rotation: {x: 0, y: 0, z: 0, w: 0}
       mode: 2
       type: 2
     - point: {x: 0, y: 3, z: 4}
-      _rotation: {x: 0, y: 0, z: 0, w: 0}
+      _rotation: {x: 0.241049, y: 0.6647522, z: 0.24104895, w: 0.6647521}
       mode: 2
       type: 0
-    - point: {x: 1, y: 3, z: 4}
+    - point: {x: 1, y: 3, z: 3.9999995}
       _rotation: {x: 0, y: 0, z: 0, w: 0}
       mode: 2
       type: 1
-    - point: {x: 1, y: 0, z: 4}
+    - point: {x: 1, y: 0.0000009301005, z: 3.9999995}
       _rotation: {x: 0, y: 0, z: 0, w: 0}
       mode: 2
       type: 2
     - point: {x: 0, y: 0, z: 4}
-      _rotation: {x: 0, y: 0, z: 0, w: 0}
-      mode: 2
+      _rotation: {x: -0.68915164, y: 0.15833436, z: 0.6891518, w: -0.15833507}
+      mode: 4
       type: 0
-    _isClosed: 0
-    _useRotations: 0
+    - point: {x: -1, y: -0.0000009297714, z: 4.0000005}
+      _rotation: {x: 0, y: 0, z: 0, w: 0}
+      mode: 4
+      type: 1
+    _isClosed: 1
+    _useRotations: 1
     _minSamplingDistance: 0
     _maxAngleError: 0
   anotherCurve:
     points:
-    - point: {x: -0.8898784, y: 0.000009059906, z: -0.9975621}
+    - point: {x: -0.8898784, y: 0.000009033401, z: -0.99756205}
       _rotation: {x: 0, y: 0, z: 0, w: 0}
       mode: 4
       type: 2
     - point: {x: -1.2128532, y: 0.000009059906, z: -0.9979268}
-      _rotation: {x: 0, y: 0, z: 0, w: 0}
+      _rotation: {x: 0.15773515, y: -0.6896987, z: -0.15755717, w: 0.68892026}
       mode: 4
       type: 0
-    - point: {x: -1.535828, y: 0.000009059906, z: -0.99829143}
+    - point: {x: -1.535828, y: 0.000009086411, z: -0.9982915}
       _rotation: {x: 0, y: 0, z: 0, w: 0}
       mode: 2
       type: 1
-    - point: {x: -1.7796695, y: -0.000489208, z: -0.99401486}
+    - point: {x: -1.7796693, y: -0.00072603393, z: -0.9939744}
       _rotation: {x: 0, y: 0, z: 0, w: 0}
       mode: 2
       type: 2
     - point: {x: -2.0074167, y: 0.000009059906, z: -0.99370277}
-      _rotation: {x: 0, y: 0, z: 0, w: 0}
+      _rotation: {x: -0.03326622, y: -0.7098219, z: 0.03237338, w: 0.70285016}
       mode: 0
       type: 0
-    - point: {x: -3.0196168, y: 0.0005073278, z: -1.0062999}
+    - point: {x: -3.019608, y: 0.0002705111, z: -1.0062596}
       _rotation: {x: 0, y: 0, z: 0, w: 0}
       mode: 6
       type: 1
-    - point: {x: -3.0500338, y: 0.08110922, z: 0.99514943}
+    - point: {x: -3.0500338, y: 0.08110921, z: 0.9951491}
       _rotation: {x: 0, y: 0, z: 0, w: 0}
       mode: 2
       type: 2
     - point: {x: -2.0126493, y: 0.0000021457672, z: 1.0018239}
-      _rotation: {x: 0, y: 0, z: 0, w: 0}
+      _rotation: {x: 0.03135659, y: 0.70413756, z: -0.023775855, w: 0.70897233}
       mode: 2
       type: 0
-    - point: {x: -0.906312, y: -0.08649607, z: 1.0089415}
+    - point: {x: -0.906312, y: -0.086496085, z: 1.008942}
       _rotation: {x: 0, y: 0, z: 0, w: 0}
       mode: 2
       type: 1
@@ -370,31 +378,31 @@ MonoBehaviour:
       mode: 2
       type: 2
     - point: {x: -0.0030455291, y: -0.09473107, z: -0.03897965}
-      _rotation: {x: 0, y: 0, z: 0, w: 0}
+      _rotation: {x: 0.27253303, y: 0.9620693, z: 0.00022507572, w: -0.012181892}
       mode: 2
       type: 0
     - point: {x: -0.028347287, y: -0.08705599, z: -1.1237795}
       _rotation: {x: 0, y: 0, z: 0, w: 0}
       mode: 2
       type: 1
-    - point: {x: -0.004250875, y: -0.05238825, z: -0.96604717}
+    - point: {x: -0.0042509744, y: -0.05238821, z: -0.96604717}
       _rotation: {x: 0, y: 0, z: 0, w: 0}
       mode: 2
       type: 2
     - point: {x: -0.010443807, y: -0.040008258, z: -1.9970828}
-      _rotation: {x: 0, y: 0, z: 0, w: 0}
+      _rotation: {x: 0.45090553, y: 0.8925465, z: 0.004004187, w: -0.005387396}
       mode: 2
       type: 0
-    - point: {x: -0.016636748, y: -0.027628269, z: -3.0281186}
+    - point: {x: -0.016636746, y: -0.027628262, z: -3.0281186}
       _rotation: {x: 0, y: 0, z: 0, w: 0}
       mode: 2
       type: 1
-    - point: {x: 1.0109689, y: -0.01669784, z: -3.0198011}
+    - point: {x: 1.010969, y: -0.016698202, z: -3.0198011}
       _rotation: {x: 0, y: 0, z: 0, w: 0}
       mode: 2
       type: 2
     - point: {x: 1.0113589, y: -0.00940238, z: -1.9922055}
-      _rotation: {x: 0, y: 0, z: 0, w: 0}
+      _rotation: {x: -0.0034890107, y: 0.0006807436, z: 0.13882332, w: 0.9903108}
       mode: 2
       type: 0
     - point: {x: 1.0114921, y: -0.0069096945, z: -1.641103}
@@ -413,27 +421,27 @@ MonoBehaviour:
       _rotation: {x: 0, y: 0, z: 0, w: 0}
       mode: 2
       type: 1
-    - point: {x: 1.0268276, y: -0.0011930706, z: 1.5540645}
+    - point: {x: 1.0268276, y: -0.001193064, z: 1.5540645}
       _rotation: {x: 0, y: 0, z: 0, w: 0}
       mode: 2
       type: 2
     - point: {x: 1.0207646, y: -0.0010343828, z: 2.0164309}
-      _rotation: {x: 0, y: 0, z: 0, w: 0}
+      _rotation: {x: -0.0029729698, y: -0.0058457307, z: 0.42982823, w: 0.90288687}
       mode: 2
       type: 0
-    - point: {x: 1.007556, y: -0.0006886589, z: 3.023729}
+    - point: {x: 1.007556, y: -0.00068865763, z: 3.023729}
       _rotation: {x: 0, y: 0, z: 0, w: 0}
       mode: 2
       type: 1
-    - point: {x: -0.6749278, y: -0.00045630755, z: 3.0136163}
+    - point: {x: -0.6749278, y: -0.00045624824, z: 3.0136163}
       _rotation: {x: 0, y: 0, z: 0, w: 0}
       mode: 2
       type: 2
     - point: {x: -0.68093216, y: -0.00030057822, z: 1.993973}
-      _rotation: {x: 0, y: 0, z: 0, w: 0}
+      _rotation: {x: 0.21619983, y: 0.9763447, z: -0.000562012, w: -0.002891285}
       mode: 2
       type: 0
-    - point: {x: -0.682516, y: -0.00025949412, z: 1.7250237}
+    - point: {x: -0.682516, y: -0.00025949389, z: 1.7250237}
       _rotation: {x: 0, y: 0, z: 0, w: 0}
       mode: 2
       type: 1
@@ -454,31 +462,31 @@ MonoBehaviour:
       mode: 2
       type: 2
     - point: {x: -0.69894487, y: 2.0260584, z: -0.0076643825}
-      _rotation: {x: 0, y: 0, z: 0, w: 0}
+      _rotation: {x: 0.4237842, y: 0.905751, z: -0.0019796807, w: -0.0042635044}
       mode: 2
       type: 0
     - point: {x: -0.7054854, y: 2.0260775, z: -0.7033421}
       _rotation: {x: 0, y: 0, z: 0, w: 0}
       mode: 2
       type: 1
-    - point: {x: 0.6351884, y: 2.026096, z: -0.7190064}
+    - point: {x: 0.6351898, y: 2.0260959, z: -0.7190064}
       _rotation: {x: 0, y: 0, z: 0, w: 0}
       mode: 2
       type: 2
     - point: {x: 0.62617695, y: 2.0261128, z: -0.011986852}
-      _rotation: {x: 0, y: 0, z: 0, w: 0}
+      _rotation: {x: -0.002348317, y: -0.0059239133, z: 0.36699146, w: 0.9302025}
       mode: 2
       type: 0
     - point: {x: 0.6251529, y: 2.0261145, z: 0.068360284}
       _rotation: {x: 0, y: 0, z: 0, w: 0}
       mode: 2
       type: 1
-    - point: {x: 0.62294257, y: 1.7219445, z: 0.5487413}
+    - point: {x: 0.62294257, y: 1.7219446, z: 0.54874134}
       _rotation: {x: 0, y: 0, z: 0, w: 0}
       mode: 2
       type: 2
     - point: {x: 0.6198752, y: 1.4438462, z: 1.0293095}
-      _rotation: {x: 0, y: 0, z: 0, w: 0}
+      _rotation: {x: 0.25917318, y: -0.008583338, z: 0.02131986, w: 0.9655574}
       mode: 2
       type: 0
     - point: {x: 0.61729217, y: 1.2096584, z: 1.4339985}
@@ -490,7 +498,7 @@ MonoBehaviour:
       mode: 2
       type: 2
     - point: {x: 0.61049986, y: 0.9939604, z: 2.004998}
-      _rotation: {x: 0, y: 0, z: 0, w: 0}
+      _rotation: {x: -0.005118774, y: -0.009549614, z: 0.4720689, w: 0.88149506}
       mode: 2
       type: 0
     - point: {x: 0.60262114, y: 0.99396336, z: 2.3685117}
@@ -502,7 +510,7 @@ MonoBehaviour:
       mode: 6
       type: 2
     - point: {x: 0.17849159, y: 0.99399126, z: 2.0069034}
-      _rotation: {x: 0, y: 0, z: 0, w: 0}
+      _rotation: {x: 0.5372074, y: 0.8434455, z: -0.0014943334, w: -0.0023775904}
       mode: 2
       type: 0
     - point: {x: 0.17622955, y: 0.99400485, z: 1.6041441}
@@ -514,28 +522,28 @@ MonoBehaviour:
       mode: 2
       type: 2
     - point: {x: 0.14271095, y: 0.93414474, z: 0.95267403}
-      _rotation: {x: 0, y: 0, z: 0, w: 0}
+      _rotation: {x: -0.10224501, y: 0.99213976, z: -0.0577122, w: -0.04329009}
       mode: 2
       type: 0
-    - point: {x: 0.07691086, y: 0.8245909, z: 0.07390422}
+    - point: {x: 0.07691087, y: 0.8245909, z: 0.07390422}
       _rotation: {x: 0, y: 0, z: 0, w: 0}
       mode: 2
       type: 1
-    - point: {x: -0.09787096, y: 0.48207682, z: -0.46229732}
+    - point: {x: -0.097870916, y: 0.48207673, z: -0.46229723}
       _rotation: {x: 0, y: 0, z: 0, w: 0}
       mode: 2
       type: 2
     - point: {x: -0.34053865, y: 0.29462668, z: -0.67870665}
-      _rotation: {x: 0, y: 0, z: 0, w: 0}
+      _rotation: {x: -0.48557356, y: 0.74332035, z: -0.036339015, w: -0.458664}
       mode: 4
       type: 0
-    - point: {x: -0.58320636, y: 0.10717654, z: -0.895116}
+    - point: {x: -0.5832064, y: 0.10717626, z: -0.895116}
       _rotation: {x: 0, y: 0, z: 0, w: 0}
       mode: 4
       type: 1
     _isClosed: 1
-    _useRotations: 0
-    _minSamplingDistance: 0
+    _useRotations: 1
+    _minSamplingDistance: 0.1
     _maxAngleError: 0
   useRMFrames: 0
   RMFramesPerSegment: 5
@@ -550,6 +558,8 @@ MonoBehaviour:
   - {x: 1, y: 3, z: 4}
   - {x: 1, y: 0, z: 4}
   - {x: 0, y: 0, z: 4}
+  a: {x: -0.24335179, y: -0.66391253, z: -0.07231706, w: 0.70339906}
+  b: {x: 0.040087797, y: 0.7059695, z: 0.27344608, w: -0.65209454}
   gizmoQuality: 50
   normalLength: 1
 --- !u!1 &2089848895

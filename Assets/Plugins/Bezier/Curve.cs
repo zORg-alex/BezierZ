@@ -174,15 +174,26 @@ namespace BezierCurveZ
 			
 			_bVersion++;
 
+			//Rotate handle positions and set rotations
 			if (index > 0)
 			{
 				var leftHandle = points[index - 1];
-				points[index - 1] = leftHandle.SetPosition(point + deltaRotation * (leftHandle - point));
+				BezierPoint v = leftHandle.SetPosition(point + deltaRotation * (leftHandle - point));
+				if (point.mode.HasFlag(BezierPoint.Mode.Automatic))
+					v.SetRotation(point.rotation);
+				else
+					v.SetRotation(Quaternion.LookRotation(point - v, point.rotation * Vector3.up));
+				points[index - 1] = v;
 			}
 			if (index < lastPointInd)
 			{
 				var rightHandle = points[index + 1];
-				points[index + 1] = rightHandle.SetPosition(point + deltaRotation * (rightHandle - point));
+				BezierPoint v = rightHandle.SetPosition(point + deltaRotation * (rightHandle - point));
+				if (point.mode.HasFlag(BezierPoint.Mode.Automatic))
+					v.SetRotation(point.rotation);
+				else
+					v.SetRotation(Quaternion.LookRotation(v - point, point.rotation * Vector3.up));
+				points[index + 1] = v;
 			}
 		}
 
@@ -379,12 +390,12 @@ namespace BezierCurveZ
 		[NonSerialized]
 		private int _vVersion = 0;
 		private bool vertexCurveIsUpToDate => _vVersion == _bVersion;
-		[SerializeField, HideInInspector]
+		[SerializeField, HideInInspector, Min(.01f)]
 		private float _minSamplingDistance;
-		public float MinSamplingDistance { get { return _minSamplingDistance; } set { if (value != _minSamplingDistance) _vVersion++; _minSamplingDistance = value; } }
-		[SerializeField, HideInInspector]
+		public float MinSamplingDistance { get { return _minSamplingDistance; } set { var v = value.Min(.01f); if (v != _minSamplingDistance) _vVersion++; _minSamplingDistance = v; } }
+		[SerializeField, HideInInspector, Min(.05f)]
 		private float _maxAngleError;
-		public float MaxAngleError { get { return _maxAngleError; } set { if (value != _maxAngleError) _vVersion++; _maxAngleError = value; } }
+		public float MaxAngleError { get { return _maxAngleError; } set { var v = value.Min(.05f); if (v != _maxAngleError) _vVersion++; _maxAngleError = v; } }
 
 		private BezierCurveVertexData _vertexData;
 		public IEnumerable<BezierCurveVertexData.VertexData> VertexData { get {
