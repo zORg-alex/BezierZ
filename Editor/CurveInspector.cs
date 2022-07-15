@@ -603,6 +603,8 @@ namespace BezierCurveZ
 			//Register closest point to mouse
 			Vector2 mousePos = current.mousePosition;
 			var minDist = float.MaxValue;
+			var minCPDist = float.MaxValue;
+			var minHDist = float.MaxValue;
 			closestIndex = -1;
 			closestControlIndex = -1;
 			closestHandleIndex = -1;
@@ -614,15 +616,29 @@ namespace BezierCurveZ
 					continue;
 
 				var dist = HandleUtility.WorldToGUIPoint(targetTransform.TransformPoint(curve.Points[i])).DistanceTo(mousePos);
-				if (dist <= minDist + .01f) {
+				if (dist <= minDist + .01f)
+				{
 					minDist = dist;
 					closestIndex = i;
-					if (curve.IsControlPoint(i))
+				}
+				if (curve.IsControlPoint(i))
+				{
+					if (dist <= minCPDist + .01f)
+					{
+						minCPDist = dist;
 						closestControlIndex = i;
-					else
-						closestHandleIndex = i;
+					}
+				}
+				else
+				if (dist <= minHDist + .1f)
+				{
+					minHDist = dist;
+					closestHandleIndex = i;
 				}
 			}
+			if (curve.Points[closestControlIndex].mode == Curve.BezierPoint.Mode.Linear)
+				closestIndex = closestControlIndex;
+
 			closestPoint = curve.Points[closestIndex];
 			editedPosition = targetTransform.TransformPoint(closestPoint.point);
 			if (GUIUtility.hotControl == 0)

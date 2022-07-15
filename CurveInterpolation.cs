@@ -64,6 +64,7 @@ namespace BezierCurveZ
 					}
 			}
 
+			bool nextCPIsAutomatic = curve.Points[curve.GetPointIndex(1)].mode.HasFlag(Curve.BezierPoint.Mode.Automatic);
 			var segInd = 0;
 			foreach (var segment in curve.Segments)
 			{
@@ -71,8 +72,9 @@ namespace BezierCurveZ
 				var firstIndex = data.segmentIndices.Count;
 				var estimatedSegmentLength = CurveUtils.EstimateSegmentLength(segment);
 				int divisions = (estimatedSegmentLength * accuracy).CeilToInt();
-				float increment = 1f / divisions;
+				float increment = divisions == 1 ? 1f : 1f / divisions;
 				_nextEvalPoint = CurveUtils.Evaluate(increment, segment);
+				bool prevCPIsAutomatic = curve.Points[curve.GetPointIndex(segInd)].mode.HasFlag(Curve.BezierPoint.Mode.Automatic);
 
 				int lastSegmentIndex = (curve.GetPointIndex(segInd) + 3).Min(curve.Points.Count - 1);
 				Vector3 finalTangent = CurveUtils.EvaluateDerivative(1, segment).normalized;
@@ -81,6 +83,7 @@ namespace BezierCurveZ
 				while (true)
 				{
 					var _edgePoint = (t == 0) || (t >= 1 && segInd == curve.SegmentCount - 1);
+					var _isSharp = (t == 0 && !prevCPIsAutomatic) || (t >= 1 && !nextCPIsAutomatic);
 
 					Vector3 _toLastPoint = _lastAddedPoint - _currentPoint;
 					var _toLastPointMag = _toLastPoint.magnitude;
@@ -88,7 +91,7 @@ namespace BezierCurveZ
 					float _angle = 180 - Vector3.Angle(_toLastPoint, _nextEvalPoint - _currentPoint);
 					float _angleError = _angle.Max(_previousAngle);
 
-					if ((_edgePoint && _lastAddedPoint != _currentPoint) || _angleError > maxAngleError && _dist >= minSplitDistance)
+					if (_isSharp || (_edgePoint && _lastAddedPoint != _currentPoint) || _angleError > maxAngleError && _dist >= minSplitDistance)
 					{
 						Vector3 tang = CurveUtils.EvaluateDerivative(t, segment).normalized;
 						Quaternion rotation = Quaternion.identity;
@@ -109,6 +112,7 @@ namespace BezierCurveZ
 						data.cumulativeLength.Add(length);
 						data.segmentIndices.Add(segInd);
 						data.rotations.Add(rotation);
+						data.isSharp.Add(_isSharp);
 						_dist = 0;
 						_lastAddedPoint = _currentPoint;
 					}
@@ -119,6 +123,7 @@ namespace BezierCurveZ
 					_currentPoint = _nextEvalPoint;
 					_nextEvalPoint = CurveUtils.Evaluate(t + increment, segment);
 					_previousAngle = _angle;
+					nextCPIsAutomatic = prevCPIsAutomatic;
 				}
 
 				if (useRotations)
@@ -154,6 +159,7 @@ namespace BezierCurveZ
 			public List<float> cumulativeLength = new List<float>();
 			public List<float> segmentTime = new List<float>();
 			public List<Quaternion> rotations = new List<Quaternion>();
+			internal List<bool> isSharp = new List<bool>();
 		}
 	}
 }

@@ -17,6 +17,7 @@ namespace BezierCurveZ
 			public int segmentIndex;
 			public float length;
 			public float time;
+			public bool isSharp;
 
 			public Vector3 normal => rotation * Vector3.right;
 
@@ -36,6 +37,8 @@ namespace BezierCurveZ
 		public float[] CumulativeLengths => _cumulativeLengths;
 		[SerializeField, HideInInspector]
 		private float[] _times;
+		private bool[] _isSharp;
+
 		public float[] Times => _times;
 
 
@@ -53,6 +56,7 @@ namespace BezierCurveZ
 			_tangents = data.tangents.ToArray();
 			_rotations = data.rotations.ToArray();
 			_times = data.segmentTime.ToArray();
+			_isSharp = data.isSharp.ToArray();
 		}
 
 		public Vector3 GetPointAtLength(float length) => _points[CumulativeLengths.IndexOf(l => l >= length)];
@@ -74,7 +78,8 @@ namespace BezierCurveZ
 					rotation = _rotations[i],
 					length = _cumulativeLengths[i],
 					segmentIndex = _segmentIndexes[i],
-					time = _times[i]
+					time = _times[i],
+					isSharp = _isSharp[i]
 				};
 			}
 		}
