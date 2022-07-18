@@ -53,11 +53,16 @@ namespace BezierCurveZ
 				//_preservedNodeModesWhileClosed[1] = points[lastPointInd].mode;
 				//points[0] = points[0].SetMode(BezierPoint.Mode.Manual);
 				//points[lastPointInd] = points[lastPointInd].SetMode(BezierPoint.Mode.Manual);
-				points.Insert(0, new BezierPoint(points[0].point/* * 2f - points[1].point*/, BezierPoint.Type.LeftHandle, points[0].mode));
-				points.Add(new BezierPoint(points[lastPointInd].point/* * 2f - points[lastPointInd - 1].point*/, BezierPoint.Type.RightHandle, points[lastPointInd].mode));
+				points.Insert(0, new BezierPoint(getHandlePosition(0, 1), BezierPoint.Type.LeftHandle, points[0].mode));
+				points.Add(new BezierPoint(getHandlePosition(lastPointInd, lastPointInd - 1), BezierPoint.Type.RightHandle, points[lastPointInd].mode));
 				SetPoint(1, points[1].point);
 				SetPoint(lastPointInd - 1, points[lastPointInd - 1].point);
 				_bVersion++;
+
+				Vector3 getHandlePosition(int ind, int otherind) {
+					Vector3 r = points[ind].point * 2f - points[otherind].point;
+					return r;
+				}
 			}
 			else if (!value && _isClosed)
 			{
@@ -257,9 +262,9 @@ namespace BezierCurveZ
 			}
 		}
 
-		public Vector3[] Segment(int index) => IsClosed ?
-			new Vector3[] { points[index * 3 + 1], points[index * 3 + 2], points[(index * 3 + 3) % points.Count], points[(index * 3 + 4) % points.Count] } :
-			new Vector3[] { points[index * 3], points[index * 3 + 1], points[index * 3 + 2], points[index * 3 + 3] };
+		public Vector3[] Segment(int segmentIndex) => IsClosed ?
+			new Vector3[] { points[segmentIndex * 3 + 1], points[segmentIndex * 3 + 2], points[(segmentIndex * 3 + 3) % points.Count], points[(segmentIndex * 3 + 4) % points.Count] } :
+			new Vector3[] { points[segmentIndex * 3], points[segmentIndex * 3 + 1], points[segmentIndex * 3 + 2], points[segmentIndex * 3 + 3] };
 
 		public BezierPoint.Mode DefaultAddedPointMode { get; set; }
 
@@ -386,21 +391,22 @@ namespace BezierCurveZ
 			var type = BezierPoint.Type.Control;
 			for (int i = 0; i < newSegments.Length; i++)
 			{
-				newPoints[i] = new BezierPoint(newSegments[i], type);
+				newPoints[i] = new BezierPoint(newSegments[i], type, BezierPoint.Mode.Proportional);
 				type++;
 				type = (BezierPoint.Type)((int)type % 3);
 			}
 
+			int index = GetPointIndex(segmentInd);
 			if (IsClosed && segmentInd >= SegmentCount - replaceCount) {
-				points.RemoveRange(GetPointIndex(segmentInd), replaceCount * 3 - 1);
+				points.RemoveRange(index, replaceCount * 3 - 1);
 				points.AddRange(newPoints.Take(newPoints.Length - 2));
 				points[0] = newPoints[newPoints.Length - 2];
 				points[1] = newPoints[newPoints.Length - 1];
 			}
 			else
 			{
-				points.RemoveRange(GetPointIndex(segmentInd), replaceCount * 3 + 1);
-				points.InsertRange(GetPointIndex(segmentInd), newPoints);
+				points.RemoveRange(index, replaceCount * 3 + 1);
+				points.InsertRange(index, newPoints);
 			}
 
 			_bVersion++;
@@ -448,6 +454,7 @@ namespace BezierCurveZ
 			ReplaceSegment(segmentInd, newSegments);
 		}
 
+		//TODO Debug how to work with low vertex count
 		public float GetClosestTimeSegment(Vector3 position, out int segmentInd)
 		{
 			Update();

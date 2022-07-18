@@ -671,7 +671,7 @@ namespace BezierCurveZ
 				if (isControlPoint)
 				{
 					GUIUtils.DrawCircle(globalPointPos, (cam.transform.position - globalPointPos).normalized, size, width: width);
-					//Handles.Label(globalPointPos, $"{i}, eulers={curve.Points[i].rotation.eulerAngles}, angle={curve.Points[i].angle}");
+					//Handles.Label(globalPointPos, $"{i}, ind={i} segind={curve.GetSegmentIndex(i)}");
 					//DrawAxes(.3f, globalPointPos, curve.GetCPRotation(segInd) * targetTransform.rotation);
 					Handles.DrawAAPolyLine(globalPointPos, globalPointPos + curve.GetCPRotation(segInd) * targetTransform.rotation * Vector3.up * .25f);
 				}

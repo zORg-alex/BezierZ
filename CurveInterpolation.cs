@@ -116,7 +116,7 @@ namespace BezierCurveZ
 						_dist = 0;
 						_lastAddedPoint = _currentPoint;
 					}
-					else _dist += _toLastPointMag;
+					else _dist += (_currentPoint - _nextEvalPoint).magnitude;
 
 					if (t >= 1f) break;
 					t = (t + increment).Min(1f);
