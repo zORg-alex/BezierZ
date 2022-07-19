@@ -783,15 +783,20 @@ namespace BezierCurveZ
 			Vector3 transform(Vector3 pos) => targetTransform.TransformPoint(pos);
 			Vector3 transformDirection(Vector3 normal) => targetTransform.TransformDirection(normal);
 		}
+		/// <summary>
+		/// Curve preview and in editor draw cycle
+		/// </summary>
+		/// <param name="Highlight"></param>
 		private void DrawCurveAndPoints(bool Highlight = false)
 		{
 			var m = Handles.matrix;
 			Handles.matrix = targetTransform.localToWorldMatrix;
 			var c = Handles.color;
 			Handles.color = Color.white.MultiplyAlpha(.66f);
+			DrawCurveFromVertexData(curve.VertexData);
 			foreach (var seg in curve.Segments)
 			{
-				Handles.DrawBezier(seg[0], seg[3], seg[1], seg[2], Color.green, null, Highlight ? 3 : 2);
+				//Handles.DrawBezier(seg[0], seg[3], seg[1], seg[2], Color.green, null, Highlight ? 3 : 2);
 				Handles.DrawAAPolyLine(seg[0], seg[1]);
 				Handles.DrawAAPolyLine(seg[2], seg[3]);
 			}
@@ -805,6 +810,41 @@ namespace BezierCurveZ
 
 			Handles.matrix = m;
 			Handles.color = c;
+		}
+
+		/// <summary>
+		/// Draw two sided curve
+		/// </summary>
+		/// <param name="vertexData"></param>
+		/// <exception cref="NotImplementedException"></exception>
+		private void DrawCurveFromVertexData(IEnumerable<BezierCurveVertexData.VertexData> vertexData)
+		{
+			var c = Handles.color;
+			var vertices = vertexData.Select(v=>v.point).Take(1).ToList();
+			Transform camTransform = Camera.current.transform;
+			var upDotCamera = Vector3.Dot(vertexData.FirstOrDefault().up, camTransform.forward);
+			foreach (var v in vertexData.Skip(1))
+			{
+				vertices.Add(v.point);
+				var newDot = Vector3.Dot(v.up, camTransform.forward);
+				if (upDotCamera != newDot)
+				{
+					DrawVertices(vertices, upDotCamera > 0);
+
+					vertices.Clear();
+					vertices.Add(v.point);
+					upDotCamera = newDot;
+				}
+			}
+			DrawVertices(vertices, upDotCamera > 0);
+
+			Handles.color = c;
+
+			static void DrawVertices(List<Vector3> vertices, bool towardCamera)
+			{
+				Handles.color = towardCamera ? Color.red / 3 * 2 + Color.green / 3 : Color.green;
+				Handles.DrawAAPolyLine((towardCamera ? 4 : 2), vertices.ToArray());
+			}
 		}
 
 		private Quaternion GetToolRotation(int segmentInd) => Tools.pivotRotation switch
