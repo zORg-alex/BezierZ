@@ -112,7 +112,7 @@ namespace BezierCurveZ
 						data.cumulativeLength.Add(length);
 						data.segmentIndices.Add(segInd);
 						data.rotations.Add(rotation);
-						data.isSharp.Add(_isSharp);
+						data.isSharp.Add(_isSharp || (segInd == 0 && t == 0) || (segInd == curve.SegmentCount - 1 && t == 1));
 						_dist = 0;
 						_lastAddedPoint = _currentPoint;
 					}

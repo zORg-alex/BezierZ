@@ -117,13 +117,27 @@ namespace BezierCurveZ
 				points[index] = thisPoint.SetPosition(position).SetTangent(index < lastPointInd ? points[index] - points[index + 1] : points[index - 1] - points[index]);
 				if (IsClosed || index > 0)
 				{
-					var i = index == 0 ? points.Count : index - 1;
+					var i = (points.Count + index - 1) % points.Count;
 					points[i] = points[i].SetPosition(isLinear ? GetLinearHandle(i) : points[i] + diff);
 				}
 				if (IsClosed || index < lastPointInd)
 				{
-					var i = index == points.Count ? 0 : index + 1;
+					var i = (index + 1) % points.Count;
 					points[i] = points[i].SetPosition(isLinear ? GetLinearHandle(i) : points[i] + diff);
+				}
+				//Move adjacent linar handles
+				if (thisPoint.mode == BezierPoint.Mode.Linear)
+				{
+					var i = (points.Count + index - 2) % points.Count;
+					if (points[i].mode == BezierPoint.Mode.Linear && (IsClosed || index > 0))
+					{
+						points[i] = points[i].SetPosition(isLinear ? GetLinearHandle(i) : points[i] + diff);
+					}
+					i = (index + 2) % points.Count;
+					if (points[i].mode == BezierPoint.Mode.Linear && (IsClosed || index < lastPointInd))
+					{
+						points[i] = points[i].SetPosition(isLinear ? GetLinearHandle(i) : points[i] + diff);
+					}
 				}
 			}
 			else
@@ -185,11 +199,15 @@ namespace BezierCurveZ
 		/// </summary>
 		/// <param name="segmentIndex"></param>
 		/// <param name="rotation"></param>
-		public void SetCPRotationWithHandles(int segmentIndex, Quaternion rotation, bool additive = false, int index = -1)
+		public void SetCPRotationWithHandles(int segmentIndex, Quaternion rotation, bool additive = false, int index = -1, bool isRotationAlligned = true)
 		{
 			if (index == -1)
 				index = GetPointIndex(segmentIndex);
 			BezierPoint point = points[index];
+
+			if (!isRotationAlligned)
+				rotation = Quaternion.LookRotation(point.rotation * Vector3.forward, rotation * Vector3.up);
+
 			var deltaRotation = additive? rotation : rotation * point.rotation.Inverted();
 			if (additive)
 				rotation *= point.rotation.normalized;
@@ -199,6 +217,7 @@ namespace BezierCurveZ
 			
 			_bVersion++;
 
+			if (!isRotationAlligned || point.mode == BezierPoint.Mode.Linear) return;
 			//Rotate handle positions and set rotations
 			if (index > 0)
 			{
@@ -460,30 +479,31 @@ namespace BezierCurveZ
 			Update();
 			var minDist = float.MaxValue;
 			var closestTime = float.MaxValue;
-			var closestIndex = -1;
-			BezierCurveVertexData.VertexData prevPoint = default;
-			foreach (var point in VertexData)
-			{
-				if (!prevPoint.Equals(default))
-				{
-					var t = Vector3.Dot((point.point - prevPoint.point), position - prevPoint.point);
-					var newPos = Vector3.Lerp(prevPoint.point, point.point, t);
-					var dist = newPos.DistanceTo(position);
-					if (dist < minDist)
-					{
-						minDist = dist;
-						if (prevPoint.segmentIndex == closestIndex)
-							closestTime = Mathf.Lerp(prevPoint.time, point.time, t);
-						else
-							closestTime = Mathf.Lerp(prevPoint.time, point.time + 1f, t);
+			segmentInd = -1;
 
-						closestIndex = prevPoint.segmentIndex + closestTime.FloorToInt();
-						closestTime %= 1f;
-					}
+			var prevVert = VertexData.FirstOrDefault();
+
+			var i = 0;
+			foreach (var v in VertexData.Skip(1))
+			{
+				Vector3 direction = (v.point - prevVert.point);
+				float magMax = direction.magnitude;
+				var normDirection = direction.normalized;
+				Vector3 localPosition = position - prevVert.point;
+				var dot = Mathf.Clamp(Vector3.Dot(normDirection, localPosition), 0, magMax);
+				var point = prevVert.point + normDirection * dot;
+				var dist = Vector3.Distance(point, position);
+				if (dist < minDist)
+				{
+					minDist = dist;
+					segmentInd = v.segmentIndex;
+					closestTime = prevVert.time + (v.time - prevVert.time) * (localPosition.magnitude / direction.magnitude);
 				}
-				prevPoint = point;
+
+				i++;
+				prevVert = v;
 			}
-			segmentInd = closestIndex;
+
 			return closestTime;
 		}
 

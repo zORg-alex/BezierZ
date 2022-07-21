@@ -285,6 +285,8 @@ namespace BezierCurveZ
 		private Vector2 mouse0DownPosition;
 		private List<int> selectedPointIdexes = new List<int>();
 		private Quaternion toolRotation;
+		private bool showPointGUI;
+		private bool captureMouse;
 
 		private void OnSceneGUI(SceneView scene)
 		{
@@ -316,6 +318,21 @@ namespace BezierCurveZ
 			if (current.type == EventType.Repaint || current.type == EventType.Layout)
 				return;
 
+			//show Edit GUI
+			if (GetKeyDown(KeyCode.Q))
+			{
+				showPointGUI = !showPointGUI;
+			}
+			//Cancel showing Edit GUI
+			else if (showPointGUI && (GetKeyDown(KeyCode.Escape) || GetMouseDown(1)))
+			{
+				showPointGUI = false;
+				captureMouse = false;
+				current.Use();
+			}
+			if (captureMouse)
+				return;
+
 			//Cut/Extrude
 			if (GetKeyUp(KeyCode.V))
 			{
@@ -344,6 +361,7 @@ namespace BezierCurveZ
 			{
 				cuttingInitialized = false;
 				GUIUtility.hotControl = 0;
+				current.Use();
 			}
 			//Apply cut
 			else if (cuttingInitialized && GetMouseDown(0))
@@ -361,13 +379,13 @@ namespace BezierCurveZ
 			{
 				drawContextMenu = false;
 			}
-			if (GetMouseDown(1) && closestControlIndex != -1)
+			if (!showPointGUI && GetMouseDown(1) && closestControlIndex != -1)
 			{
 				mouse1Position = current.mousePosition;
 				mouse1PressedTime = Time.time;
 			}
-			//Open Context Menu for control points
-			else if (!drawContextMenu && closestControlIndex != -1 && mouse1PressedTime > 0 && Time.time - mouse1PressedTime < .5f &&
+			//Open Context Menu for control points mode if mouse psition is close to press position
+			else if (closestControlIndex != -1 && mouse1PressedTime > 0 && Time.time - mouse1PressedTime < .5f &&
 				GetMouseUp(1) && (mouse1Position - current.mousePosition).magnitude < 5f)
 			{
 				mouse1PressedTime = 0;
@@ -599,6 +617,7 @@ namespace BezierCurveZ
 
 		private void SelectClosestPointToMouse(Event current)
 		{
+			if (captureMouse) return;
 			//Just a reminder: GUI coordinates starts from top-left of actual view
 			//Register closest point to mouse
 			Vector2 mousePos = current.mousePosition;
@@ -685,7 +704,7 @@ namespace BezierCurveZ
 			}
 
 			//Draw tool
-			if (closestIndex != -1)
+			if (closestIndex != -1 && !showPointGUI)
 			{
 				Vector3 pos = default;
 				if (currentInternalTool == Tool.Move)
@@ -750,8 +769,57 @@ namespace BezierCurveZ
 					DrawAxes(handleSize, editedPosition, curve.GetCPRotation(curve.GetSegmentIndex(closestIndex)));
 				}
 			}
+			else if (showPointGUI && closestIndex != -1 && current.type != EventType.Layout)
+			{
+				Handles.BeginGUI();
+				var guiRect = new Rect(HandleUtility.WorldToGUIPoint(editedPosition), new Vector3(300, EditorGUIUtility.singleLineHeight * 3 + 8));
+				captureMouse = guiRect.Contains(current.mousePosition);
+				GUI.Box(guiRect, GUIContent.none);
 
-			//DrawClosestPoint
+				//Draw position line
+				var line = guiRect.FirstLine(EditorGUIUtility.singleLineHeight + 4).Extend(-2);
+				GUI.Label(line.MoveLeftFor(30), "pos");
+				EditorGUI.BeginChangeCheck();
+				var pos = EditorGUI.Vector3Field(line, GUIContent.none, closestPoint.point);
+				if (EditorGUI.EndChangeCheck())
+				{
+					Undo.RecordObject(targetObject, "Set position");
+					curve.SetPoint(closestIndex, pos);
+					closestPoint = curve.Points[closestIndex];
+				}
+				//Draw Eulers Angles line
+				line = line.MoveDown();
+				GUI.Label(line.MoveLeftFor(30), "rot");
+				EditorGUI.BeginChangeCheck();
+				var rot = EditorGUI.Vector3Field(line, GUIContent.none, closestPoint.rotation.eulerAngles);
+				if (EditorGUI.EndChangeCheck())
+				{
+					Undo.RecordObject(targetObject, "Set rotation");
+					curve.SetCPRotationWithHandles(curve.GetSegmentIndex(closestIndex), Quaternion.Euler(rot), index: closestIndex, isRotationAlligned: false);
+					closestPoint = curve.Points[closestIndex];
+				}
+				//Draw Modes dropdown
+				line = line.MoveDown();
+				GUI.Label(line.MoveLeftFor(30), "mode");
+				GUI.enabled = curve.IsControlPoint(closestIndex);
+				EditorGUI.BeginChangeCheck();
+				var modeId = EditorGUI.Popup(line, Curve.BezierPoint.AllModes.IndexOf(closestPoint.mode), Curve.BezierPoint.AllModes.SelectArray(m => m.ToString()));
+				if (EditorGUI.EndChangeCheck())
+				{
+					Undo.RecordObject(targetObject, "Set mode");
+					curve.SetPointMode(closestIndex, Curve.BezierPoint.AllModes[modeId]);
+					closestPoint = curve.Points[closestIndex];
+				}
+				GUI.enabled = true;
+				Handles.EndGUI();
+
+				Quaternion r = cam.transform.rotation;
+				float h = HandleUtility.GetHandleSize(editedPosition) * .2f;
+				Handles.color = Color.white / 5 * 3;
+				Handles.DrawAAConvexPolygon(editedPosition, editedPosition + r * Vector3.right * h, editedPosition + r * Vector3.down * h);
+			}
+
+			//DrawClosestPoint on cut
 			if (cuttingInitialized)
 			{
 				Handles.color = Color.red / 2 + Color.white / 2;
