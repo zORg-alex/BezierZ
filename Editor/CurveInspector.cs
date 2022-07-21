@@ -319,7 +319,7 @@ namespace BezierCurveZ
 				return;
 
 			//show Edit GUI
-			if (GetKeyDown(KeyCode.Q))
+			if (GetKeyDown(KeyCode.Q) && GUIUtility.hotControl == 0)
 			{
 				showPointGUI = !showPointGUI;
 			}
@@ -328,7 +328,8 @@ namespace BezierCurveZ
 			{
 				showPointGUI = false;
 				captureMouse = false;
-				current.Use();
+				//Don't want to continue to trigger other things, like Context menu
+				return;
 			}
 			if (captureMouse)
 				return;
