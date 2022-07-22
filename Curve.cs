@@ -453,6 +453,8 @@ namespace BezierCurveZ
 				return _vertexData.Points;
 			} }
 
+		public float VertexDataLength => _vertexData.CumulativeLengths[_vertexData.CumulativeLengths.Length - 1];
+
 		public void Update(bool force = false)
 		{
 			if (vertexCurveIsUpToDate && !force) return;

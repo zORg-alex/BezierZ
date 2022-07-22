@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using BezierCurveZ;
 using System.Collections.Generic;
+using System.Linq;
 
 #if UNITY_EDITOR
 #endif
@@ -130,5 +131,116 @@ public static class ProfileUtility
 
 		int PrevIndex(int curind, int length) => curind > 0 ? curind - 1 : length - 1;
 		int NextIndex(int curind, int length) => (curind + 1 == length) ? 0 : curind + 1;
+	}
+
+	/// <summary>
+	/// 
+	/// </summary>
+	/// <param name="curve"></param>
+	/// <param name="profile"></param>
+	/// <param name="offset">profile offset</param>
+	/// <param name="scale">profile scale</param>
+	/// <param name="autoNormals">Use GenerateNormals or leave calculated by curve rotations</param>
+	/// <param name="unifiedVCoofdinate">Should UV's be 0..1 along curve or repeat by every unit of length if false</param>
+	/// <returns></returns>
+	public static Mesh GenerateProfileMesh(Curve curve, Curve profile, Vector3 offset, Vector3 scale, bool autoNormals = true, bool unifiedVCoofdinate = true)
+	{
+		var curveStrips = GetVertexDataStrips(curve.VertexData, curve.IsClosed);
+		var profileStrips = GetVertexDataStrips(profile.VertexData, profile.IsClosed);
+
+		int curveLen = curveStrips.Sum(l => l.Length);
+		int profileLen = profileStrips.Sum(l => l.Length);
+		var len = curveLen * profileLen;
+		var vertices = new Vector3[len];
+		var normals = new Vector3[len];
+		var uvs = new Vector2[len];
+		var triangles = new List<int>(len / 3 * 2);
+
+		var curveInd = 0;
+		var prevCurveInd = (curveLen - 1) * profileLen;
+		//Curve flowing segments separated by sharp control points
+		foreach (var cStrip in curveStrips)
+		{
+			//Each curve point in strips
+			foreach (var cp in cStrip)
+			{
+				var profInd = 0;
+				var prevProfileInd = profileLen - 1;
+				//Profile flowing segmentws
+				foreach (var pStrip in profileStrips)
+				{
+					var right = cp.rotation * Vector3.right;
+					var up = cp.rotation * Vector3.up;
+					//Each profile point in strips
+					foreach (var pp in pStrip)
+					{
+						//Transform point
+						var rot = cp.rotation * pp.rotation;
+						var scaledprofpoint = (offset + Vector3.Scale(pp.point, scale));
+						var pos = cp.point + right * scaledprofpoint.x + up * scaledprofpoint.y;
+						//var pos = cp.point + rot * scaledprofpoint;
+
+						vertices[curveInd + profInd] = pos;
+						normals[curveInd + profInd] = rot * Vector3.right;
+						uvs[curveInd + profInd] = new Vector2(pp.length / profile.VertexDataLength, unifiedVCoofdinate ? cp.length / curve.VertexDataLength : cp.length);
+
+						if ((profInd < profileLen - 1 || profile.IsClosed) && (curveInd > 0 || curve.IsClosed))
+						{
+							var nextProfInd = (profInd + 1) % profileLen;
+							triangles.AddRange_(prevCurveInd + profInd, prevCurveInd + nextProfInd, curveInd + nextProfInd);
+							triangles.AddRange_(prevCurveInd + profInd, curveInd + nextProfInd, curveInd + profInd);
+						}
+
+						prevProfileInd = profInd;
+						profInd++;
+						profInd %= profileLen;
+					}
+				}
+
+				prevCurveInd = curveInd;
+				curveInd+=profileLen;
+				curveInd %= len;
+			}
+		}
+
+		var m = new Mesh();
+		m.vertices = vertices;
+		m.normals = normals;
+		m.uv = uvs;
+		m.triangles = triangles.ToArray();
+		if (autoNormals)
+			m.RecalculateNormals();
+
+		return m;
+	}
+
+	public static BezierCurveVertexData.VertexData[][] GetVertexDataStrips(IEnumerable<BezierCurveVertexData.VertexData> collection, bool IsClosed)
+	{
+		var list = new List<BezierCurveVertexData.VertexData[]>();
+		var strip = collection.Take(1).ToList();
+		var prevV = collection.FirstOrDefault();
+		IEnumerable<BezierCurveVertexData.VertexData> shiftedCollection = collection.Skip(1);
+		if (IsClosed)
+			shiftedCollection = shiftedCollection.Union(collection.Take(1));
+		var i = 0;
+		foreach (var v in shiftedCollection)
+		{
+			if (v.isSharp && prevV.isSharp && v.point.Equals(prevV.point))
+			{
+				list.Add(strip.ToArray());
+				strip.Clear();
+			}
+			strip.Add(v);
+
+			prevV = v;
+			i++;
+		}
+		if (!IsClosed)
+		{
+			list.Add(strip.ToArray());
+			strip.Clear();
+		}
+
+		return list.ToArray();
 	}
 }
