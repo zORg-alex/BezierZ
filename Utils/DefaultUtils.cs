@@ -124,6 +124,26 @@ public static class DefaultUtils {
 		return collection;
 	}
 
+	public static T Min<T>(this IEnumerable<T> collection, Func<T, float> predicate, out int indexOf)
+	{
+		T min = collection.FirstOrDefault();
+		float minVal = predicate(min);
+		indexOf = 0;
+		int i = 1;
+		foreach (var item in collection.Skip(1))
+		{
+			float v = predicate(item);
+			if (v < minVal)
+			{
+				minVal = v;
+				min = item;
+				indexOf = i;
+			}
+			i++;
+		}
+		return min;
+	}
+
 	public static Vector3 Scale_(this Vector3 v1, Vector3 v2) => new Vector3(v1.x * v2.x, v1.y * v2.y, v1.z * v2.z);
 
 	public static Vector3 Sum(this IEnumerable<Vector3> vector3s) {
@@ -164,4 +184,24 @@ public static class DefaultUtils {
 		return transform;
 	}
 
+	public static Rect Extend(this Rect rect, float horizontal, float vertical)
+	{
+		//rect = rect.Abs();
+		return new Rect(
+			x: rect.x - horizontal,
+			y: rect.y - vertical,
+			width: rect.width + 2 * horizontal,
+			height: rect.height + 2 * vertical
+		);
+	}
+	public static Rect Extend(this Rect rect, float left, float top, float right, float bottom)
+	{
+		//rect = rect.Abs();
+		return new Rect(
+			x: rect.x - left,
+			y: rect.y - top,
+			width: rect.width + left + right,
+			height: rect.height + top + bottom
+		);
+	}
 }

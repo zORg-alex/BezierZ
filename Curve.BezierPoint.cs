@@ -66,6 +66,13 @@ namespace BezierCurveZ
 				this.mode = mode;
 				rotation = Quaternion.identity;
 			}
+			public BezierPoint(Vector3 position, Quaternion rotation, Type type, Mode mode) : this()
+			{
+				point = position;
+				this.type = type;
+				this.mode = mode;
+				this.rotation = rotation;
+			}
 			public static BezierPoint Control(Vector3 position, Mode mode = Mode.Automatic) => new BezierPoint(position, Type.Control, mode);
 			public static BezierPoint LeftHandle(Vector3 position, Mode mode = Mode.Automatic) => new BezierPoint(position, Type.LeftHandle, mode);
 			public static BezierPoint RightHandle(Vector3 position, Mode mode = Mode.Automatic) => new BezierPoint(position, Type.RightHandle, mode);

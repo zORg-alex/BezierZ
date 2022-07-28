@@ -16,8 +16,9 @@ namespace BezierCurveZ
 	[CustomPropertyDrawer(typeof(Curve))]
 	public class CurvePropertyDrawer : PropertyDrawer
 	{
-		private Component targetObject;
+		private UnityEngine.Object targetObject;
 		private Transform targetTransform;
+		private bool targetIsGameObject;
 		private Curve curve;
 
 		private bool _initialized;
@@ -65,8 +66,12 @@ namespace BezierCurveZ
 
 			if (targetObject == null)
 			{
-				targetObject = (Component)property.serializedObject.targetObject;
-				targetTransform = targetObject.transform;
+				targetObject = property.serializedObject.targetObject;
+				if (targetObject is Component c)
+				{
+					targetTransform = c.transform;
+					targetIsGameObject = true;
+				}
 			}
 			curve = fieldInfo.GetValue(targetObject) as Curve;
 
@@ -218,9 +223,11 @@ namespace BezierCurveZ
 				((SceneView)scene).Repaint();
 		}
 
-		private float editorHeight = EditorGUIUtility.singleLineHeight * 2 + 64;
+		private float editorHeight = EditorGUIUtility.singleLineHeight * 2 + 64 + 8;
 		private void DrawCurveEditor(Rect position, SerializedProperty property)
 		{
+			EditorGUI.HelpBox(position, "", MessageType.None);
+			position = position.Extend(-6,-4);
 			var lines = position.Column(
 				new float[] { 0f,0f,1f},
 				new float[] { EditorGUIUtility.singleLineHeight, 64, 0f });
@@ -262,6 +269,10 @@ namespace BezierCurveZ
 		private Vector2 mouse1Position;
 		private bool drawContextMenu;
 		private bool cuttingInitialized;
+		private int extruding;
+		private bool isExtruding => extruding > 0;
+		private bool startedExtruding => extruding == 1;
+		private bool extrusionRightDirection;
 		private Vector3 closestPointToMouseOnCurve;
 		private int controlID;
 		private Event current;
@@ -279,7 +290,7 @@ namespace BezierCurveZ
 		/// </summary>
 		private int closestIndex;
 		private int closestControlIndex;
-		private int closestHandleIndex;
+		//private int closestHandleIndex;
 		private bool sKeyDown;
 		private bool mouse0DragRect;
 		private Vector2 mouse0DownPosition;
@@ -287,6 +298,9 @@ namespace BezierCurveZ
 		private Quaternion toolRotation;
 		private bool showPointGUI;
 		private bool captureMouse;
+		private Curve backupCurve;
+		private int backupClosestIndex;
+		private Vector3 backupEditedPosition;
 
 		private void OnSceneGUI(SceneView scene)
 		{
@@ -322,20 +336,40 @@ namespace BezierCurveZ
 			if (GetKeyDown(KeyCode.Q) && GUIUtility.hotControl == 0)
 			{
 				showPointGUI = !showPointGUI;
+				if (!showPointGUI)
+				{
+					captureMouse = false;
+					Tools.current = currentInternalTool;
+				}
+				else
+					currentInternalTool = Tools.current;
 			}
 			//Cancel showing Edit GUI
 			else if (showPointGUI && (GetKeyDown(KeyCode.Escape) || GetMouseDown(1)))
 			{
 				showPointGUI = false;
 				captureMouse = false;
+				Tools.current = currentInternalTool;
 				//Don't want to continue to trigger other things, like Context menu
 				return;
 			}
+
+			//Messy part
+			//Cancel Extrude before capture returns
+			bool vUp = GetKeyUp(KeyCode.V);
+			if (vUp && isExtruding)
+			{
+				extruding = 0;
+				captureMouse = false;
+				return;
+			}
+
+			//If captureMouse is on, don't start anything else
 			if (captureMouse)
 				return;
 
 			//Cut/Extrude
-			if (GetKeyUp(KeyCode.V))
+			if (vUp && !isExtruding)
 			{
 				if (curve.IsClosed || (closestIndex > 0 && closestIndex < curve.Points.Count - 1))
 				{
@@ -356,6 +390,13 @@ namespace BezierCurveZ
 					closestIndex++;
 					closestPoint = curve.Points[closestIndex];
 				}
+			}
+			else if (GetKeyDown(KeyCode.V) && curve.IsControlPoint(closestIndex) && PositionHandleIds_copy.@default.Has(GUIUtility.hotControl))
+			{
+				//Create new point and assign it as closest and set a priority to it, since next frame it might not be closest
+				BackupCurve();
+				extruding = 1;
+				captureMouse = true;
 			}
 			//Cancel Cut
 			else if (cuttingInitialized && (GetMouseDown(1) || GetKeyDown(KeyCode.Escape)))
@@ -505,7 +546,7 @@ namespace BezierCurveZ
 				if (cuttingInitialized)
 					CallAllSceneViewRepaint();
 
-				closestPointToMouseOnCurve = HandleUtility.ClosestPointToPolyLine(curve.Vertices.SelectArray(v => targetTransform.TransformPoint(v)));
+				closestPointToMouseOnCurve = HandleUtility.ClosestPointToPolyLine(curve.Vertices.SelectArray(v => TransformPoint(v)));
 
 				SelectClosestPointToMouse(current);
 			}
@@ -517,6 +558,22 @@ namespace BezierCurveZ
 			bool GetKeyUp(KeyCode key) => current.type == EventType.KeyUp && current.keyCode == key;
 			bool GetMouseDown(int button) => current.type == EventType.MouseDown && current.button == button;
 			bool GetMouseUp(int button) => current.type == EventType.MouseUp && current.button == button;
+		}
+
+		Vector3 TransformPoint(Vector3 v) => targetIsGameObject ? targetTransform.TransformPoint(v) : v;
+		Vector3 InverseTransformPoint(Vector3 v) => targetIsGameObject ? targetTransform.InverseTransformPoint(v) : v;
+		Vector3 TransformDirection(Vector3 v) => targetIsGameObject ? targetTransform.TransformDirection(v) : v;
+		Vector3 InverseTransformDirection(Vector3 v) => targetIsGameObject ? targetTransform.InverseTransformDirection(v) : v;
+		Vector3 TransformVector(Vector3 v) => targetIsGameObject ? targetTransform.TransformVector(v) : v;
+		Vector3 InverseTransformVector(Vector3 v) => targetIsGameObject ? targetTransform.InverseTransformVector(v) : v;
+		Matrix4x4 localToWorldMatrix => targetIsGameObject ? targetTransform.localToWorldMatrix : Matrix4x4.identity;
+		Quaternion TransformRotation => targetIsGameObject ? targetTransform.rotation : Quaternion.identity;
+
+		private void BackupCurve()
+		{
+			backupCurve = curve.Copy();
+			backupClosestIndex = closestIndex;
+			backupEditedPosition = editedPosition;
 		}
 
 		private Rect GetRectFromTwoPonts(Vector2 a, Vector2 b)
@@ -534,13 +591,13 @@ namespace BezierCurveZ
 
 		private void SnapPointToCurvePoints(ref Vector3 pos, int index)
 		{
-			var senseDist = HandleUtility.GetHandleSize(targetTransform.TransformPoint(pos)) * .2f;
+			var senseDist = HandleUtility.GetHandleSize(TransformPoint(pos)) * .2f;
 			if (!current.shift && sKeyDown)
 			{
 				var c = Handles.color;
 				var m = Handles.matrix;
 				Handles.color = Color.yellow;
-				Handles.matrix = targetTransform.localToWorldMatrix;
+				Handles.matrix = localToWorldMatrix;
 
 				var minDist = float.MaxValue;
 				var minAxis = 0;
@@ -627,7 +684,7 @@ namespace BezierCurveZ
 			var minHDist = float.MaxValue;
 			closestIndex = -1;
 			closestControlIndex = -1;
-			closestHandleIndex = -1;
+			//closestHandleIndex = -1;
 			for (int i = 0; i < curve.Points.Count; i++)
 			{
 				Vector3 point = curve.Points[i];
@@ -635,7 +692,7 @@ namespace BezierCurveZ
 				if ((selectHandlesOnly && curve.IsControlPoint(i)) || (currentInternalTool == Tool.Rotate && !curve.IsControlPoint(i)))
 					continue;
 
-				var dist = HandleUtility.WorldToGUIPoint(targetTransform.TransformPoint(curve.Points[i])).DistanceTo(mousePos);
+				var dist = HandleUtility.WorldToGUIPoint(TransformPoint(curve.Points[i])).DistanceTo(mousePos);
 				if (dist <= minDist + .01f)
 				{
 					minDist = dist;
@@ -653,14 +710,14 @@ namespace BezierCurveZ
 				if (dist <= minHDist + .1f)
 				{
 					minHDist = dist;
-					closestHandleIndex = i;
+					//closestHandleIndex = i;
 				}
 			}
 			if (curve.Points[closestControlIndex].mode == Curve.BezierPoint.Mode.Linear)
 				closestIndex = closestControlIndex;
 
 			closestPoint = curve.Points[closestIndex];
-			editedPosition = targetTransform.TransformPoint(closestPoint.point);
+			editedPosition = TransformPoint(closestPoint.point);
 			if (GUIUtility.hotControl == 0)
 				toolRotation = GetToolRotation(curve.GetSegmentIndex(closestIndex));
 			if (minDist > 100)
@@ -679,7 +736,7 @@ namespace BezierCurveZ
 			//Draw points
 			for (int i = 0; i < curve.Points.Count; i++)
 			{
-				var globalPointPos = transform(curve.Points[i]);
+				var globalPointPos = TransformPoint(curve.Points[i]);
 				bool isControlPoint = curve.IsControlPoint(i);
 				float size = HandleUtility.GetHandleSize(globalPointPos) * (isControlPoint ? .2f : .15f);
 				var segInd = curve.GetSegmentIndex(i);
@@ -693,13 +750,13 @@ namespace BezierCurveZ
 					GUIUtils.DrawCircle(globalPointPos, (cam.transform.position - globalPointPos).normalized, size, width: width);
 					//Handles.Label(globalPointPos, $"{i}, ind={i} segind={curve.GetSegmentIndex(i)}");
 					//DrawAxes(.3f, globalPointPos, curve.GetCPRotation(segInd) * targetTransform.rotation);
-					Handles.DrawAAPolyLine(globalPointPos, globalPointPos + curve.GetCPRotation(segInd) * targetTransform.rotation * Vector3.up * .25f);
+					Handles.DrawAAPolyLine(globalPointPos, globalPointPos + curve.GetCPRotation(segInd) * TransformRotation * Vector3.up * .25f);
 				}
 				else
 				{
 					//float time = curve.Points[i].type == Curve.BezierPoint.Type.RightHandle ? 0f : 1f;
 					GUIUtils.DrawRectangle(globalPointPos,
-						Quaternion.LookRotation(cam.transform.position - globalPointPos, transformDirection(curve.GetCPTangent(segInd))),
+						Quaternion.LookRotation(cam.transform.position - globalPointPos, TransformDirection(curve.GetCPTangent(segInd))),
 						Vector2.one * size, width);
 				}
 			}
@@ -710,7 +767,7 @@ namespace BezierCurveZ
 				Vector3 pos = default;
 				if (currentInternalTool == Tool.Move)
 				{
-					var rotation = Tools.pivotRotation == PivotRotation.Local ? curve.Points[closestIndex].rotation * targetTransform.rotation : Tools.handleRotation;
+					var rotation = Tools.pivotRotation == PivotRotation.Local ? curve.Points[closestIndex].rotation * TransformRotation : Tools.handleRotation;
 					if (!current.shift)
 					{
 						pos = Handles.PositionHandle(editedPosition, rotation);
@@ -722,20 +779,24 @@ namespace BezierCurveZ
 					if (EditorGUI.EndChangeCheck())
 					{
 						Undo.RecordObject(targetObject, "Point position changed");
+
+						//TODO Extrude mechanics. Here we know movement direction, so we can start extruding in right direction and change if needed
+						//DoExtrusionWhileMoveTool(pos);
+
 						if (selectedPointIdexes.Count == 0)
 						{
-							curve.SetPoint(closestIndex, targetTransform.InverseTransformPoint(pos));
+							curve.SetPoint(closestIndex, InverseTransformPoint(pos));
 						}
 						else
 						{
-							var delta = targetTransform.InverseTransformPoint(pos) - curve.Points[closestIndex];
+							var delta = InverseTransformPoint(pos) - curve.Points[closestIndex];
 							foreach (var ind in selectedPointIdexes)
 							{
 								var point = curve.Points[ind];
 								curve.SetPoint(ind, point + delta);
 							}
 						}
-						editedPosition = transform(curve.Points[closestIndex]);
+						editedPosition = TransformPoint(curve.Points[closestIndex]);
 					}
 				}
 				else if (currentInternalTool == Tool.Rotate && curve.IsControlPoint(closestIndex))
@@ -760,7 +821,7 @@ namespace BezierCurveZ
 							foreach (var ind in selectedPointIdexes)
 							{
 								segmentIndex = curve.GetSegmentIndex(ind);
-								var rotatedRelativeEditedPoint = diff * (transform(curve.Points[ind]) - editedPosition);
+								var rotatedRelativeEditedPoint = diff * (TransformPoint(curve.Points[ind]) - editedPosition);
 								curve.SetPoint(ind, closestPoint + rotatedRelativeEditedPoint);
 								curve.SetCPRotationWithHandles(segmentIndex, diff, additive: true);
 							}
@@ -846,12 +907,35 @@ namespace BezierCurveZ
 
 			Handles.matrix = m;
 			Handles.color = c;
-
-			//Local methods
-
-			Vector3 transform(Vector3 pos) => targetTransform.TransformPoint(pos);
-			Vector3 transformDirection(Vector3 normal) => targetTransform.TransformDirection(normal);
 		}
+
+		private void DoExtrusionWhileMoveTool(Vector3 newPosition)
+		{
+			//Check if direction changed and reset process
+			if (extruding > 1)
+			{
+				var newDirection = Vector3.Dot(newPosition - editedPosition, closestPoint.rotation * Vector3.forward) > 0;
+				if (newDirection != extrusionRightDirection)
+				{
+					curve.CopyFrom(backupCurve);
+					extruding = 1;
+				}
+			}
+			//First step
+			if (startedExtruding)
+			{
+				extrusionRightDirection = Vector3.Dot(newPosition - editedPosition, closestPoint.rotation * Vector3.forward) > 0;
+
+				curve.SplitAt(curve.GetSegmentIndex(closestControlIndex) + (extrusionRightDirection ? 0 : -1), extrusionRightDirection ? 0f : 1f);
+
+				if (extrusionRightDirection)
+					closestIndex--;
+				closestPoint = curve.Points[closestIndex];
+				closestControlIndex = closestIndex;
+				extruding++;
+			}
+		}
+
 		/// <summary>
 		/// Curve preview and in editor draw cycle
 		/// </summary>
@@ -859,7 +943,7 @@ namespace BezierCurveZ
 		private void DrawCurveAndPoints(bool Highlight = false)
 		{
 			var m = Handles.matrix;
-			Handles.matrix = targetTransform.localToWorldMatrix;
+			Handles.matrix = localToWorldMatrix;
 			var c = Handles.color;
 			Handles.color = Color.white.MultiplyAlpha(.66f);
 			DrawCurveFromVertexData(curve.VertexData);
@@ -919,7 +1003,7 @@ namespace BezierCurveZ
 		private Quaternion GetToolRotation(int segmentInd) => Tools.pivotRotation switch
 		{
 			PivotRotation.Global => Tools.handleRotation,
-			PivotRotation.Local => targetTransform.rotation * curve.GetCPRotation(segmentInd),
+			PivotRotation.Local => TransformRotation * curve.GetCPRotation(segmentInd),
 			_ => Quaternion.identity
 		};
 		//toolRotation = targetTransform.rotation* curve.GetCPRotation(segmentIndex);

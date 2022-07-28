@@ -12,7 +12,12 @@ namespace BezierCurveZ
 	{
 		public Curve()
 		{
-			points = new List<BezierPoint> { new BezierPoint(Vector3.zero, BezierPoint.Type.Control) };
+			points = new List<BezierPoint> {
+				new BezierPoint(Vector3.zero, BezierPoint.Type.Control),
+				new BezierPoint(Vector3.right / 3, BezierPoint.Type.RightHandle),
+				new BezierPoint(Vector3.right/3 *2, BezierPoint.Type.LeftHandle),
+				new BezierPoint(Vector3.right, BezierPoint.Type.Control),
+			};
 			_bVersion = 1;
 		}
 
@@ -410,7 +415,15 @@ namespace BezierCurveZ
 			var type = BezierPoint.Type.Control;
 			for (int i = 0; i < newSegments.Length; i++)
 			{
-				newPoints[i] = new BezierPoint(newSegments[i], type, BezierPoint.Mode.Proportional);
+				var rot = Quaternion.identity;
+				if (type == BezierPoint.Type.Control)
+				{
+					//Skip to current segmant and find closest point to get rotation from
+					var firstVInd = _vertexData.SegmentIndexes.IndexOf(segmentInd);
+					var min = _vertexData.Points.Skip(firstVInd).Min((v) => newSegments[i].DistanceTo(v), out var ind);
+					rot = _vertexData.Rotations[firstVInd + ind];
+				}
+				newPoints[i] = new BezierPoint(newSegments[i], rot, type, BezierPoint.Mode.Proportional);
 				type++;
 				type = (BezierPoint.Type)((int)type % 3);
 			}
@@ -468,11 +481,16 @@ namespace BezierCurveZ
 		//========================
 		public void SplitAt(Vector3 point)
 		{
-			var t = GetClosestTimeSegment(point, out var segmentInd);
+			var t = GetClosestTimeSegment(point, out var segmentIndex);
 
-			var newSegments = CasteljauUtility.GetSplitSegmentPoints(t, Segment(segmentInd));
+			SplitAt(segmentIndex, t);
+		}
 
-			ReplaceSegment(segmentInd, newSegments);
+		public void SplitAt(int segmentIndex, float t)
+		{
+			var newSegments = CasteljauUtility.GetSplitSegmentPoints(t, Segment(segmentIndex));
+
+			ReplaceSegment(segmentIndex, newSegments);
 		}
 
 		//TODO Debug how to work with low vertex count
@@ -558,5 +576,26 @@ namespace BezierCurveZ
 			CurveUtils.EvaluateHackNormal(1, points[segmentIndex * 3 - 3], points[segmentIndex * 3 - 2], points[segmentIndex * 3 - 1], points[segmentIndex * 3], out _);
 		}
 
+		public Curve Copy()
+		{
+			Curve curve = new Curve();
+			curve.points = points;
+			curve._isClosed = _isClosed;
+			curve._maxAngleError = _maxAngleError;
+			curve._minSamplingDistance = _minSamplingDistance;
+			curve._useRotations = _useRotations;
+			curve._vertexData = _vertexData;
+			return curve;
+		}
+
+		public void CopyFrom(Curve curve)
+		{
+			points = curve.points;
+			_isClosed = curve._isClosed;
+			_maxAngleError = curve._maxAngleError;
+			_minSamplingDistance = curve._minSamplingDistance;
+			_useRotations = curve._useRotations;
+			_vertexData = curve._vertexData;
+		}
 	}
 }
