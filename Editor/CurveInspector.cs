@@ -7,6 +7,7 @@ using System.Linq;
 using Utility.Editor;
 using UnityEditor.SceneManagement;
 using System.Collections.Generic;
+using Utility;
 
 namespace BezierCurveZ
 {
@@ -73,7 +74,8 @@ namespace BezierCurveZ
 					targetIsGameObject = true;
 				}
 			}
-			curve = fieldInfo.GetValue(targetObject) as Curve;
+			//curve = fieldInfo.GetValue(targetObject) as Curve;
+			curve = property.GetValue<Curve>();
 
 			var rootRows = IsCurrentlyEditedDrawer ?
 				position.Column(new float[] { 0f, 1f }, new float[] { EditorGUIUtility.singleLineHeight, 0f }) :
@@ -226,6 +228,7 @@ namespace BezierCurveZ
 		private float editorHeight = EditorGUIUtility.singleLineHeight * 2 + 64 + 8;
 		private void DrawCurveEditor(Rect position, SerializedProperty property)
 		{
+			if (position.height == 0) return;
 			EditorGUI.HelpBox(position, "", MessageType.None);
 			position = position.Extend(-6,-4);
 			var lines = position.Column(
