@@ -2,7 +2,7 @@
 using UnityEditor;
 using System;
 using RectEx;
-using UnityEditor.Toolbars;
+//using UnityEditor.Toolbars;
 using System.Linq;
 using Utility.Editor;
 using UnityEditor.SceneManagement;
@@ -178,7 +178,7 @@ namespace BezierCurveZ
 			SceneView.duringSceneGui += OnSceneGUI;
 			CallAllSceneViewRepaint();
 			currentlyEditedPropertyDrawer = this;
-			CurveEditorOverlay.Show();
+			//CurveEditorOverlay.Show();
 			lastTool = Tools.current;
 			Tools.current = Tools.current == Tool.Move || Tools.current == Tool.Rotate ? Tools.current : Tool.None;
 		}
@@ -194,7 +194,7 @@ namespace BezierCurveZ
 			SceneView.duringSceneGui -= OnSceneGUI;
 			CallAllSceneViewRepaint();
 			currentlyEditedPropertyDrawer = null;
-			CurveEditorOverlay.Hide();
+			//CurveEditorOverlay.Hide();
 			Tools.current = lastTool;
 		}
 		#endregion
@@ -637,43 +637,57 @@ namespace BezierCurveZ
 				}
 				if (minDist < senseDist)
 				{
-					pos = minAxis switch
+					switch (minAxis)
 					{
-						0 => new Vector3(pos.x, minPoint.y, minPoint.z),
-						1 => new Vector3(minPoint.x, pos.y, minPoint.z),
-						2 => new Vector3(minPoint.x, minPoint.y, pos.z),
-						_ => pos
-					};
+						case 0:
+							pos = new Vector3(pos.x, minPoint.y, minPoint.z);
+							break;
+						case 1:
+							pos = new Vector3(minPoint.x, pos.y, minPoint.z);
+							break;
+						case 2:
+							pos = new Vector3(minPoint.x, minPoint.y, pos.z);
+							break;
+						default:
+							break;
+					}
+					//pos = minAxis switch
+					//{
+					//	0 => new Vector3(pos.x, minPoint.y, minPoint.z),
+					//	1 => new Vector3(minPoint.x, pos.y, minPoint.z),
+					//	2 => new Vector3(minPoint.x, minPoint.y, pos.z),
+					//	_ => pos
+					//};
 				}
 
 				Handles.color = c;
 				Handles.matrix = m;
 			}
 
-			static float DistanceToAxis(Vector3 vector1, Vector3 vector2, float senseDistance, out int axis)
-			{
-				float x = (vector1.x - vector2.x).Abs();
-				float y = (vector1.y - vector2.y).Abs();
-				float z = (vector1.z - vector2.z).Abs();
+		}
+		static float DistanceToAxis(Vector3 vector1, Vector3 vector2, float senseDistance, out int axis)
+		{
+			float x = (vector1.x - vector2.x).Abs();
+			float y = (vector1.y - vector2.y).Abs();
+			float z = (vector1.z - vector2.z).Abs();
 
-				if (x < senseDistance && y < senseDistance)
-				{
-					axis = 2;
-					return (float)Math.Sqrt(x * x + y * y);
-				}
-				else if (x < senseDistance && z < senseDistance)
-				{
-					axis = 1;
-					return (float)Math.Sqrt(x * x + z * z);
-				}
-				else if (y < senseDistance && z < senseDistance)
-				{
-					axis = 0;
-					return (float)Mathf.Sqrt(y * y + z * z);
-				}
-				axis = -1;
-				return (float)Math.Sqrt(x * x + y * y + z * z);
+			if (x < senseDistance && y < senseDistance)
+			{
+				axis = 2;
+				return (float)Math.Sqrt(x * x + y * y);
 			}
+			else if (x < senseDistance && z < senseDistance)
+			{
+				axis = 1;
+				return (float)Math.Sqrt(x * x + z * z);
+			}
+			else if (y < senseDistance && z < senseDistance)
+			{
+				axis = 0;
+				return (float)Mathf.Sqrt(y * y + z * z);
+			}
+			axis = -1;
+			return (float)Math.Sqrt(x * x + y * y + z * z);
 		}
 
 		private void SelectClosestPointToMouse(Event current)
@@ -868,7 +882,7 @@ namespace BezierCurveZ
 				GUI.Label(line.MoveLeftFor(30), "mode");
 				GUI.enabled = curve.IsControlPoint(closestIndex);
 				EditorGUI.BeginChangeCheck();
-				var modeId = EditorGUI.Popup(line, Curve.BezierPoint.AllModes.IndexOf(closestPoint.mode), Curve.BezierPoint.AllModes.SelectArray(m => m.ToString()));
+				var modeId = EditorGUI.Popup(line, Curve.BezierPoint.AllModes.IndexOf(closestPoint.mode), Curve.BezierPoint.AllModes.SelectArray(_m => _m.ToString()));
 				if (EditorGUI.EndChangeCheck())
 				{
 					Undo.RecordObject(targetObject, "Set mode");
@@ -996,19 +1010,32 @@ namespace BezierCurveZ
 
 			Handles.color = c;
 
-			static void DrawVertices(List<Vector3> vertices, bool towardCamera)
-			{
-				Handles.color = towardCamera ? Color.red / 3 * 2 + Color.green / 3 : Color.green;
-				Handles.DrawAAPolyLine((towardCamera ? 4 : 2), vertices.ToArray());
-			}
 		}
 
-		private Quaternion GetToolRotation(int segmentInd) => Tools.pivotRotation switch
+		static void DrawVertices(List<Vector3> vertices, bool towardCamera)
+		{
+			Handles.color = towardCamera ? Color.red / 3 * 2 + Color.green / 3 : Color.green;
+			Handles.DrawAAPolyLine((towardCamera ? 4 : 2), vertices.ToArray());
+		}
+
+		private Quaternion GetToolRotation(int segmentInd) /*=> Tools.pivotRotation switch
 		{
 			PivotRotation.Global => Tools.handleRotation,
 			PivotRotation.Local => TransformRotation * curve.GetCPRotation(segmentInd),
 			_ => Quaternion.identity
-		};
+		};*/
+		{
+			switch (Tools.pivotRotation)
+			{
+				case PivotRotation.Local:
+					return TransformRotation * curve.GetCPRotation(segmentInd);
+				case PivotRotation.Global:
+					return Tools.handleRotation;
+				default:
+					return Quaternion.identity;
+			}
+		}
+
 		//toolRotation = targetTransform.rotation* curve.GetCPRotation(segmentIndex);
 		private void DrawAxes(float handleSize, Vector3 position, Quaternion rotation)
 		{

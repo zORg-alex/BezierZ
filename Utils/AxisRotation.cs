@@ -99,13 +99,13 @@ namespace Utility.Editor
 					break;
 				case EventType.Repaint:
 					{
-						SetupHandleColor(id, current, out var prevColor, out var thickness);
+						SetupHandleColor(id, current, out var prevColor);
 						bool flag = id == GUIUtility.hotControl;
 						bool flag2 = IsHovering(id, current);
 						Handles.matrix = Matrix4x4.identity;
 						if (drawCircle)
 						{
-							Handles.DrawWireDisc(vector, rotation * Vector3.forward, size, thickness);
+							Handles.DrawWireDisc(vector, rotation * Vector3.forward, size);
 						}
 
 						if (flag2 || flag)
@@ -124,10 +124,9 @@ namespace Utility.Editor
 		}
 
 
-		static void SetupHandleColor(int controlID, Event evt, out Color prevColor, out float thickness)
+		static void SetupHandleColor(int controlID, Event evt, out Color prevColor)
 		{
 			prevColor = Handles.color;
-			thickness = Handles.lineThickness;
 			if (controlID == GUIUtility.hotControl)
 			{
 				Handles.color = Handles.selectedColor;
@@ -140,11 +139,10 @@ namespace Utility.Editor
 				color.b = Mathf.Clamp01(color.b);
 				color.a = Mathf.Clamp01(color.a);
 				Handles.color = color;
-				thickness += 1f;
 			}
 
 		}
 
-		static bool IsHovering(int controlID, Event evt) => controlID == HandleUtility.nearestControl && GUIUtility.hotControl == 0 && !Tools.viewToolActive;
+		static bool IsHovering(int controlID, Event evt) => controlID == HandleUtility.nearestControl && GUIUtility.hotControl == 0 && Event.current.alt;
 	}
 }
