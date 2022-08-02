@@ -149,7 +149,7 @@ namespace BezierCurveZ
 					isMouseOver = true;
 					SceneView.duringSceneGui -= _OnScenePreviewInternal;
 					SceneView.duringSceneGui += _OnScenePreviewInternal;
-					Selection.selectionChanged = UnsubscribeSetUpPreview;
+					Selection.selectionChanged += UnsubscribeSetUpPreview;
 					CallAllSceneViewRepaint();
 				}
 			}
@@ -160,12 +160,12 @@ namespace BezierCurveZ
 					SceneView.duringSceneGui -= _OnScenePreviewInternal;
 				CallAllSceneViewRepaint();
 			}
+		}
 
-			void UnsubscribeSetUpPreview()
-			{
-				Selection.selectionChanged -= UnsubscribeSetUpPreview;
-				SceneView.duringSceneGui -= _OnScenePreviewInternal;
-			}
+		void UnsubscribeSetUpPreview()
+		{
+			Selection.selectionChanged -= UnsubscribeSetUpPreview;
+			SceneView.duringSceneGui -= _OnScenePreviewInternal;
 		}
 
 		private void StartEditor()
