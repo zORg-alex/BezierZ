@@ -107,7 +107,7 @@ public static class ProfileUtility
 					var next = NextIndex(j, profileLen);
 					var prevVert = PrevIndex(j, profileLen);
 
-					if (!(prevSharp && vert.isSharp) || curve.IsClosed && i == 0 || i > 0)
+					if (!(prevSharp && vert.isSharp) || ((curve.IsClosed && i == 0) || i > 0) && ((profile.IsClosed && j == 0) || j > 0))
 					{
 						triangles.AddRange_(previousLoopFirstVert + j, loopFirstVert + next, loopFirstVert + j);
 						triangles.AddRange_(previousLoopFirstVert + j, previousLoopFirstVert + next, loopFirstVert + next);
