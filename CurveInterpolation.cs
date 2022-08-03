@@ -9,6 +9,8 @@ namespace BezierCurveZ
 	{
 		public static SplitData SplitCurveByAngleError(Curve curve, float maxAngleError, float minSplitDistance, int accuracy = 10, bool useRotations = false)
 		{
+
+
 			if (curve.Points.Count == 1)
 				return new SplitData()
 				{
