@@ -539,10 +539,16 @@ namespace BezierCurveZ
 			return _vertexData.GetPointAtLength(length);
 		}
 
-		public Quaternion GetRotation(float time)
+		public Quaternion GetRotationAtTime(float time)
 		{
 			Update();
 			return _vertexData.GetRotationAtTime(time);
+		}
+
+		public Quaternion GetRotationAtLength(float length)
+		{
+			Update();
+			return _vertexData.GetRotationAtLength(length);
 		}
 
 		/// <summary>
