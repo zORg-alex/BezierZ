@@ -89,12 +89,12 @@ namespace BezierCurveZ
 
 					Vector3 _toLastPoint = _lastAddedPoint - _currentPoint;
 					var _toLastPointMag = _toLastPoint.magnitude;
-					length += _toLastPointMag;
 					float _angle = 180 - Vector3.Angle(_toLastPoint, _nextEvalPoint - _currentPoint);
 					float _angleError = _angle.Max(_previousAngle);
 
 					if (_isSharp || (_edgePoint && _lastAddedPoint != _currentPoint) || _angleError > maxAngleError && _dist >= minSplitDistance)
 					{
+						length += _toLastPointMag;
 						Vector3 tang = CurveUtils.EvaluateDerivative(t, segment).normalized;
 						Quaternion rotation = Quaternion.identity;
 						if (!useRotations)
