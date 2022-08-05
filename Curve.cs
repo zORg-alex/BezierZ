@@ -455,7 +455,7 @@ namespace BezierCurveZ
 		private float _maxAngleError;
 		public float MaxAngleError { get { return _maxAngleError; } set { var v = value.Min(.05f); if (v != _maxAngleError) _vVersion++; _maxAngleError = v; } }
 
-		private BezierCurveVertexData _vertexData;
+		public BezierCurveVertexData _vertexData;
 		public IEnumerable<BezierCurveVertexData.VertexData> VertexData { get {
 				if (!vertexCurveIsUpToDate) Update();
 				return _vertexData.GetEnumerable();

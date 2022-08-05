@@ -37,9 +37,10 @@ namespace BezierCurveZ
 		public float[] CumulativeLengths => _cumulativeLengths;
 		[SerializeField, HideInInspector]
 		private float[] _times;
-		private bool[] _isSharp;
-
 		public float[] Times => _times;
+		[SerializeField, HideInInspector]
+		private bool[] _isSharp;
+		public bool[] IsSharp => _isSharp;
 
 
 		[SerializeField, HideInInspector]
@@ -59,13 +60,53 @@ namespace BezierCurveZ
 			_isSharp = data.isSharp.ToArray();
 		}
 
-		public Vector3 GetPointAtLength(float length) => _points[CumulativeLengths.IndexOf(l => l >= length)];
-		public Vector3 GetPointAtTime(float time) => _points[Times.IndexOf(t => t >= time)];
+		public Vector3 GetPointAtLength(float length) => LerpVector3(length, ref _cumulativeLengths, ref _points);
+		public Vector3 GetPointAtTime(float time) => LerpVector3(time, ref _times, ref _points);
 		public Vector3 GetPoint(int index) => _points[index];
 
-		public Quaternion GetRotationAtLength(float length) => _rotations[CumulativeLengths.IndexOf(l => l >= length)];
-		public Quaternion GetRotationAtTime(float time) => _rotations[Times.IndexOf(t=>t >= time)];
+		public Quaternion GetRotationAtLength(float length) => LerpQuaternion(length, ref _cumulativeLengths, ref _rotations);
+		public Quaternion GetRotationAtTime(float time) => LerpQuaternion(time, ref _cumulativeLengths, ref _rotations);
 		public Quaternion GetRotation(int index) => _rotations[index];
+
+
+		private Vector3 LerpVector3(float value, ref float[] array, ref Vector3[] valArray)
+		{
+			var ind = BinarySearchPreviousIndex(value, ref array);
+			if (value == 0) return valArray[0];
+			else if (ind == array.Length - 1) return valArray[ind];
+			var a = array[ind];
+			var b = array[ind + 1];
+			var dist = b - a;
+			return Vector3.Lerp(valArray[ind], valArray[ind + 1], (value - a) / dist);
+		}
+		private Quaternion LerpQuaternion(float value, ref float[] array, ref Quaternion[] valArray)
+		{
+			var ind = BinarySearchPreviousIndex(value, ref array);
+			if (value == 0) return valArray[0];
+			else if (ind == array.Length - 1) return valArray[ind];
+			var a = array[ind];
+			var b = array[ind + 1];
+			var dist = b - a;
+			return Quaternion.Lerp(valArray[ind], valArray[ind + 1], (value - a) / dist);
+		}
+
+		private int BinarySearchPreviousIndex(float value, ref float[] array)
+		{
+			int low = 0;
+			int high = array.Length - 1;
+			while (high - low != 1)
+			{
+				var mid = (high - low) / 2 + low;
+				if (array[mid] < value)
+				{
+					low = mid;
+				} else
+				{
+					high = mid;
+				}
+			}
+			return low;
+		}
 
 		public IEnumerable<VertexData> GetEnumerable()
 		{
