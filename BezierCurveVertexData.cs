@@ -36,10 +36,11 @@ namespace BezierCurveZ
 		private float[] _cumulativeLengths;
 		public float[] CumulativeLengths => _cumulativeLengths;
 		[SerializeField, HideInInspector]
-		private float[] _times;
-		public float[] Times => _times;
+		private float[] _cumulativeTimes;
+		public float[] CumulativeTimes => _cumulativeTimes;
 		[SerializeField, HideInInspector]
 		private bool[] _isSharp;
+
 		public bool[] IsSharp => _isSharp;
 
 
@@ -56,22 +57,44 @@ namespace BezierCurveZ
 			_cumulativeLengths = data.cumulativeLength.ToArray();
 			_tangents = data.tangents.ToArray();
 			_rotations = data.rotations.ToArray();
-			_times = data.segmentTime.ToArray();
+			_cumulativeTimes = data.cumulativeTime.ToArray();
 			_isSharp = data.isSharp.ToArray();
 		}
 
+		public float GetLength(int segmentInd, float t)
+		{
+			var i = BinarySearchPreviousIndex(segmentInd + t, ref _cumulativeTimes, _segmentIndexes[segmentInd]);
+			var alen = _cumulativeLengths[i];
+			var blen = _cumulativeLengths[i + 1];
+			var tDist = _cumulativeTimes[i + 1] - _cumulativeTimes[i];
+			var ta = _cumulativeTimes[i].Remainder();
+			return Mathf.Lerp(alen, blen, (t - ta) / tDist);
+		}
+
 		public Vector3 GetPointAtLength(float length) => LerpVector3(length, ref _cumulativeLengths, ref _points);
-		public Vector3 GetPointAtTime(float time) => LerpVector3(time, ref _times, ref _points);
+		/// <param name="time">segmentwise time, 1.12345f -> segment 1, time 0.12345f</param>
+		public Vector3 GetPointAtTime(float time) => LerpVector3(time, ref _cumulativeTimes, ref _points);
 		public Vector3 GetPoint(int index) => _points[index];
 
 		public Quaternion GetRotationAtLength(float length) => LerpQuaternion(length, ref _cumulativeLengths, ref _rotations);
-		public Quaternion GetRotationAtTime(float time) => LerpQuaternion(time, ref _cumulativeLengths, ref _rotations);
+		/// <param name="time">segmentwise time, 1.12345f -> segment 1, time 0.12345f</param>
+		public Quaternion GetRotationAtTime(float time) => LerpQuaternion(time, ref _cumulativeTimes, ref _rotations);
 		public Quaternion GetRotation(int index) => _rotations[index];
 
 
-		private Vector3 LerpVector3(float value, ref float[] array, ref Vector3[] valArray)
+		private float LerpFloat(float value, ref float[] array, ref float[] valArray, int startFrom = 0)
 		{
-			var ind = BinarySearchPreviousIndex(value, ref array);
+			var ind = BinarySearchPreviousIndex(value, ref array, startFrom);
+			if (value == 0) return valArray[0];
+			else if (ind == array.Length - 1) return valArray[ind];
+			var a = array[ind];
+			var b = array[ind + 1];
+			var dist = b - a;
+			return Mathf.Lerp(valArray[ind], valArray[ind + 1], (value - a) / dist);
+		}
+		private Vector3 LerpVector3(float value, ref float[] array, ref Vector3[] valArray, int startFrom = 0)
+		{
+			var ind = BinarySearchPreviousIndex(value, ref array, startFrom);
 			if (value == 0) return valArray[0];
 			else if (ind == array.Length - 1) return valArray[ind];
 			var a = array[ind];
@@ -79,9 +102,9 @@ namespace BezierCurveZ
 			var dist = b - a;
 			return Vector3.Lerp(valArray[ind], valArray[ind + 1], (value - a) / dist);
 		}
-		private Quaternion LerpQuaternion(float value, ref float[] array, ref Quaternion[] valArray)
+		private Quaternion LerpQuaternion(float value, ref float[] array, ref Quaternion[] valArray, int startFrom = 0)
 		{
-			var ind = BinarySearchPreviousIndex(value, ref array);
+			var ind = BinarySearchPreviousIndex(value, ref array, startFrom);
 			if (value == 0) return valArray[0];
 			else if (ind == array.Length - 1) return valArray[ind];
 			var a = array[ind];
@@ -90,17 +113,35 @@ namespace BezierCurveZ
 			return Quaternion.Lerp(valArray[ind], valArray[ind + 1], (value - a) / dist);
 		}
 
-		private int BinarySearchPreviousIndex(float value, ref float[] array)
+		private int BinarySearchPreviousIndex(float value, ref float[] array, int low = 0)
 		{
-			int low = 0;
 			int high = array.Length - 1;
 			while (high - low != 1)
 			{
 				var mid = (high - low) / 2 + low;
-				if (array[mid] < value)
+				if (array[mid] <= value)
 				{
 					low = mid;
-				} else
+				}
+				else
+				{
+					high = mid;
+				}
+			}
+			return low;
+		}
+
+		private int BinarySearchPreviousIndex(float value, ref int[] array, int low = 0)
+		{
+			int high = array.Length - 1;
+			while (high - low != 1)
+			{
+				var mid = (high - low) / 2 + low;
+				if (array[mid] <= value)
+				{
+					low = mid;
+				}
+				else
 				{
 					high = mid;
 				}
@@ -110,19 +151,28 @@ namespace BezierCurveZ
 
 		public IEnumerable<VertexData> GetEnumerable()
 		{
+			int sind = 0;
 			for (int i = 0; i < _points?.Length; i++)
 			{
+				if (_segmentIndexes.Length > sind + 1 && _segmentIndexes[sind + 1] == i)
+					sind++;
 				yield return new VertexData()
 				{
 					point = _points[i],
 					tangent = _tangents[i],
 					rotation = _rotations[i],
 					length = _cumulativeLengths[i],
-					segmentIndex = _segmentIndexes[i],
-					time = _times[i],
+					segmentIndex = sind,
+					time = _cumulativeTimes[i],
 					isSharp = _isSharp[i]
 				};
 			}
 		}
+
+		internal int FirstIndexOfSegment(int segmentIndex)
+		{
+			return _segmentIndexes[segmentIndex];
+		}
+		internal int SegmentIndex(int index) => _cumulativeTimes[index].FloorToInt();
 	}
 }

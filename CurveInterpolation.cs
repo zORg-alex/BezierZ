@@ -16,9 +16,9 @@ namespace BezierCurveZ
 				{
 					points = new List<Vector3>() { curve.Points[0], curve.Points[0] },
 					tangents = new List<Vector3>() { Vector3.forward, Vector3.forward },
-					segmentIndices = new List<int>() { 0, 0 },
+					segmentIndices = new List<int>() { 0 },
 					cumulativeLength = new List<float>() { 0, 0 },
-					segmentTime = new List<float>() { 0, 0 },
+					cumulativeTime = new List<float>() { 0, 0 },
 					rotations = new List<Quaternion> { Quaternion.identity, Quaternion.identity }
 				};
 			else if (curve.Points.Count == 0) return null;
@@ -71,7 +71,7 @@ namespace BezierCurveZ
 			foreach (var segment in curve.Segments)
 			{
 				var prevUp = curve.GetCPRotation(segInd) * Vector3.up;
-				var firstIndex = data.segmentIndices.Count;
+				var firstIndex = data.points.Count;
 				var estimatedSegmentLength = CurveUtils.EstimateSegmentLength(segment);
 				int divisions = (estimatedSegmentLength * accuracy).CeilToInt();
 				float increment = divisions == 1 ? 1f : 1f / divisions;
@@ -110,9 +110,10 @@ namespace BezierCurveZ
 
 						data.points.Add(_currentPoint);
 						data.tangents.Add(tang);
-						data.segmentTime.Add(t);
+						data.cumulativeTime.Add(segInd + t);
 						data.cumulativeLength.Add(length);
-						data.segmentIndices.Add(segInd);
+						if (data.segmentIndices.Count == segInd)
+							 data.segmentIndices.Add(data.points.Count - 1);
 						data.rotations.Add(rotation);
 						data.isSharp.Add(_isSharp || (segInd == 0 && t == 0) || (segInd == curve.SegmentCount - 1 && t == 1));
 						_dist = 0;
@@ -138,7 +139,7 @@ namespace BezierCurveZ
 					var correction = Quaternion.Euler(0, 0, right.eulerAngles.z - rmLast.eulerAngles.z);
 					while (i > firstIndex)
 					{
-						t = data.segmentTime[i];
+						t = data.cumulativeTime[i];
 
 						var r = data.rotations[i] * Quaternion.Slerp(Quaternion.identity, correction, t);
 						data.rotations[i] = r;
@@ -159,7 +160,7 @@ namespace BezierCurveZ
 			public List<Vector3> tangents = new List<Vector3>();
 			public List<int> segmentIndices = new List<int>();
 			public List<float> cumulativeLength = new List<float>();
-			public List<float> segmentTime = new List<float>();
+			public List<float> cumulativeTime = new List<float>();
 			public List<Quaternion> rotations = new List<Quaternion>();
 			internal List<bool> isSharp = new List<bool>();
 		}

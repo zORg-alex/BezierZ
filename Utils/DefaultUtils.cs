@@ -100,6 +100,8 @@ public static class DefaultUtils {
 	[DebuggerStepThrough]
 	public static int FloorToInt(this float v) => Mathf.FloorToInt(v);
 	[DebuggerStepThrough]
+	public static float Remainder(this float v) => v - Mathf.Floor(v);
+	[DebuggerStepThrough]
 	public static float Floor(this int v) => Mathf.Floor(v);
 	[DebuggerStepThrough]
 	public static float Min(this float v, float min) => Math.Min(v, min);

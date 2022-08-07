@@ -374,26 +374,27 @@ namespace BezierCurveZ
 			//Cut/Extrude
 			if (vUp && !isExtruding)
 			{
-				if (curve.IsClosed || (closestIndex > 0 && closestIndex < curve.Points.Count - 1))
-				{
-					cuttingInitialized = true;
-					GUIUtility.hotControl = controlID;
-				}
-				else if (closestIndex == 0)
+				if (!curve.IsClosed && closestIndex == 0)
 				{
 					Undo.RecordObject(targetObject, $"Added new point to a curve");
 					curve.AddPointAtStart(curve.Points[closestIndex]);
 					closestIndex = 0;
 					closestPoint = curve.Points[closestIndex];
 				}
-				else
+				else if (!curve.IsClosed && closestIndex == curve.Points.Count - 1)
 				{
 					Undo.RecordObject(targetObject, $"Added new point to a curve");
 					curve.AddPointAtEnd(curve.Points[closestIndex]);
 					closestIndex++;
 					closestPoint = curve.Points[closestIndex];
 				}
+				else
+				{
+					cuttingInitialized = true;
+					GUIUtility.hotControl = controlID;
+				}
 			}
+			//V down on dragging point
 			else if (GetKeyDown(KeyCode.V) && curve.IsControlPoint(closestIndex) && PositionHandleIds_copy.@default.Has(GUIUtility.hotControl))
 			{
 				//Create new point and assign it as closest and set a priority to it, since next frame it might not be closest
@@ -414,7 +415,7 @@ namespace BezierCurveZ
 				cuttingInitialized = false;
 				GUIUtility.hotControl = 0;
 				Undo.RecordObject(targetObject, $"Curve split at {closestPointToMouseOnCurve}");
-				curve.SplitAt(closestPointToMouseOnCurve);
+				curve.SplitAt(InverseTransformPoint(closestPointToMouseOnCurve));
 			}
 
 			//ControlPoint mode selection Dropdown menu
@@ -975,7 +976,7 @@ namespace BezierCurveZ
 			foreach (var vert in curve.VertexData)
 			{
 				Handles.DrawAAPolyLine(vert.point, vert.point + vert.normal * .2f);
-
+				Handles.Label(vert.point, $"{vert.length}, {vert.time}");
 			}
 
 			Handles.matrix = m;
