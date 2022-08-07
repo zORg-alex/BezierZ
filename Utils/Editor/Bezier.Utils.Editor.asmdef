@@ -1,9 +1,6 @@
 {
-    "name": "BezierCurveEditor",
+    "name": "Bezier.Utils.Editor",
     "references": [
-        "GUID:6da1aebc48fccd44bb8ccdb8510cdfc1",
-        "GUID:73c70a6eb6b6f444c878926f743350f6",
-        "GUID:c5754df3d6863c845bc181ceeff225b4",
         "GUID:7af1beae0348edc48a56709e3ef6a963"
     ],
     "includePlatforms": [
@@ -13,7 +10,7 @@
     "allowUnsafeCode": false,
     "overrideReferences": false,
     "precompiledReferences": [],
-    "autoReferenced": true,
+    "autoReferenced": false,
     "defineConstraints": [],
     "versionDefines": [],
     "noEngineReferences": false
