@@ -962,7 +962,7 @@ namespace BezierCurveZ
 			foreach (var vert in curve.VertexData)
 			{
 				Handles.DrawAAPolyLine(vert.point, vert.point + vert.normal * .2f);
-				Handles.Label(vert.point, $"{vert.length}, {vert.time}");
+				//Handles.Label(vert.point, $"{vert.length}, {vert.time}");
 			}
 
 			Handles.matrix = m;
