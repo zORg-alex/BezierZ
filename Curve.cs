@@ -272,12 +272,12 @@ namespace BezierCurveZ
 			}
 		}
 
-		public Quaternion GetRotation(int segmentIndex, float t)
+		public Quaternion GetSegmentFirstRotation(int segmentIndex)
 		{
 			if (segmentIndex == SegmentCount)
 				return _vertexData.Rotations.Last();
 			else
-				return _vertexData.GetRotation(_vertexData.SegmentIndexes.IndexOf(segmentIndex));
+				return _vertexData.GetRotation(_vertexData.FirstIndexOfSegment(segmentIndex));
 		}
 
 		public IEnumerable<Vector3[]> Segments { get {
@@ -419,7 +419,7 @@ namespace BezierCurveZ
 				if (type == BezierPoint.Type.Control)
 				{
 					//Skip to current segmant and find closest point to get rotation from
-					var firstVInd = _vertexData.SegmentIndexes.IndexOf(segmentInd);
+					var firstVInd = _vertexData.FirstIndexOfSegment(segmentInd);
 					var min = _vertexData.Points.Skip(firstVInd).Min((v) => newSegments[i].DistanceTo(v), out var ind);
 					rot = _vertexData.Rotations[firstVInd + ind];
 				}
@@ -481,7 +481,7 @@ namespace BezierCurveZ
 		//========================
 		public void SplitAt(Vector3 point)
 		{
-			var t = GetClosestTimeSegment(point, out var segmentIndex);
+			var t = GetClosestPointTimeSegment(point, out var segmentIndex);
 
 			SplitAt(segmentIndex, t);
 		}
@@ -503,7 +503,7 @@ namespace BezierCurveZ
 
 			var prevVert = VertexData.FirstOrDefault();
 
-			var i = 0;
+			var i = 1;
 			foreach (var v in VertexData.Skip(1))
 			{
 				Vector3 direction = (v.point - prevVert.point);
@@ -516,7 +516,7 @@ namespace BezierCurveZ
 				if (dist < minDist)
 				{
 					minDist = dist;
-					segmentInd = v.segmentIndex;
+					segmentInd = _vertexData.SegmentIndex(i);
 					closestTime = prevVert.time + (v.time - prevVert.time) * (localPosition.magnitude / direction.magnitude);
 				}
 
@@ -525,6 +525,34 @@ namespace BezierCurveZ
 			}
 
 			return closestTime;
+		}
+
+		public float GetClosestPointTimeSegment(Vector3 point, out int segmentIndex)
+		{
+			var z = VertexData.Take(2).ToArray();
+			float minDist = float.MaxValue;
+			foreach (var v in VertexData.Skip(1))
+			{
+				var dist = (point - v.point).magnitude;
+				if (dist < minDist)
+				{
+					z[1] = z[0];
+					z[0] = v;
+					minDist = dist;
+				}
+			}
+			var a = z[0].time < z[1].time ? z[0] : z[1];
+			var b = z[0].time > z[1].time ? z[0] : z[1];
+			Vector3 dir = b.point - a.point;
+			float mag = dir.magnitude;
+			dir.Normalize();
+			var locPos = point - a.point;
+			var dot = Mathf.Clamp(Vector3.Dot(dir, locPos), 0, mag)/mag;
+			var timeDist = b.time - a.time;
+			segmentIndex = Mathf.FloorToInt(a.time);
+			float t = a.time + dot * timeDist;
+			segmentIndex = Mathf.FloorToInt(t);
+			return t - segmentIndex;
 		}
 
 		public Vector3 GetPoint(int segmentIndex, float time) => CurveUtils.Evaluate(time, points[segmentIndex * 3], points[segmentIndex * 3 + 1], points[segmentIndex * 3 + 2], points[segmentIndex * 3 + 3]);
