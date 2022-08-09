@@ -80,15 +80,15 @@ namespace BezierCurveZ
 			}
 		}
 
-		public int ControlPointCount { [DebuggerStepThrough] get => points.Count / 3; }
+		public int ControlPointCount { [DebuggerStepThrough] get => (IsClosed ? points.Count : points.Count + 2) / 3; }
 
 		public int SegmentCount { [DebuggerStepThrough] get => (points?.Count ?? 0) / 3; }
 
-		[DebuggerStepThrough]
+		//[DebuggerStepThrough]
 		public int GetPointIndex(int segmentIndex) =>
-			segmentIndex % SegmentCount * 3 + (IsClosed ? 1 : 0);
+			((ControlPointCount + segmentIndex) % ControlPointCount * 3 + (IsClosed ? 1 : 0)) % points.Count;
 
-		[DebuggerStepThrough]
+		//[DebuggerStepThrough]
 		public int GetSegmentIndex(int index) => IsClosed ?
 			((points.Count + (index - 1)) % points.Count / 3f).FloorToInt() :
 			((points.Count + index) % points.Count / 3f).FloorToInt();
@@ -256,19 +256,32 @@ namespace BezierCurveZ
 		{
 			var index = GetPointIndex(segmentIndex);
 			var point = points[index];
-			var isZero = point.mode == BezierPoint.Mode.Linear;
-			var nextPoint = IsClosed ? points[(index + (isZero ? 2 : 1)) % points.Count] : index < points.Count ? points[(index + (isZero ? 2 : 1))] : index > 0 ? point + point - points[index - 1] : point;
-			return (point.mode.HasFlag(BezierPoint.Mode.Automatic)) ? getAutoTangent() : getAvgTangent();
+			bool isAuto = point.mode.HasFlag(BezierPoint.Mode.Automatic);
 
-			Vector3 getAutoTangent()
+			//Manual 0 open || Auto < last open || Closed
+			//Calculate from next point
+			if (!IsClosed && ((isAuto && index < lastPointInd) || (!isAuto && index == 0)) || IsClosed)
 			{
+				var nextPoint = points[(index + 1) % points.Count];
+				if (nextPoint.mode.HasFlag(BezierPoint.Mode.Linear))
+					nextPoint = points[(index + 2) % points.Count];
 				return (nextPoint - point).normalized;
 			}
-
-			Vector3 getAvgTangent()
+			//Auto last open || Manual last open
+			//Calculate from previous point
+			else if (!IsClosed && index == lastPointInd)
 			{
-				var prevPoint = IsClosed ? points[(points.Count + index - (isZero ? 2 : 1)) % points.Count] : point;
-				return (nextPoint - prevPoint).normalized;
+				var prevPoint = points[index - 1];
+				if (prevPoint.mode.HasFlag(BezierPoint.Mode.Linear))
+					prevPoint = points[(points.Count + index - 2) % points.Count];
+				return (point - prevPoint).normalized;
+			}
+			//Manual avg
+			else
+			{
+				var nextIndex = index + 1;
+				var prevIndex = index - 1;
+				return (points[nextIndex] - points[prevIndex]).normalized;
 			}
 		}
 
