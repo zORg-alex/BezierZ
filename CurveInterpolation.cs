@@ -49,11 +49,11 @@ namespace BezierCurveZ
 
 			void FillArrayForCatmullRomThing<T>(T[] array, Func<int, T> getter, Func<T, T, T> fixWithPreviousValue = null)
 			{
-				int lastSeg = curve.SegmentCount - 1;
+				int lastSeg = curve.SegmentCount;
 				array[0] = curve.IsClosed ? getter(lastSeg) : getter(0);
 				array[array.Length - 3] = getter(lastSeg);
 				array[array.Length - 2] = curve.IsClosed ? getter(0) : getter(lastSeg);
-				array[array.Length - 1] = curve.IsClosed ? getter(1) : getter(0);
+				array[array.Length - 1] = curve.IsClosed ? getter(1) : getter(lastSeg);
 				for (int i = 0; i < lastSeg; i++)
 				{
 					array[i + 1] = getter(i);
@@ -139,7 +139,7 @@ namespace BezierCurveZ
 					var correction = Quaternion.Euler(0, 0, right.eulerAngles.z - rmLast.eulerAngles.z);
 					while (i > firstIndex)
 					{
-						t = data.cumulativeTime[i];
+						t = data.cumulativeTime[i] - segInd;
 
 						var r = data.rotations[i] * Quaternion.Slerp(Quaternion.identity, correction, t);
 						data.rotations[i] = r;
