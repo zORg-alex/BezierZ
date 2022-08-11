@@ -30,7 +30,8 @@ namespace BezierCurveZ
 
 		[NonSerialized]
 		private static CurvePropertyDrawer currentlyEditedPropertyDrawer;
-		private bool isInEditMode;
+		private bool _isInEditMode;
+		public bool IsEditing { get => _isInEditMode; private set { _isInEditMode = value; if (value) currentlyEditedPropertyDrawer = this; } }
 		private bool isMouseOver;
 		private bool previewAlways;
 
@@ -100,7 +101,7 @@ namespace BezierCurveZ
 
 			SetUpPreview(GUI.Toggle(firstRow[2], previewAlways, GUIContent.none));
 
-			if (!isInEditMode)
+			if (!_isInEditMode)
 			{
 				CheckIfMouseIsOver(position);
 			}
@@ -170,7 +171,7 @@ namespace BezierCurveZ
 
 		private void StartEditor()
 		{
-			isInEditMode = true;
+			_isInEditMode = true;
 			currentlyEditedPropertyDrawer?.FinishEditor();
 			Selection.selectionChanged += FinishEditor;
 			EditorSceneManager.sceneClosed += FinishEditor;
@@ -187,9 +188,9 @@ namespace BezierCurveZ
 
 		private void FinishEditor()
 		{
-			isInEditMode = false;
+			_isInEditMode = false;
 			Selection.selectionChanged -= FinishEditor;
-			EditorSceneManager.sceneClosed += FinishEditor;
+			EditorSceneManager.sceneClosed -= FinishEditor;
 			AssemblyReloadEvents.beforeAssemblyReload -= FinishEditor;
 			SceneView.duringSceneGui -= OnSceneGUI;
 			CallAllSceneViewRepaint();
