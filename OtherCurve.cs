@@ -2,6 +2,9 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 using UnityEngine;
 
 [Serializable]
@@ -10,6 +13,7 @@ public class OtherCurve
 #if UNITY_EDITOR
 	[SerializeField] public bool _previewOn;
 	[SerializeField] public bool _isInEditMode;
+	public bool _isMouseOverProperty;
 #endif
 
 	[SerializeField] internal List<OtherPoint> _points;
@@ -31,12 +35,12 @@ public class OtherCurve
 
 	public OtherCurve()
 	{
-
+		var rot = Quaternion.LookRotation(Vector3.right);
 		_points = new List<OtherPoint> {
-				new OtherPoint(Vector3.zero, OtherPoint.Type.Control),
-				new OtherPoint(Vector3.right * .33333f, OtherPoint.Type.Right),
-				new OtherPoint(Vector3.right * .66666f, OtherPoint.Type.Left),
-				new OtherPoint(Vector3.right, OtherPoint.Type.Control),
+				new OtherPoint(Vector3.zero, rot, OtherPoint.Type.Control),
+				new OtherPoint(Vector3.right * .33333f, rot, OtherPoint.Type.Right),
+				new OtherPoint(Vector3.right * .66666f, rot, OtherPoint.Type.Left),
+				new OtherPoint(Vector3.right, rot, OtherPoint.Type.Control),
 			};
 		_bVersion = 1;
 	}

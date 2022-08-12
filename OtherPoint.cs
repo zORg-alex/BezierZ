@@ -8,6 +8,9 @@ public struct OtherPoint
 
 	[SerializeField] internal Quaternion _rotation;
 	public Quaternion rotation { get => _rotation; }
+	public Vector3 forward => rotation * Vector3.forward;
+	public Vector3 right => rotation * Vector3.right;
+	public Vector3 up => rotation * Vector3.up;
 
 	[SerializeField] internal Type _type;
 	public Type type { get => _type; }
@@ -53,6 +56,7 @@ public struct OtherPoint
 		return this;
 	}
 
+	public static implicit operator Vector3(OtherPoint cp) => cp.position;
 	public static Vector3 operator +(OtherPoint a, OtherPoint b) => a.position + b.position;
 	public static Vector3 operator -(OtherPoint a, OtherPoint b) => a.position - b.position;
 	public static Vector3 operator +(OtherPoint a, Vector3 b) => a.position + b;

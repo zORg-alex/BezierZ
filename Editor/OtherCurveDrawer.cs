@@ -16,6 +16,15 @@ public class OtherCurveDrawer : PropertyDrawer
 	private UnityEngine.Object targetObject;
 	private Transform targetTransform;
 	private bool targetIsGameObject;
+
+	public static int zzz;
+	public int z;
+
+	public OtherCurveDrawer()
+	{
+		z = zzz++;
+	}
+
 	Vector3 TransformPoint(Vector3 v) => targetIsGameObject ? targetTransform.TransformPoint(v) : v;
 	Vector3 InverseTransformPoint(Vector3 v) => targetIsGameObject ? targetTransform.InverseTransformPoint(v) : v;
 	Vector3 TransformDirection(Vector3 v) => targetIsGameObject ? targetTransform.TransformDirection(v) : v;
@@ -32,8 +41,12 @@ public class OtherCurveDrawer : PropertyDrawer
 	private Event current;
 	private bool IsCurrentlyEditedDrawer => currentlyEditedPropertyDrawer == this;
 	private OtherCurve currentlyEditedCurve;
+	private Action FinishCurrentEditorAction;
+	private void FinishCurrentEditorActionInvoke() => FinishCurrentEditorAction?.Invoke();
+	private void FinishCurrentEditorActionInvoke(Scene s) => FinishCurrentEditorAction?.Invoke();
 	private bool isInEditMode { get => curve?._isInEditMode ?? false; set { if (curve != null) curve._isInEditMode = value; } }
 	private bool isMouseOver;
+	private static Dictionary<OtherCurve, Action> _ActivePreviewSubscriptions = new Dictionary<OtherCurve, Action>();
 
 	private Texture2D isOpenTexture;
 	private Texture2D isClosedTexture;
@@ -42,7 +55,6 @@ public class OtherCurveDrawer : PropertyDrawer
 	private Texture2D EyeClosedTexture;
 	public Texture2D PreviewTexture => curve._previewOn ? EyeOpenTexture : EyeClosedTexture;
 	private bool initialized;
-	private bool _isMouseOverProperty;
 	private Color CurveColor = Color.green * .6666f + Color.white * .3333f;
 	private Color NormalColor = Color.red * .5f + Color.white * .5f;
 	private Color UpColor = Color.green * .5f + Color.white * .5f;
@@ -50,8 +62,6 @@ public class OtherCurveDrawer : PropertyDrawer
 	private Color HandleColor = Color.white * .6666f;
 
 	private string editButtonText => isInEditMode ? "Stop Editing" : "Edit";
-
-	public Action<SceneView> OnSceneGUI { get; private set; }
 
 	public override bool CanCacheInspectorGUI(SerializedProperty property) => false;
 
@@ -70,12 +80,16 @@ public class OtherCurveDrawer : PropertyDrawer
 		EditorGUI.indentLevel = 0;
 		var c = GUI.color;
 
-		var mouseOverProperty = position.Contains(current.mousePosition);
-		if (_isMouseOverProperty && !mouseOverProperty)
-			OnMouseLeaveProperty();
-		if (!_isMouseOverProperty && mouseOverProperty)
-			OnMouseEnterProperty();
-		_isMouseOverProperty = mouseOverProperty;
+
+		if (current.type == EventType.Repaint)
+		{
+			var mouseOverProperty = position.Contains(current.mousePosition);
+			if (curve._isMouseOverProperty && !mouseOverProperty)
+				OnMouseLeaveProperty();
+			if (!curve._isMouseOverProperty && mouseOverProperty)
+				OnMouseEnterProperty();
+			curve._isMouseOverProperty = mouseOverProperty;
+		}
 
 		var firstLine = position.FirstLine();
 		var rects = EditorGUI.PrefixLabel(firstLine, label).Row(new float[] { 1, 0 }, new float[] { 0, 24 });
@@ -129,6 +143,8 @@ public class OtherCurveDrawer : PropertyDrawer
 		}
 		if (curve._previewOn)
 			OnPreviewChanged();
+		if (curve._isInEditMode)
+			StartEditor();
 		initialized = true;
 	}
 
@@ -147,8 +163,8 @@ public class OtherCurveDrawer : PropertyDrawer
 
 	private void StartEditor()
 	{
-		if (currentlyEditedPropertyDrawer != this && (currentlyEditedCurve?._isInEditMode ?? false))
-			currentlyEditedPropertyDrawer.FinishEditor(currentlyEditedCurve);
+		if (currentlyEditedPropertyDrawer?.currentlyEditedCurve?._isInEditMode ?? false)
+			currentlyEditedPropertyDrawer.FinishEditor(currentlyEditedPropertyDrawer.currentlyEditedCurve);
 		isInEditMode = true;
 		currentlyEditedPropertyDrawer = this;
 		currentlyEditedCurve = curve;
@@ -171,37 +187,47 @@ public class OtherCurveDrawer : PropertyDrawer
 
 	private void SubscribeToEditorEvents()
 	{
-		Selection.selectionChanged += FinishThisEditor;
-		EditorSceneManager.sceneClosed += FinishThisEditor;
-		AssemblyReloadEvents.beforeAssemblyReload += FinishThisEditor;
-		SceneView.duringSceneGui += OnSceneGUI;
+		var capturedCurve = curve;
+		FinishCurrentEditorAction = () =>
+			FinishEditor(capturedCurve);
+		Selection.selectionChanged += FinishCurrentEditorActionInvoke;
+		EditorSceneManager.sceneClosed += FinishCurrentEditorActionInvoke;
+		AssemblyReloadEvents.beforeAssemblyReload += FinishCurrentEditorActionInvoke;
+		SceneView.duringSceneGui += OnEditorSceneView;
 	}
 
 	private void UnsubscribeFromEditorEvents()
 	{
-		Selection.selectionChanged -= FinishThisEditor;
-		EditorSceneManager.sceneClosed -= FinishThisEditor;
-		AssemblyReloadEvents.beforeAssemblyReload -= FinishThisEditor;
-		SceneView.duringSceneGui -= OnSceneGUI;
+		Selection.selectionChanged -= FinishCurrentEditorActionInvoke;
+		EditorSceneManager.sceneClosed -= FinishCurrentEditorActionInvoke;
+		AssemblyReloadEvents.beforeAssemblyReload -= FinishCurrentEditorActionInvoke;
+		SceneView.duringSceneGui -= OnEditorSceneView;
+		FinishCurrentEditorAction = null;
 	}
 
 	private void CallAllSceneViewRepaint()
 	{
 		foreach (SceneView sv in SceneView.sceneViews)
-			sv?.Repaint();
+			sv.Repaint();
 	}
 
 	void OnMouseEnterProperty()
 	{
 		if (!curve._previewOn)
+		{
 			SceneView.duringSceneGui += OnPreview;
+			CallAllSceneViewRepaint();
+		}
 	}
 	void OnMouseLeaveProperty()
 	{
 		if (!curve._previewOn)
+		{
 			SceneView.duringSceneGui -= OnPreview;
+			CallAllSceneViewRepaint();
+		}
 	}
-	void PreviewStopped()
+	void StopPreview()
 	{
 		curve._previewOn = false;
 		OnPreviewChanged();
@@ -209,16 +235,31 @@ public class OtherCurveDrawer : PropertyDrawer
 	void OnPreviewChanged(Scene s) => OnPreviewChanged();
 	void OnPreviewChanged()
 	{
-		Selection.selectionChanged -= OnPreviewChanged;
-		EditorSceneManager.sceneClosed -= OnPreviewChanged;
-		AssemblyReloadEvents.beforeAssemblyReload -= OnPreviewChanged;
+		//In case mouse over subscribed remove duplicate
 		SceneView.duringSceneGui -= OnPreview;
+		_ActivePreviewSubscriptions.GetValueOrDefault(curve)?.Invoke();
+
 		if (curve._previewOn)
 		{
-			Selection.selectionChanged += OnPreviewChanged;
-			EditorSceneManager.sceneClosed += OnPreviewChanged;
-			AssemblyReloadEvents.beforeAssemblyReload += OnPreviewChanged;
+			Selection.selectionChanged += UnsubscribePreviewIfNotOn;
+			EditorSceneManager.sceneClosed += UnsubscribePreview;
+			AssemblyReloadEvents.beforeAssemblyReload += UnsubscribePreview;
 			SceneView.duringSceneGui += OnPreview;
+			_ActivePreviewSubscriptions.Add(curve, UnsubscribePreview);
+		}
+	}
+	void UnsubscribePreview(Scene s) => UnsubscribePreviewIfNotOn(true);
+	void UnsubscribePreview() => UnsubscribePreviewIfNotOn(true);
+	void UnsubscribePreviewIfNotOn() => UnsubscribePreviewIfNotOn(false);
+	void UnsubscribePreviewIfNotOn(bool force = false)
+	{
+		if (force || !curve._previewOn)
+		{
+			Selection.selectionChanged -= UnsubscribePreviewIfNotOn;
+			EditorSceneManager.sceneClosed -= UnsubscribePreview;
+			AssemblyReloadEvents.beforeAssemblyReload -= UnsubscribePreview;
+			SceneView.duringSceneGui -= OnPreview;
+			_ActivePreviewSubscriptions.Remove(curve);
 		}
 	}
 
@@ -233,6 +274,8 @@ public class OtherCurveDrawer : PropertyDrawer
 	private void DrawCurve()
 	{
 		var c = Handles.color;
+		var m = Handles.matrix;
+		Handles.matrix = localToWorldMatrix;
 		foreach (var segment in curve.Segments)
 		{
 			Handles.color = CurveColor;
@@ -253,6 +296,7 @@ public class OtherCurveDrawer : PropertyDrawer
 		//}
 		//DrawCurveFromVertexData(curve.VertexData);
 		Handles.color = c;
+		Handles.matrix = m;
 	}
 
 	/// <summary>
@@ -293,11 +337,47 @@ public class OtherCurveDrawer : PropertyDrawer
 		}
 	}
 
+	private void OnEditorSceneView(SceneView sv) => OnEditorSceneView();
+
 	/// <summary>
 	/// Draws Curve Editor handles and overlay
 	/// </summary>
-	void OnEditorSceneView(SceneView sv)
+	void OnEditorSceneView()
 	{
+		DrawCurveAndPoints();
+	}
 
+	private void DrawCurveAndPoints()
+	{
+		var m = Handles.matrix;
+		Handles.matrix = localToWorldMatrix;
+		var cam = Camera.current;
+
+		//if (!curve._previewOn)
+		DrawCurve();
+
+		Vector3 camLocalPos = InverseTransformPoint(cam.transform.position);
+		foreach (var point in curve.points)
+		{
+			float size = HandleUtility.GetHandleSize(point) * .2f;
+			if (point.type == OtherPoint.Type.Control)
+			{
+				Handles.DrawWireDisc(point, (point - camLocalPos), size);
+			}
+			else
+			{
+				Handles.DrawAAPolyLine(GetHandleShapePoints(point, camLocalPos, size));
+			}
+		}
+
+		Handles.matrix = m;
+	}
+
+	private Vector3[] GetHandleShapePoints(OtherPoint point, Vector3 camLocalPos, float size)
+	{
+		var cross = (point - camLocalPos).normalized.Cross(point.forward).normalized;
+		Vector3 d1 = (cross + point.forward) * size;
+		Vector3 d2 = (cross - point.forward) * size;
+		return new Vector3[] { point - d1, point - d2, point + d1, point + d2, point - d1 };
 	}
 }
