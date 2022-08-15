@@ -11,58 +11,74 @@ using System.Collections.Generic;
 [CustomPropertyDrawer(typeof(OtherCurve))]
 public partial class OtherCurvePropertyDrawer : PropertyDrawer
 {
-	private OtherCurve curve;
-	private UnityEngine.Object targetObject;
+
+    private UnityEngine.Object targetObject;
+    private OtherCurve curve;
+    private static Action FinishCurrentEditorAction;
+    private static void FinishCurrentEditor() => FinishCurrentEditorAction();
+    private static void FinishCurrentEditor(Scene s) => FinishCurrentEditorAction();
+
+    private static Dictionary<OtherCurve, Action> _ActivePreviewSubscriptions = new Dictionary<OtherCurve, Action>();
+	private Event current;
 	private Transform targetTransform;
 	private bool targetIsGameObject;
 
-	public static int zzz;
-	public int z;
+    private static Texture2D isOpenTexture;
+    private static Texture2D isClosedTexture;
+    private Texture2D isOpenClosedTexture => curve.IsClosed ? isClosedTexture : isOpenTexture;
+    private static Texture2D EyeOpenTexture;
+    private static Texture2D EyeClosedTexture;
+    public Texture2D PreviewTexture => curve._previewOn ? EyeOpenTexture : EyeClosedTexture;
+    private static bool initialized;
 
-	public OtherCurvePropertyDrawer()
-	{
-		z = zzz++;
+	private string EditButtonText(bool editing) => editing ? "Stop Edit" : "Edit";
+
+    public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
+    {
+        GetObjects(property);
+        return EditorGUIUtility.singleLineHeight + EditorHeight(curve);
+    }
+
+    private void GetObjects(SerializedProperty property)
+    {
+        if (targetObject == null)
+        {
+            targetObject = property.serializedObject.targetObject;
+            if (targetObject is Component c)
+            {
+                targetTransform = c.transform;
+                targetIsGameObject = true;
+            }
+        }
+        curve = property.GetValue<OtherCurve>();
+    }
+
+    private void Initialize(SerializedProperty property)
+    {
+        if (EditorGUIUtility.isProSkin)
+        {
+            isOpenTexture = Resources.Load<Texture2D>("Bezier.IsOpen_d");
+            isClosedTexture = Resources.Load<Texture2D>("Bezier.IsClosed_d");
+            EyeOpenTexture = Resources.Load<Texture2D>("Bezier.EyeOpen_d");
+            EyeClosedTexture = Resources.Load<Texture2D>("Bezier.EyeClosed_d");
+        }
+        else
+        {
+            isOpenTexture = Resources.Load<Texture2D>("Bezier.IsOpen");
+            isClosedTexture = Resources.Load<Texture2D>("Bezier.IsClosed");
+            EyeOpenTexture = Resources.Load<Texture2D>("Bezier.EyeOpen");
+            EyeClosedTexture = Resources.Load<Texture2D>("Bezier.EyeClosed");
+        }
+        initialized = true;
 	}
 
-	[NonSerialized]
-	private static OtherCurvePropertyDrawer currentlyEditedPropertyDrawer;
-	private Tool lastTool;
-
-	private Event current;
-	private bool IsCurrentlyEditedDrawer => currentlyEditedPropertyDrawer == this;
-	private OtherCurve currentlyEditedCurve;
-	private Action FinishCurrentEditorAction;
-	private void FinishCurrentEditorActionInvoke() => FinishCurrentEditorAction?.Invoke();
-	private void FinishCurrentEditorActionInvoke(Scene s) => FinishCurrentEditorAction?.Invoke();
-	private bool isInEditMode { get => curve?._isInEditMode ?? false; set { if (curve != null) curve._isInEditMode = value; } }
-	private bool isMouseOver;
-	private static Dictionary<OtherCurve, Action> _ActivePreviewSubscriptions = new Dictionary<OtherCurve, Action>();
-
-	private Texture2D isOpenTexture;
-	private Texture2D isClosedTexture;
-	private Texture2D isOpenClosedTexture => curve.IsClosed ? isClosedTexture : isOpenTexture;
-	private Texture2D EyeOpenTexture;
-	private Texture2D EyeClosedTexture;
-	public Texture2D PreviewTexture => curve._previewOn ? EyeOpenTexture : EyeClosedTexture;
-	private bool initialized;
-	private string editButtonText => isInEditMode ? "Stop Editing" : "Edit";
-
-	public override bool CanCacheInspectorGUI(SerializedProperty property) => false;
-
-	public override float GetPropertyHeight(SerializedProperty property, GUIContent label) => EditorGUIUtility.singleLineHeight + EditorHeight(property.GetValue<OtherCurve>());
-
-	public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
-	{
-		current = Event.current;
-		//Should fix array properties bug
-		GetObjects(property);
-		if (!initialized) Initialize(property);
-
-		EditorGUI.BeginProperty(position, label, property);
-		var il = EditorGUI.indentLevel;
-		EditorGUI.indentLevel = 0;
-		var c = GUI.color;
-
+    public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
+    {
+        var c = GUI.color;
+        current = Event.current;
+        GetObjects(property);
+        if (!initialized) Initialize(property);
+        EditorGUI.BeginProperty(position, label, property);
 
 		if (current.type == EventType.Repaint)
 		{
@@ -75,197 +91,126 @@ public partial class OtherCurvePropertyDrawer : PropertyDrawer
 		}
 
 		var posDivided = position.CutFromTop(EditorGUIUtility.singleLineHeight);
-		var rects = EditorGUI.PrefixLabel(posDivided[0], label).Row(new float[] { 1, 0 }, new float[] { 0, 24 });
-		GUI.Label(position.CutFromLeft(10)[0].MoveLeft(), z.ToString());//////////////////////////
-		if (isInEditMode) GUI.color = Color.red * .6666f + Color.white * .3333f;
-		if (GUI.Button(rects[0], new GUIContent(editButtonText)))
+        var firstLineButtonRects = posDivided[0].Row(new float[] { 0, 1, 0 }, new float[] { EditorGUIUtility.labelWidth, 0, 24 });
+
+        EditorGUI.LabelField(firstLineButtonRects[0], label);
+
+        if (curve._isInEditMode) GUI.color = Color.red * .6666f + Color.white * .3333f;
+        var edited = GUI.Toggle(firstLineButtonRects[1], curve._isInEditMode, new GUIContent(EditButtonText(curve._isInEditMode)), "Button");
+        if (edited != curve._isInEditMode)
 		{
-			OnEditPressed();
+            curve._isInEditMode = edited;
+            EditPressed();
 		}
-		GUI.color = c;
+        GUI.color = c;
 
-		var previewOn = GUI.Toggle(rects[1], curve._previewOn, PreviewTexture, "Button");
-		if (curve._previewOn != previewOn)
-		{
-			curve._previewOn = previewOn;
-			OnPreviewChanged();
-		}
+        var previewOn = GUI.Toggle(firstLineButtonRects[2], curve._previewOn, PreviewTexture, "Button");
+        if (curve._previewOn != previewOn)
+        {
+            curve._previewOn = previewOn;
+            OnPreviewChanged();
+        }
 
-		if (curve._isInEditMode)
-			DrawEditor(posDivided[1]);
+        if (curve._isInEditMode)
+            DrawEditor(posDivided[1]);
 
-		GUI.Label(posDivided[1], $"                          , curve is in Edit mode {curve._isInEditMode}");
+        EditorGUI.EndProperty();
+        GUI.color = c;
+    }
 
-		EditorGUI.EndProperty();
-		EditorGUI.indentLevel = il;
-		GUI.color = c;
-	}
+    private void CallAllSceneViewRepaint()
+    {
+        foreach (SceneView sv in SceneView.sceneViews)
+            sv.Repaint();
+    }
 
-	private void GetObjects(SerializedProperty property)
-	{
-		if (targetObject == null)
-		{
-			targetObject = property.serializedObject.targetObject;
-			if (targetObject is Component c)
-			{
-				targetTransform = c.transform;
-				targetIsGameObject = true;
-			}
-		}
-		curve = property.GetValue<OtherCurve>();
-	}
+    void OnMouseEnterProperty()
+    {
+        if (!curve._previewOn)
+        {
+            SceneView.duringSceneGui += OnPreview;
+            CallAllSceneViewRepaint();
+        }
+    }
+    void OnMouseLeaveProperty()
+    {
+        if (!curve._previewOn)
+        {
+            SceneView.duringSceneGui -= OnPreview;
+            CallAllSceneViewRepaint();
+        }
+    }
+    void OnPreviewChanged(Scene s) => OnPreviewChanged();
+    void OnPreviewChanged()
+    {
+        //In case mouse over subscribed remove duplicate
+        SceneView.duringSceneGui -= OnPreview;
+        _ActivePreviewSubscriptions.GetValueOrDefault(curve)?.Invoke();
 
-	private void Initialize(SerializedProperty property)
-	{
-		if (EditorGUIUtility.isProSkin)
-		{
-			isOpenTexture = Resources.Load<Texture2D>("Bezier.IsOpen_d");
-			isClosedTexture = Resources.Load<Texture2D>("Bezier.IsClosed_d");
-			EyeOpenTexture = Resources.Load<Texture2D>("Bezier.EyeOpen_d");
-			EyeClosedTexture = Resources.Load<Texture2D>("Bezier.EyeClosed_d");
-		}
-		else
-		{
-			isOpenTexture = Resources.Load<Texture2D>("Bezier.IsOpen");
-			isClosedTexture = Resources.Load<Texture2D>("Bezier.IsClosed");
-			EyeOpenTexture = Resources.Load<Texture2D>("Bezier.EyeOpen");
-			EyeClosedTexture = Resources.Load<Texture2D>("Bezier.EyeClosed");
-		}
-		if (curve._previewOn)
-			OnPreviewChanged();
-		if (curve._isInEditMode)
-			StartEditor();
-		initialized = true;
-	}
+        if (curve._previewOn)
+        {
+            Selection.selectionChanged += UnsubscribePreviewIfNotOn;
+            EditorSceneManager.sceneClosed += UnsubscribePreview;
+            AssemblyReloadEvents.beforeAssemblyReload += UnsubscribePreview;
+            SceneView.duringSceneGui += OnPreview;
+            _ActivePreviewSubscriptions.Add(curve, UnsubscribePreview);
+        }
+    }
+    void UnsubscribePreview(Scene s) => UnsubscribePreviewIfNotOn(true);
+    void UnsubscribePreview() => UnsubscribePreviewIfNotOn(true);
+    void UnsubscribePreviewIfNotOn() => UnsubscribePreviewIfNotOn(false);
+    void UnsubscribePreviewIfNotOn(bool force = false)
+    {
+        if (force || !curve._previewOn)
+        {
+            Selection.selectionChanged -= UnsubscribePreviewIfNotOn;
+            EditorSceneManager.sceneClosed -= UnsubscribePreview;
+            AssemblyReloadEvents.beforeAssemblyReload -= UnsubscribePreview;
+            SceneView.duringSceneGui -= OnPreview;
+            _ActivePreviewSubscriptions.Remove(curve);
+        }
+    }
 
-	private void IsClosedChanged(bool value)
-	{
-		curve.IsClosed = value;
-	}
+    void OnPreview(SceneView sv)
+    {
+        DrawCurve();
+    }
+    private void EditPressed()
+    {
+        if (curve._isInEditMode)
+            StartEditor();
+        else
+            FinishEditor(curve);
+    }
 
-	private void OnEditPressed()
-	{
-		if (!isInEditMode)
-			StartEditor();
-		else
-			FinishThisEditor();
-	}
+    private void StartEditor()
+    {
+        var capturedThing = curve;
+        FinishCurrentEditorAction?.Invoke();
+        FinishCurrentEditorAction = () => {
+            FinishEditor(capturedThing);
+            EditorUtility.SetDirty(targetObject);
+            FinishCurrentEditorAction = null;
+        };
+        capturedThing._isInEditMode = true;
+        Selection.selectionChanged += FinishCurrentEditor;
+        EditorSceneManager.sceneClosed += FinishCurrentEditor;
+        AssemblyReloadEvents.beforeAssemblyReload += FinishCurrentEditor;
+        SceneView.duringSceneGui += OnEditorSceneView;
+    }
 
-	private void StartEditor()
-	{
-		if (currentlyEditedPropertyDrawer?.currentlyEditedCurve?._isInEditMode ?? false)
-			currentlyEditedPropertyDrawer.FinishEditor(currentlyEditedPropertyDrawer.currentlyEditedCurve);
-		isInEditMode = true;
-		currentlyEditedPropertyDrawer = this;
-		currentlyEditedCurve = curve;
-		SubscribeToEditorEvents();
-		CallAllSceneViewRepaint();
-		lastTool = Tools.current;
-		Tools.current = Tools.current == Tool.Move || Tools.current == Tool.Rotate ? Tools.current : Tool.None;
-	}
+    private void FinishEditor(OtherCurve curve)
+    {
+        Selection.selectionChanged -= FinishCurrentEditor;
+        EditorSceneManager.sceneClosed -= FinishCurrentEditor;
+        AssemblyReloadEvents.beforeAssemblyReload -= FinishCurrentEditor;
+        SceneView.duringSceneGui -= OnEditorSceneView;
+        curve._isInEditMode = false;
+        FinishCurrentEditorAction = null;
+    }
 
-	private void FinishThisEditor(Scene s) => FinishEditor(curve);
-	private void FinishThisEditor() => FinishEditor(curve);
-	private void FinishEditor(OtherCurve curve)
-	{
-		curve._isInEditMode = false;
-		currentlyEditedPropertyDrawer = null;
-		currentlyEditedCurve = null;
-		UnsubscribeFromEditorEvents();
-		CallAllSceneViewRepaint();
-	}
-
-	private void SubscribeToEditorEvents()
-	{
-		var capturedCurve = curve;
-		FinishCurrentEditorAction = () =>
-			FinishEditor(capturedCurve);
-		Selection.selectionChanged += FinishCurrentEditorActionInvoke;
-		EditorSceneManager.sceneClosed += FinishCurrentEditorActionInvoke;
-		AssemblyReloadEvents.beforeAssemblyReload += FinishCurrentEditorActionInvoke;
-		SceneView.duringSceneGui += OnEditorSceneView;
-	}
-
-	private void UnsubscribeFromEditorEvents()
-	{
-		Selection.selectionChanged -= FinishCurrentEditorActionInvoke;
-		EditorSceneManager.sceneClosed -= FinishCurrentEditorActionInvoke;
-		AssemblyReloadEvents.beforeAssemblyReload -= FinishCurrentEditorActionInvoke;
-		SceneView.duringSceneGui -= OnEditorSceneView;
-		FinishCurrentEditorAction = null;
-	}
-
-	private void CallAllSceneViewRepaint()
-	{
-		foreach (SceneView sv in SceneView.sceneViews)
-			sv.Repaint();
-	}
-
-	void OnMouseEnterProperty()
-	{
-		if (!curve._previewOn)
-		{
-			SceneView.duringSceneGui += OnPreview;
-			CallAllSceneViewRepaint();
-		}
-	}
-	void OnMouseLeaveProperty()
-	{
-		if (!curve._previewOn)
-		{
-			SceneView.duringSceneGui -= OnPreview;
-			CallAllSceneViewRepaint();
-		}
-	}
-	void StopPreview()
-	{
-		curve._previewOn = false;
-		OnPreviewChanged();
-	}
-	void OnPreviewChanged(Scene s) => OnPreviewChanged();
-	void OnPreviewChanged()
-	{
-		//In case mouse over subscribed remove duplicate
-		SceneView.duringSceneGui -= OnPreview;
-		_ActivePreviewSubscriptions.GetValueOrDefault(curve)?.Invoke();
-
-		if (curve._previewOn)
-		{
-			Selection.selectionChanged += UnsubscribePreviewIfNotOn;
-			EditorSceneManager.sceneClosed += UnsubscribePreview;
-			AssemblyReloadEvents.beforeAssemblyReload += UnsubscribePreview;
-			SceneView.duringSceneGui += OnPreview;
-			_ActivePreviewSubscriptions.Add(curve, UnsubscribePreview);
-		}
-	}
-	void UnsubscribePreview(Scene s) => UnsubscribePreviewIfNotOn(true);
-	void UnsubscribePreview() => UnsubscribePreviewIfNotOn(true);
-	void UnsubscribePreviewIfNotOn() => UnsubscribePreviewIfNotOn(false);
-	void UnsubscribePreviewIfNotOn(bool force = false)
-	{
-		if (force || !curve._previewOn)
-		{
-			Selection.selectionChanged -= UnsubscribePreviewIfNotOn;
-			EditorSceneManager.sceneClosed -= UnsubscribePreview;
-			AssemblyReloadEvents.beforeAssemblyReload -= UnsubscribePreview;
-			SceneView.duringSceneGui -= OnPreview;
-			_ActivePreviewSubscriptions.Remove(curve);
-		}
-	}
-
-	void OnPreview(SceneView sv)
-	{
-		DrawCurve();
-	}
-
-	private void OnEditorSceneView(SceneView sv) => OnEditorSceneView();
-
-	/// <summary>
-	/// Draws Curve Editor handles and overlay
-	/// </summary>
-	void OnEditorSceneView()
-	{
-		DrawCurveAndPoints();
-	}
-
+    private void OnEditorSceneView(SceneView obj)
+    {
+        DrawSceneEditor();
+    }
 }

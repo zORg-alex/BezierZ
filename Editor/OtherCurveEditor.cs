@@ -6,12 +6,11 @@ using System.Collections.Generic;
 
 public partial class OtherCurvePropertyDrawer
 {
-
 	private float EditorHeight(OtherCurve curve) => curve._isInEditMode ? EditorGUIUtility.singleLineHeight + 32 + 6 : 0;
 
 	private void DrawEditor(Rect position)
 	{
-		GUI.Label(position, $"I'm in Editor");
+		EditorGUI.LabelField(position, $"I'm in Editor");
 	}
 
 	Vector3 TransformPoint(Vector3 v) => targetIsGameObject ? targetTransform.TransformPoint(v) : v;
@@ -40,9 +39,9 @@ public partial class OtherCurvePropertyDrawer
 		foreach (var segment in curve.Segments)
 		{
 			Handles.color = CurveColor;
-			Handles.DrawBezier(segment[0], segment[3], segment[1], segment[2], CurveColor, null, isMouseOver ? 2f : 1f);
+			Handles.DrawBezier(segment[0], segment[3], segment[1], segment[2], CurveColor, null, curve._isMouseOverProperty ? 2f : 1f);
 			Handles.color = HandleColor;
-			if (isInEditMode)
+			if (curve._isInEditMode)
 			{
 				Handles.DrawAAPolyLine(segment[0], segment[1]);
 				Handles.DrawAAPolyLine(segment[2], segment[3]);
@@ -98,7 +97,7 @@ public partial class OtherCurvePropertyDrawer
 		}
 	}
 
-	private void DrawCurveAndPoints()
+	private void DrawSceneEditor()
 	{
 		var m = Handles.matrix;
 		Handles.matrix = localToWorldMatrix;
