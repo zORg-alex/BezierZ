@@ -7,21 +7,21 @@ namespace BezierCurveZ
 {
 	public static class CurveInterpolation
 	{
-		public static SplitData SplitCurveByAngleError(Curve curve, float maxAngleError, float minSplitDistance, int accuracy = 10, bool useRotations = false)
+		public static SplitData SplitCurveByAngleError(ICurve curve, float maxAngleError, float minSplitDistance, int accuracy = 10, bool useRotations = false)
 		{
 
 
-			if (curve.Points.Count == 1)
+			if (curve.ControlPointCount == 1)
 				return new SplitData()
 				{
-					points = new List<Vector3>() { curve.Points[0], curve.Points[0] },
-					tangents = new List<Vector3>() { Vector3.forward, Vector3.forward },
+					points = new List<Vector3>() { curve.PointPositions[0], curve.PointPositions[0] },
+					tangents = new List<Vector3>() { curve.PointRotations[0] * Vector3.forward, curve.PointRotations[0] * Vector3.forward },
 					segmentIndices = new List<int>() { 0 },
 					cumulativeLength = new List<float>() { 0, 0 },
 					cumulativeTime = new List<float>() { 0, 0 },
-					rotations = new List<Quaternion> { Quaternion.identity, Quaternion.identity }
+					rotations = new List<Quaternion> { curve.PointRotations[0], curve.PointRotations[0] }
 				};
-			else if (curve.Points.Count == 0) return null;
+			else if (curve.PointCount == 0) return null;
 
 			var data = new SplitData();
 
@@ -36,16 +36,16 @@ namespace BezierCurveZ
 			var _dist = -1f;
 			var length = -1f;
 
-			var angles = new float[curve.SegmentCount + 3];
+			//var angles = new float[curve.SegmentCount + 3];
 			var rotations = new Quaternion[curve.SegmentCount + 3];
-			if (!useRotations)
-			{
-				FillArrayForCatmullRomThing(angles, i => curve.Points[curve.GetPointIndex(i)].angle, (a, b) => a + Mathf.DeltaAngle(a, b));
-			}
-			else
-			{
-				FillArrayForCatmullRomThing(rotations, i => curve.Points[curve.GetPointIndex(i)].rotation);
-			}
+			//if (!useRotations)
+			//{
+			//	FillArrayForCatmullRomThing(angles, i => curve.Points[curve.GetPointIndex(i)].angle, (a, b) => a + Mathf.DeltaAngle(a, b));
+			//}
+			//else
+			//{
+				FillArrayForCatmullRomThing(rotations, i => curve.PointRotations[curve.GetPointIndex(i)]);
+			//}
 
 			void FillArrayForCatmullRomThing<T>(T[] array, Func<int, T> getter, Func<T, T, T> fixWithPreviousValue = null)
 			{
@@ -66,7 +66,7 @@ namespace BezierCurveZ
 					}
 			}
 
-			bool nextCPIsAutomatic = curve.Points[curve.GetPointIndex(1)].mode.HasFlag(Curve.BezierPoint.Mode.Automatic);
+			bool nextCPIsAutomatic = curve.IsAutomaticHandle(curve.GetPointIndex(1));
 			var segInd = 0;
 			foreach (var segment in curve.Segments)
 			{
@@ -76,9 +76,9 @@ namespace BezierCurveZ
 				int divisions = (estimatedSegmentLength * accuracy).CeilToInt();
 				float increment = divisions == 1 ? 1f : 1f / divisions;
 				_nextEvalPoint = CurveUtils.Evaluate(increment, segment);
-				bool prevCPIsAutomatic = curve.Points[curve.GetPointIndex(segInd)].mode.HasFlag(Curve.BezierPoint.Mode.Automatic);
+				bool prevCPIsAutomatic = curve.IsAutomaticHandle(curve.GetPointIndex(curve.GetPointIndex(segInd)));
 
-				int lastSegmentIndex = (curve.GetPointIndex(segInd) + 3).Min(curve.Points.Count - 1);
+				int lastSegmentIndex = (curve.GetPointIndex(segInd) + 3).Min(curve.PointCount - 1);
 				Vector3 finalTangent = CurveUtils.EvaluateDerivative(1, segment).normalized;
 
 				float t = 0f;
@@ -97,16 +97,16 @@ namespace BezierCurveZ
 						length += _toLastPointMag;
 						Vector3 tang = CurveUtils.EvaluateDerivative(t, segment).normalized;
 						Quaternion rotation = Quaternion.identity;
-						if (!useRotations)
-						{
-							var approxAngle = CatmullRomCurveUtility.Evaluate(t, .5f, angles[segInd], angles[segInd + 1], angles[segInd + 2], angles[segInd + 3]);
-							rotation = Quaternion.LookRotation(tang) * Quaternion.Euler(0, 0, approxAngle);
-						}
-						else
-						{
+						//if (!useRotations)
+						//{
+						//	var approxAngle = CatmullRomCurveUtility.Evaluate(t, .5f, angles[segInd], angles[segInd + 1], angles[segInd + 2], angles[segInd + 3]);
+						//	rotation = Quaternion.LookRotation(tang) * Quaternion.Euler(0, 0, approxAngle);
+						//}
+						//else
+						//{
 							rotation = Quaternion.LookRotation(tang, prevUp);
 							prevUp = rotation * Vector3.up;
-						}
+						//}
 
 						data.points.Add(_currentPoint);
 						data.tangents.Add(tang);
@@ -129,8 +129,8 @@ namespace BezierCurveZ
 					nextCPIsAutomatic = prevCPIsAutomatic;
 				}
 
-				if (useRotations)
-				{
+				//if (useRotations)
+				//{
 					//Go back and adjust angles
 					var i = data.rotations.Count - 1;
 
@@ -146,7 +146,7 @@ namespace BezierCurveZ
 
 						i--;
 					}
-				}
+				//}
 
 				segInd++;
 			}
@@ -158,11 +158,15 @@ namespace BezierCurveZ
 		{
 			public List<Vector3> points = new List<Vector3>();
 			public List<Vector3> tangents = new List<Vector3>();
+			/// <summary>
+			/// contains splitdata first indexes for each segment. It is shorter than rest.
+			/// </summary>
 			public List<int> segmentIndices = new List<int>();
 			public List<float> cumulativeLength = new List<float>();
 			public List<float> cumulativeTime = new List<float>();
 			public List<Quaternion> rotations = new List<Quaternion>();
 			internal List<bool> isSharp = new List<bool>();
+			public int Count => points.Count;
 		}
 	}
 }

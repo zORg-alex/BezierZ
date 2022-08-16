@@ -77,4 +77,6 @@ public struct OtherPoint
 
 	public enum Mode { Automatic = 1, Manual = 2, Linear = 4, Proportional = Automatic | Manual}
 	public enum Type { Control, Right, Left}
+
+	public override string ToString() => base.ToString() + $"{position}, {rotation.eulerAngles} {mode} {type}";
 }

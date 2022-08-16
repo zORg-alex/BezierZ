@@ -7,8 +7,29 @@ using System.Diagnostics;
 
 namespace BezierCurveZ
 {
+
+	public interface ICurve
+	{
+		IEnumerable<Vector3[]> Segments { get; }
+		Vector3[] PointPositions { get; }
+		Quaternion[] PointRotations { get; }
+		int PointCount { get; }
+		int ControlPointCount { get; }
+		int SegmentCount { get; }
+		bool IsClosed { get; set; }
+
+		int GetPointIndex(int segmentIndex);
+		int GetSegmentIndex(int index);
+		Quaternion GetCPRotation(int segmentIndex);
+		Vector3 GetPointPosition(int index);
+		[DebuggerStepThrough]
+		bool IsAutomaticHandle(int index);
+		[DebuggerStepThrough]
+		bool IsControlPoint(int index);
+		Vector3[] Segment(int segmentIndex);
+	}
 	[Serializable]
-	public partial class Curve : ISerializationCallbackReceiver
+	public partial class Curve : ISerializationCallbackReceiver, ICurve
 	{
 		public Curve()
 		{
@@ -28,6 +49,8 @@ namespace BezierCurveZ
 		private List<BezierPoint> points;
 		internal int lastPointInd => points.Count - 1;
 
+		public Vector3 GetPointPosition(int index) => points[index].point;
+
 		private Vector3[] _pointPositions;
 		private int _pointPosVersion;
 		public Vector3[] PointPositions {get {
@@ -38,7 +61,20 @@ namespace BezierCurveZ
 				}
 				return _pointPositions;
 			} }
+
+		private Quaternion[] _pointRotations;
+		private int _pointRotVersion;
+		public Quaternion[] PointRotations { get {
+				if (_pointRotations == null || _pointRotVersion != _bVersion)
+				{
+					_pointRotations = points.SelectArray(p => p.rotation);
+					_pointRotVersion = _bVersion;
+				}
+				return _pointRotations;
+			} }
+
 		public List<BezierPoint> Points => points;
+		public int PointCount => points.Count;
 
 		[SerializeField]
 		private bool _isClosed;
@@ -97,6 +133,10 @@ namespace BezierCurveZ
 		public bool IsControlPoint(int index) =>
 			index < 0 || index >= points.Count ? false :
 			points[index].type == BezierPoint.Type.Control;
+		[DebuggerStepThrough]
+		public bool IsAutomaticHandle(int index) =>
+			index < 0 || index >= points.Count ? false :
+			points[index].type != BezierPoint.Type.Control && points[index].mode == BezierPoint.Mode.Automatic;
 
 		private Vector3 GetLinearHandle(int index)
 		{

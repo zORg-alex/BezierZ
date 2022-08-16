@@ -3,14 +3,27 @@ using UnityEngine;
 using UnityEditor;
 using System;
 using System.Collections.Generic;
+using RectEx;
 
 public partial class OtherCurvePropertyDrawer
 {
-	private float EditorHeight(OtherCurve curve) => curve._isInEditMode ? EditorGUIUtility.singleLineHeight + 32 + 6 : 0;
+	private float EditorHeight(OtherCurve curve) => curve._isInEditMode ? EditorGUIUtility.singleLineHeight + 64 + 2 * 3 : 0;
 
 	private void DrawEditor(Rect position)
 	{
-		EditorGUI.LabelField(position, $"I'm in Editor");
+		var lines = position.Column(new float[] { 0, 0 }, new float[] { EditorGUIUtility.singleLineHeight, 64 });
+		var firstLine = lines[0].Row(2);
+		var secLine = lines[1].Row(new float[] { 0, 1 }, new float[] { 64, 0 });
+
+		//var maxAngleError = EditorGUI.PropertyField();
+
+		//var minDistance = EditorGUI.PropertyField();
+
+		if (GUI.Button(secLine[0], isOpenClosedTexture))
+		{
+			Undo.RecordObject(targetObject, $"IsClosed changed on {curve}");
+			curve.SetIsClosed(!curve.IsClosed);
+		}
 	}
 
 	Vector3 TransformPoint(Vector3 v) => targetIsGameObject ? targetTransform.TransformPoint(v) : v;

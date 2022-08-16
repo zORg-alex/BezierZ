@@ -1,3 +1,4 @@
+using BezierCurveZ;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -8,7 +9,7 @@ using UnityEditor;
 using UnityEngine;
 
 [Serializable]
-public class OtherCurve
+public class OtherCurve : ICurve
 {
 #if UNITY_EDITOR
 	[SerializeField] public bool _previewOn;
@@ -17,7 +18,7 @@ public class OtherCurve
 #endif
 
 	[SerializeField] internal List<OtherPoint> _points;
-	private int _bVersion;
+	private int _bVersion = -1;
 
 	/// <summary>
 	/// Points and segments in open curve: {Control, Right, Left}, {Control}
@@ -25,13 +26,21 @@ public class OtherCurve
 	/// </summary>
 	public List<OtherPoint> points { get => _points; }
 	public int lastPointInd => _points.Count - 1;
-	public int CPCount => (_points.Count / 3f).CeilToInt();
+	public int ControlPointCount => (_points.Count / 3f).CeilToInt();
 	public int SegmentCount => (_points.Count / 3f).FloorToInt();
-	public int CPIndex(ushort index)
-	{
-		return ((int)index / 3) % CPCount;
-	}
-	public int GetIndex(ushort cpIndex) => (int)cpIndex * 3 % _points.Count;
+	public int GetSegmentIndex(ushort index) => ((int)index / 3) % ControlPointCount;
+	public int GetSegmentIndex(int index) => GetSegmentIndex((ushort)index);
+	public int GetPointIndex(ushort segmentIndex) => (int)segmentIndex * 3 % _points.Count;
+	public int GetPointIndex(int segmentIndex) => GetPointIndex((ushort)segmentIndex);
+
+	public Vector3 GetPointPosition(int index) => points[index].position;
+
+	public bool IsAutomaticHandle(int index) => points[index].mode.HasFlag(OtherPoint.Mode.Automatic);
+
+	public bool IsControlPoint(int index) => points[index].type == OtherPoint.Type.Control;
+
+	public Vector3[] Segment(int segmentIndex) => Segments[segmentIndex];
+
 
 	public OtherCurve()
 	{
@@ -51,10 +60,15 @@ public class OtherCurve
 	public Vector3[][] Segments { get {
 			Vector3[][] r = new Vector3[SegmentCount][];
 			for (int i = 0; i < SegmentCount; i++)
-				r[i] = new Vector3[] { _points[i * 3].position, _points[i * 3 + 1].position, _points[i * 3 + 2].position, _points[i * 3 + 3].position };
+				r[i] = new Vector3[] { _points[i * 3].position, _points[i * 3 + 1].position, _points[i * 3 + 2].position, _points[(i * 3 + 3) % points.Count].position };
 			return r;
 		}
 	}
+
+	IEnumerable<Vector3[]> ICurve.Segments { get; }
+	public Vector3[] PointPositions { get; }
+	public Quaternion[] PointRotations { get; }
+	public int PointCount { get; }
 
 	[SerializeField]
 	private OtherPoint.Mode[] _preservedNodeModesWhileClosed = new OtherPoint.Mode[2];
@@ -62,9 +76,8 @@ public class OtherCurve
 	public void SetIsClosed(bool value)
 	{
 		_isClosed = value;
-		if (IsClosed)
+		if (!IsClosed)
 		{
-			_isClosed = value;
 			points.RemoveAt(lastPointInd);
 			points.RemoveAt(lastPointInd);
 			points[0] = points[0].SetMode(_preservedNodeModesWhileClosed[0]);
@@ -75,8 +88,8 @@ public class OtherCurve
 		{
 			points.Add(new OtherPoint(getHandlePosition(lastPointInd, lastPointInd - 1), OtherPoint.Type.Right, _points[lastPointInd].mode));
 			points.Add(new OtherPoint(getHandlePosition(0, 1), OtherPoint.Type.Left, _points[0].mode));
-			SetPointPosition(1, points[1].position);
-			SetPointPosition(lastPointInd - 1, points[lastPointInd - 1].position);
+			//SetPointPosition(0, points[1].position);
+			//SetPointPosition(lastPointInd - 2, points[lastPointInd - 2].position);
 			_bVersion++;
 
 			Vector3 getHandlePosition(int ind, int otherind)
@@ -104,7 +117,38 @@ public class OtherCurve
 
 	public Quaternion GetCPRotation(int cpIndex)
 	{
-		return _points[CPIndex((ushort)cpIndex)].GetRotation(Vector3.forward);
+		return _points[GetSegmentIndex((ushort)cpIndex)].GetRotation(Vector3.forward);
+	}
+
+
+	private int _vVersion;
+	private OtherVertexData[] _vertexData;
+	public OtherVertexData[] VertexData;
+	private int[] _vertexDataGroupIndexes;
+	public IEnumerable<IEnumerable<OtherVertexData>> VertexDataGroups;
+
+	void Update()
+	{
+		if (_bVersion != _vVersion)
+		{
+			var splitdata = CurveInterpolation.SplitCurveByAngleError(this, 1f, .01f, 10, true);
+			_vertexData = new OtherVertexData[splitdata.Count];
+			var segInd = 0;
+			for (int i = 0; i < splitdata.Count; i++)
+			{
+				_vertexData[i] = new OtherVertexData() {
+					Position = splitdata.points[i],
+					Rotation = splitdata.rotations[i],
+					distance = splitdata.cumulativeLength[i],
+					cumulativeTime = splitdata.cumulativeTime[i],
+					isSharp = splitdata.isSharp[i],
+					segmentInd = segInd,
+					segmentStartVertInd = splitdata.segmentIndices[segInd]
+				};
+				if (splitdata.segmentIndices[segInd] == i) segInd++;
+			}
+		}
+		_vVersion = _bVersion;
 	}
 
 }
