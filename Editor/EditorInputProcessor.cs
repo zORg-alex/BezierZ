@@ -68,25 +68,26 @@ public class EditorInputProcessor
 	{
 		keyReleased = false;
 		if (!onPress && !onRelease && !onWhile) return;
-		if (onPress || onWhile && current.type == EventType.KeyDown && keyCodes.Contains(current.keyCode))
+		if ((onPress || onWhile) && current.type == EventType.KeyDown && keyCodes.Contains(current.keyCode))
 			keyPressedFirst = IsModifierPressedIfTracked(current);
-		else if (onRelease || onWhile && current.type == EventType.KeyUp && keyCodes.Contains(current.keyCode))
+		else if ((onRelease || onWhile) && current.type == EventType.KeyUp && keyCodes.Contains(current.keyCode))
 		{
 			keyPressed = false;
 			keyReleased = true;
 		}
-		else if (onPress || onWhile && current.type == EventType.MouseDown && mouseButtons.Contains(current.button))
+		else if ((onPress || onWhile) && current.type == EventType.MouseDown && mouseButtons.Contains(current.button))
 			keyPressedFirst = true;
-		else if (onRelease || onWhile && current.type == EventType.MouseUp && mouseButtons.Contains(current.button))
+		else if ((onRelease || onWhile) && current.type == EventType.MouseUp && mouseButtons.Contains(current.button))
 		{
 			keyPressed = false;
 			keyReleased = true;
 		}
+		if (!(keyPressed | keyReleased | keyPressedFirst)) return;
 
 		if (onWhile && keyPressed)
 		{
 			actions.Where(a=>a.state == State.While).Foreach(a=>a.action());
-			keyPressedFirst = false;
+			keyPressedFirst = false;;
 			return;
 		}
 		else if (onPress && keyPressedFirst)

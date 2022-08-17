@@ -143,7 +143,7 @@ public static class ProfileUtility
 	/// <param name="autoNormals">Use GenerateNormals or leave calculated by curve rotations</param>
 	/// <param name="unifiedVCoofdinate">Should UV's be 0..1 along curve or repeat by every unit of length if false</param>
 	/// <returns></returns>
-	public static Mesh GenerateProfileMesh(Curve curve, Curve profile, Vector3 offset, Vector3 scale, bool autoNormals = true, bool unifiedVCoofdinate = true)
+	public static Mesh GenerateProfileMesh(Curve curve, Curve profile, Vector3 offset, Vector3 scale, bool autoNormals = true, bool unifiedVCoofdinate = true, string name = null)
 	{
 		var curveStrips = GetVertexDataStrips(curve.VertexData, curve.IsClosed);
 		var profileStrips = GetVertexDataStrips(profile.VertexData, profile.IsClosed);
@@ -203,7 +203,7 @@ public static class ProfileUtility
 			}
 		}
 
-		var m = new Mesh();
+		var m = new Mesh() { name = name ?? "generated profile mesh" };
 		m.vertices = vertices;
 		m.normals = normals;
 		m.uv = uvs;

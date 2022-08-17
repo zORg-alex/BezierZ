@@ -24,20 +24,20 @@ public class OtherCurve : ICurve
 	/// Points and segments in open curve: {Control, Right, Left}, {Control}
 	/// Points and segment in closed curve: {Control, Right, Left},{Control, Right, Left}
 	/// </summary>
-	public List<OtherPoint> points { get => _points; }
-	public int lastPointInd => _points.Count - 1;
+	public List<OtherPoint> Points { get => _points; }
+	public int LastPointInd => _points.Count - 1;
 	public int ControlPointCount => (_points.Count / 3f).CeilToInt();
 	public int SegmentCount => (_points.Count / 3f).FloorToInt();
-	public int GetSegmentIndex(ushort index) => ((int)index / 3) % ControlPointCount;
+	public int GetSegmentIndex(ushort index) => (index / 3) % ControlPointCount;
 	public int GetSegmentIndex(int index) => GetSegmentIndex((ushort)index);
-	public int GetPointIndex(ushort segmentIndex) => (int)segmentIndex * 3 % _points.Count;
+	public int GetPointIndex(ushort segmentIndex) => segmentIndex * 3 % _points.Count;
 	public int GetPointIndex(int segmentIndex) => GetPointIndex((ushort)segmentIndex);
 
-	public Vector3 GetPointPosition(int index) => points[index].position;
+	public Vector3 GetPointPosition(int index) => Points[index].position;
 
-	public bool IsAutomaticHandle(int index) => points[index].mode.HasFlag(OtherPoint.Mode.Automatic);
+	public bool IsAutomaticHandle(int index) => Points[index].mode.HasFlag(OtherPoint.Mode.Automatic);
 
-	public bool IsControlPoint(int index) => points[index].type == OtherPoint.Type.Control;
+	public bool IsControlPoint(int index) => Points[index].type == OtherPoint.Type.Control;
 
 	public Vector3[] Segment(int segmentIndex) => Segments[segmentIndex];
 
@@ -60,7 +60,7 @@ public class OtherCurve : ICurve
 	public Vector3[][] Segments { get {
 			Vector3[][] r = new Vector3[SegmentCount][];
 			for (int i = 0; i < SegmentCount; i++)
-				r[i] = new Vector3[] { _points[i * 3].position, _points[i * 3 + 1].position, _points[i * 3 + 2].position, _points[(i * 3 + 3) % points.Count].position };
+				r[i] = new Vector3[] { _points[i * 3].position, _points[i * 3 + 1].position, _points[i * 3 + 2].position, _points[(i * 3 + 3) % Points.Count].position };
 			return r;
 		}
 	}
@@ -68,7 +68,7 @@ public class OtherCurve : ICurve
 	IEnumerable<Vector3[]> ICurve.Segments { get; }
 	public Vector3[] PointPositions { get; }
 	public Quaternion[] PointRotations { get; }
-	public int PointCount { get; }
+	public int PointCount => Points.Count;
 
 	[SerializeField]
 	private OtherPoint.Mode[] _preservedNodeModesWhileClosed = new OtherPoint.Mode[2];
@@ -78,23 +78,23 @@ public class OtherCurve : ICurve
 		_isClosed = value;
 		if (!IsClosed)
 		{
-			points.RemoveAt(lastPointInd);
-			points.RemoveAt(lastPointInd);
-			points[0] = points[0].SetMode(_preservedNodeModesWhileClosed[0]);
-			points[lastPointInd] = points[lastPointInd].SetMode(_preservedNodeModesWhileClosed[1]);
+			Points.RemoveAt(LastPointInd);
+			Points.RemoveAt(LastPointInd);
+			Points[0] = Points[0].SetMode(_preservedNodeModesWhileClosed[0]);
+			Points[LastPointInd] = Points[LastPointInd].SetMode(_preservedNodeModesWhileClosed[1]);
 			_bVersion++;
 		}
 		else
 		{
-			points.Add(new OtherPoint(getHandlePosition(lastPointInd, lastPointInd - 1), OtherPoint.Type.Right, _points[lastPointInd].mode));
-			points.Add(new OtherPoint(getHandlePosition(0, 1), OtherPoint.Type.Left, _points[0].mode));
+			Points.Add(new OtherPoint(getHandlePosition(LastPointInd, LastPointInd - 1), OtherPoint.Type.Right, _points[LastPointInd].mode));
+			Points.Add(new OtherPoint(getHandlePosition(0, 1), OtherPoint.Type.Left, _points[0].mode));
 			//SetPointPosition(0, points[1].position);
 			//SetPointPosition(lastPointInd - 2, points[lastPointInd - 2].position);
 			_bVersion++;
 
 			Vector3 getHandlePosition(int ind, int otherind)
 			{
-				Vector3 r = points[ind] * 2f - points[otherind];
+				Vector3 r = Points[ind] * 2f - Points[otherind];
 				return r;
 			}
 		}
@@ -127,9 +127,9 @@ public class OtherCurve : ICurve
 	private int[] _vertexDataGroupIndexes;
 	public IEnumerable<IEnumerable<OtherVertexData>> VertexDataGroups;
 
-	void Update()
+	public void Update(bool force = false)
 	{
-		if (_bVersion != _vVersion)
+		if (_bVersion != _vVersion || force)
 		{
 			var splitdata = CurveInterpolation.SplitCurveByAngleError(this, 1f, .01f, 10, true);
 			_vertexData = new OtherVertexData[splitdata.Count];

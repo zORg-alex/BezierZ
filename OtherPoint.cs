@@ -1,5 +1,7 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 
+[Serializable]
 public struct OtherPoint
 {
 
@@ -19,6 +21,7 @@ public struct OtherPoint
 	public Mode mode { get => _mode; }
 
 	public float angle { get => _rotation.eulerAngles.z; }
+	public bool IsControlPoint => type == Type.Control;
 
 	public OtherPoint(Vector3 position) : this(position, Quaternion.identity) { }
 	public OtherPoint(Vector3 position, Type type = Type.Control) : this(position, Quaternion.identity, type) { }
