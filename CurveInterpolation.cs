@@ -7,10 +7,8 @@ namespace BezierCurveZ
 {
 	public static class CurveInterpolation
 	{
-		public static SplitData SplitCurveByAngleError(ICurve curve, float maxAngleError, float minSplitDistance, int accuracy = 10, bool useRotations = false)
+		public static SplitData SplitCurveByAngleError(ICurve curve, float maxAngleError, float minSplitDistance, int accuracy = 10)
 		{
-
-
 			if (curve.ControlPointCount == 1)
 				return new SplitData()
 				{

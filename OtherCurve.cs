@@ -18,29 +18,63 @@ public class OtherCurve : ICurve
 #endif
 
 	[SerializeField] internal List<OtherPoint> _points;
-	private int _bVersion = -1;
+	private int _bVersion = 1;
 
 	/// <summary>
 	/// Points and segments in open curve: {Control, Right, Left}, {Control}
 	/// Points and segment in closed curve: {Control, Right, Left},{Control, Right, Left}
 	/// </summary>
-	public List<OtherPoint> Points { get => _points; }
-	public int LastPointInd => _points.Count - 1;
-	public int ControlPointCount => (_points.Count / 3f).CeilToInt();
-	public int SegmentCount => (_points.Count / 3f).FloorToInt();
+	public List<OtherPoint> Points { [DebuggerStepThrough] get => _points; }
+	public int LastPointInd { [DebuggerStepThrough] get => _points.Count - 1; }
+	public int ControlPointCount { [DebuggerStepThrough] get => (_points.Count / 3f).CeilToInt(); }
+
+	public int SegmentCount { [DebuggerStepThrough] get => (_points.Count / 3f).FloorToInt(); }
+
+	[DebuggerStepThrough]
 	public int GetSegmentIndex(ushort index) => (index / 3) % ControlPointCount;
+	[DebuggerStepThrough]
 	public int GetSegmentIndex(int index) => GetSegmentIndex((ushort)index);
+	[DebuggerStepThrough]
 	public int GetPointIndex(ushort segmentIndex) => segmentIndex * 3 % _points.Count;
+	[DebuggerStepThrough]
 	public int GetPointIndex(int segmentIndex) => GetPointIndex((ushort)segmentIndex);
 
+	[DebuggerStepThrough]
 	public Vector3 GetPointPosition(int index) => Points[index].position;
 
+	[DebuggerStepThrough]
 	public bool IsAutomaticHandle(int index) => Points[index].mode.HasFlag(OtherPoint.Mode.Automatic);
 
+	[DebuggerStepThrough]
 	public bool IsControlPoint(int index) => Points[index].type == OtherPoint.Type.Control;
 
+	public Vector3[][] Segments
+	{
+		[DebuggerStepThrough]
+		get
+		{
+			Vector3[][] r = new Vector3[SegmentCount][];
+			for (int i = 0; i < SegmentCount; i++)
+				r[i] = new Vector3[] { _points[i * 3].position, _points[i * 3 + 1].position, _points[i * 3 + 2].position, _points[(i * 3 + 3) % Points.Count].position };
+			return r;
+		}
+	}
+
+	[DebuggerStepThrough]
 	public Vector3[] Segment(int segmentIndex) => Segments[segmentIndex];
 
+	IEnumerable<Vector3[]> ICurve.Segments => Segments;
+	private int _pposVersion;
+	private Vector3[] _pointPositions;
+	public Vector3[] PointPositions { get { if (_pposVersion != _bVersion) _pointPositions = Points.SelectArray(p => p.position); return _pointPositions; } }
+	private int _protVersion;
+	private Quaternion[] _pointRotations;
+	public Quaternion[] PointRotations { get { if (_protVersion != _bVersion) _pointRotations = Points.SelectArray(p => p.rotation); return _pointRotations; } }
+	public int PointCount { [DebuggerStepThrough] get => Points.Count; }
+	private ushort lastPointInd { [DebuggerStepThrough] get => (ushort)(Points.Count - 1); }
+
+	[SerializeField] internal bool _isClosed;
+	public bool IsClosed { [DebuggerStepThrough] get => _isClosed; [DebuggerStepThrough] set { if (value != _isClosed) SetIsClosed(value); } }
 
 	public OtherCurve()
 	{
@@ -54,21 +88,6 @@ public class OtherCurve : ICurve
 		_bVersion = 1;
 	}
 
-	[SerializeField] internal bool _isClosed;
-	public bool IsClosed { [DebuggerStepThrough]get => _isClosed; [DebuggerStepThrough] set { if (value != _isClosed) SetIsClosed(value); } }
-
-	public Vector3[][] Segments { get {
-			Vector3[][] r = new Vector3[SegmentCount][];
-			for (int i = 0; i < SegmentCount; i++)
-				r[i] = new Vector3[] { _points[i * 3].position, _points[i * 3 + 1].position, _points[i * 3 + 2].position, _points[(i * 3 + 3) % Points.Count].position };
-			return r;
-		}
-	}
-
-	IEnumerable<Vector3[]> ICurve.Segments { get; }
-	public Vector3[] PointPositions { get; }
-	public Quaternion[] PointRotations { get; }
-	public int PointCount => Points.Count;
 
 	[SerializeField]
 	private OtherPoint.Mode[] _preservedNodeModesWhileClosed = new OtherPoint.Mode[2];
@@ -100,24 +119,119 @@ public class OtherCurve : ICurve
 		}
 	}
 
-	public void SetPointPosition(int index, Vector3 position)
+	public void SetPointPosition(int index, Vector3 position) => SetPointPosition((ushort)index, position, true);
+	public void SetPointPosition(int index, Vector3 position, bool recursive = true) => SetPointPosition((ushort)index, position, recursive);
+	public void SetPointPosition(ushort index, Vector3 position, bool recursive = true)
 	{
-		_points[index] = _points[index].SetPosition(position);
+		var thisPoint = Points[index];
+		if (thisPoint.IsControlPoint)
+		{
+			var diff = position - thisPoint;
+
+			Points[index] = thisPoint.SetPosition(position).SetTangent(index < lastPointInd ? thisPoint - Points[index + 1] : Points[index - 1] - thisPoint);
+			if (index == lastPointInd)
+				Points[lastPointInd] = thisPoint;
+
+			if (index > 0)
+			{
+				var i = (PointCount + index - 1) % PointCount;
+				Points[i] = Points[i].IsLinear ? GetLinearHandle(i) : Points[i].SetPosition(Points[i] + diff).SetRotation(Quaternion.LookRotation(Points[i] - Points[index]));
+			}
+			if (index < lastPointInd)
+			{
+				var i = (index + 1) % PointCount;
+				Points[i] = Points[i].IsLinear ? GetLinearHandle(i) : Points[i].SetPosition(Points[i] + diff).SetRotation(Quaternion.LookRotation(Points[i] - Points[index]));
+			}
+		}
+		else
+		{
+			var controlPoint = thisPoint.isRightHandle ? Points[index - 1] : Points[index + 1];
+			var otherHandleIndex = thisPoint.isRightHandle ? index - 2 : index + 2;
+			bool outOfBounds = (otherHandleIndex < 0 || otherHandleIndex >= PointCount);
+			if (!outOfBounds || IsClosed)
+			{
+				if (outOfBounds && IsClosed)
+					otherHandleIndex = (PointCount + otherHandleIndex) % PointCount;
+				var otherHandle = Points[otherHandleIndex];
+
+				if (thisPoint.IsAutomatic && otherHandle.IsAutomatic)
+				{
+
+					if (thisPoint.IsManual && otherHandle.IsManual)
+					{
+						//Proportional
+						var diff = position - controlPoint;
+						Points[index] = Points[index].SetPosition(position);
+						if (IsClosed || (index > 1 && index < lastPointInd - 1))
+							Points[otherHandleIndex] = otherHandle.SetPosition(controlPoint - diff * ((otherHandle - controlPoint).magnitude / diff.magnitude))
+								.SetRotation(Quaternion.LookRotation(otherHandle - controlPoint));
+					}
+					else
+					{
+						//Automatic, edit both handles mirrored
+						Points[index] = thisPoint.SetPosition(position);
+						if (IsClosed || (index > 1 && index < lastPointInd - 1))
+							Points[otherHandleIndex] = otherHandle.SetPosition(controlPoint + controlPoint - position)
+								.SetRotation(Quaternion.LookRotation(otherHandle - controlPoint));
+					}
+				}
+			}
+			
+			if (!thisPoint.IsLinear)
+				_points[index] = thisPoint.SetPosition(position).SetRotation(Quaternion.LookRotation(thisPoint - controlPoint));
+
+			var nextHandleIndex = thisPoint.isRightHandle ? index + 1 : index - 1;
+			var nextHandle = Points[nextHandleIndex];
+
+			if (nextHandle.IsLinear)
+				Points[nextHandleIndex] = GetLinearHandle(nextHandleIndex);
+		}
+
+
+		OtherPoint GetLinearHandle(int index)
+		{
+			int segmentIndex = GetSegmentIndex(index);
+			int aind = GetPointIndex(segmentIndex);
+			var a = Points[aind];
+			var b = Points[aind + 3 < Points.Count ? aind + 3 : GetPointIndex(segmentIndex + 1)];
+			var isRight = index == GetPointIndex(segmentIndex) + 1;
+			var otherInd = index + (isRight ? 1 : -1);
+			Vector3 otherPoint;
+			if (Points[otherInd].IsLinear)
+			{
+				otherInd += isRight ? 1 : -1;
+				if (recursive)
+					SetPointPosition((ushort)otherInd, Points[otherInd], false);
+				otherPoint = Points[otherInd];
+			}
+			else
+				otherPoint = Points[otherInd];
+			var diff = a - b;
+			var tang = isRight ? otherPoint - a : otherPoint - b;
+			var pos = (isRight ? a : b) + tang.normalized * diff.magnitude * .1f;
+			return new OtherPoint(pos, Quaternion.LookRotation(tang), isRight? OtherPoint.Type.Right : OtherPoint.Type.Left, OtherPoint.Mode.Linear);
+		}
 	}
 
-	public void SetPointRotation(int index, Quaternion rotation)
+
+	public void SetCPRotation(int segmentIndex, Quaternion rotation) => SetCPRotation((ushort)segmentIndex, rotation);
+	public void SetCPRotation(ushort segmentIndex, Quaternion rotation)
 	{
+		var index = GetPointIndex(segmentIndex);
 		_points[index] = _points[index].SetRotation(rotation);
 	}
 
-	public void SetPointMode(int index, OtherPoint.Mode mode)
+	public void SetPointMode(int index, OtherPoint.Mode mode) => SetPointMode((ushort)index, mode);
+	public void SetPointMode(ushort index, OtherPoint.Mode mode)
 	{
 		_points[index] = _points[index].SetMode(mode);
 	}
 
-	public Quaternion GetCPRotation(int cpIndex)
+
+	public Quaternion GetCPRotation(int segmentIndex) => GetCPRotation((ushort)segmentIndex);
+	public Quaternion GetCPRotation(ushort segmentIndex)
 	{
-		return _points[GetSegmentIndex((ushort)cpIndex)].GetRotation(Vector3.forward);
+		return _points[GetSegmentIndex(segmentIndex)].GetRotation(Vector3.forward);
 	}
 
 
@@ -131,22 +245,7 @@ public class OtherCurve : ICurve
 	{
 		if (_bVersion != _vVersion || force)
 		{
-			var splitdata = CurveInterpolation.SplitCurveByAngleError(this, 1f, .01f, 10, true);
-			_vertexData = new OtherVertexData[splitdata.Count];
-			var segInd = 0;
-			for (int i = 0; i < splitdata.Count; i++)
-			{
-				_vertexData[i] = new OtherVertexData() {
-					Position = splitdata.points[i],
-					Rotation = splitdata.rotations[i],
-					distance = splitdata.cumulativeLength[i],
-					cumulativeTime = splitdata.cumulativeTime[i],
-					isSharp = splitdata.isSharp[i],
-					segmentInd = segInd,
-					segmentStartVertInd = splitdata.segmentIndices[segInd]
-				};
-				if (splitdata.segmentIndices[segInd] == i) segInd++;
-			}
+			_vertexData = OtherVertexData.GetVertexData(this, 1f, .01f, 10);
 		}
 		_vVersion = _bVersion;
 	}

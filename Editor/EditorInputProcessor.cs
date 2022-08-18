@@ -19,6 +19,11 @@ public class EditorInputProcessor
 	private bool keyPressed;
 	private bool keyReleased;
 	private bool keyPressedFirst;
+	private float maxHoldTime;
+	private DateTime keyPressDateTime;
+	private Action onCancel;
+	private Func<EditorInputProcessor, bool> cancelConditon;
+	private bool maxHoldTimeout => maxHoldTime > 0 ? keyPressDateTime.AddSeconds(maxHoldTime) < DateTime.Now : false;
 
 	public EditorInputProcessor OnButton(KeyCode key)
 	{
@@ -55,13 +60,28 @@ public class EditorInputProcessor
 		actions.Add(new StateAction() { state = State.While, action = action });
 		return this;
 	}
+	public EditorInputProcessor OnCancel(Action action)
+	{
+		onCancel = action;
+		return this;
+	}
+	public EditorInputProcessor MaxHold(float time)
+	{
+		maxHoldTime = time;
+		return this;
+	}
+	internal EditorInputProcessor CancelCondition(Func<EditorInputProcessor, bool> cond)
+	{
+		cancelConditon = cond;
+		return this;
+	}
+
 
 	class StateAction
 	{
 		public Action action;
 		public State state;
 	}
-
 
 
 	public void ProcessEvent(Event current)
@@ -76,7 +96,10 @@ public class EditorInputProcessor
 			keyReleased = true;
 		}
 		else if ((onPress || onWhile) && current.type == EventType.MouseDown && mouseButtons.Contains(current.button))
-			keyPressedFirst = true;
+		{
+			keyPressedFirst = IsModifierPressedIfTracked(current);
+			if (maxHoldTime > 0) keyPressDateTime = DateTime.Now;
+		}
 		else if ((onRelease || onWhile) && current.type == EventType.MouseUp && mouseButtons.Contains(current.button))
 		{
 			keyPressed = false;
@@ -86,18 +109,29 @@ public class EditorInputProcessor
 
 		if (onWhile && keyPressed)
 		{
+			if (maxHoldTimeout || (cancelConditon?.Invoke(this) ?? false))
+			{
+				Cancel();
+				return;
+			}
 			actions.Where(a=>a.state == State.While).Foreach(a=>a.action());
-			keyPressedFirst = false;;
+			keyPressedFirst = false;
 			return;
 		}
 		else if (onPress && keyPressedFirst)
 		{
 			actions.Where(a=>a.state == State.Press).Foreach(a=>a.action());
 			keyPressed = onWhile;
+			keyPressedFirst = false;
 			return;
 		}
-		else if (onRelease)
+		else if (onRelease && keyReleased)
 		{
+			if (maxHoldTimeout || (cancelConditon?.Invoke(this) ?? false))
+			{
+				Cancel();
+				return;
+			}
 			actions.Where(a=>a.state == State.Release).Foreach(a=>a.action());
 			return;
 		}
@@ -113,4 +147,12 @@ public class EditorInputProcessor
 		checkShift && current.shift ? true :
 		checkActionKey && EditorGUI.actionKey ? true :
 		checkAlt && current.alt ? true : false;
+
+	internal void Cancel()
+	{
+		keyPressedFirst = false;
+		keyPressed = false;
+		keyReleased = false;
+		onCancel?.Invoke();
+	}
 }

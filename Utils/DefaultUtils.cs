@@ -122,8 +122,10 @@ public static class DefaultUtils {
 	public static float Rad2Deg(this float v) => v * Mathf.Rad2Deg;
 
 	/// <returns>Inverse of this rotation</returns>
+	[DebuggerStepThrough] 
 	public static Quaternion Inverted(this Quaternion q) => Quaternion.Inverse(q);
 
+	[DebuggerStepThrough]
 	public static IEnumerable<T> Foreach<T>(this IEnumerable<T> collection, Action<T> action) {
 		foreach (var item in collection) {
 			action(item);
@@ -131,6 +133,7 @@ public static class DefaultUtils {
 		return collection;
 	}
 
+	[DebuggerStepThrough]
 	public static T Min<T>(this IEnumerable<T> collection, Func<T, float> predicate, out int indexOf)
 	{
 		T min = collection.FirstOrDefault();

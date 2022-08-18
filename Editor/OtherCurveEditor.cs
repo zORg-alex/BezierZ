@@ -49,37 +49,96 @@ public partial class OtherCurvePropertyDrawer
 	private Tool currentInternalTool;
 	private bool selectHandlesOnly;
 	private OtherPoint closestPoint;
+	private OtherPoint closestControlPoint;
 	private Vector3 editedPosition;
 	private bool drawTools = true;
 	private EditorInputProcessor selectMultipleInputProcessor;
-	private EditorInputProcessor[] inputList;
+	private EditorInputProcessor contextMenuProcessor;
+	//private EditorInputProcessor[] inputList;
 	private List<int> selectedPointIdexes = new List<int>();
-	private Vector2 mouse0DownPosition;
+	private Vector2 mouseDownPosition;
+	private DateTime mouseDownDateTime;
 	private bool selectingMultiple;
 	private int controlID;
 
 	private void EditorStarted()
 	{
-		selectMultipleInputProcessor = new EditorInputProcessor()//.OnMouse(0)
-						.OnPress(() => { selectedPointIdexes.Clear(); mouse0DownPosition = current.mousePosition; selectingMultiple = true; })
-						.OnRelease(() => { selectingMultiple = false; })
-						.OnWhile(WhileSelectingMultiple);
-		inputList = new EditorInputProcessor[] {
-			new EditorInputProcessor().OnButton(KeyCode.S)
-				.OnPress(()=>snapKeyDown = true)
-				.OnRelease(()=>snapKeyDown = false),
-			selectMultipleInputProcessor
-		};
+
+	}
+
+	private void EditorFinished()
+	{
+
+	}
+
+	private void ProcessInput()
+	{
+		if (GetKeyDown(KeyCode.S))
+			snapKeyDown = true;
+		else if (GetKeyUp(KeyCode.S))
+			snapKeyDown = false;
+
+		//Rect selection + Shift/Ctrl click
+		if (GetMouseDown(0))
+		{
+			mouseDownPosition = current.mousePosition;
+			selectingMultiple = true;
+			selectedPointIdexes.Clear();
+		}
+		else if (GetMouseUp(0))
+		{
+			selectingMultiple = false;
+			mouseDownPosition = Vector2.zero;
+		}
+		else if (selectingMultiple)
+			WhileSelectingMultiple();
+
+		//Context menu
+		if (GetMouseDown(1) && closestIndex != -1)
+		{
+			mouseDownPosition = current.mousePosition;
+			mouseDownDateTime = DateTime.Now;
+		}
+		else if (GetMouseUp(1) && !(mouseDownDateTime.AddSeconds(1f) < DateTime.Now || closestIndex == -1 || (mouseDownPosition - current.mousePosition).magnitude > 5f))
+			ContextMenuOpen();
+
+
+
+		bool GetKeyDown(KeyCode key) => current.type == EventType.KeyDown && current.keyCode == key;
+		bool GetKeyUp(KeyCode key) => current.type == EventType.KeyUp && current.keyCode == key;
+		bool GetMouseDown(int button) => current.type == EventType.MouseDown && current.button == button;
+		bool GetMouseUp(int button) => current.type == EventType.MouseUp && current.button == button;
+	}
+
+	private void ContextMenuOpen()
+	{
+		var menu = new GenericMenu();
+		foreach (var mode in OtherPoint.AllModes)
+		{
+			var capturedMode = mode;
+			menu.AddItem(new GUIContent(mode.ToString()), curve.Points[closestIndex].mode == capturedMode, () =>
+			{
+				curve.SetPointMode(closestIndex, capturedMode);
+			});
+		}
+
+		Vector2 mousePosition = current.mousePosition;
+		menu.DropDown(new Rect(mousePosition, Vector2.zero));
 	}
 
 	private void WhileSelectingMultiple()
 	{
-		if (!(current.type == EventType.Repaint || current.type == EventType.MouseDrag) || GUIUtility.hotControl != 0) return;
+		if (GUIUtility.hotControl != 0) {
+			selectingMultiple = false;
+			return;
+		}
+		if (!(current.type == EventType.Repaint || current.type == EventType.MouseDrag))
+			return;
 		if (!current.shift && !EditorGUI.actionKey)
 			selectedPointIdexes.Clear();
 
 		//Extend selection rect just enough to include points touching, this will also add clicked points
-		var rect = new Rect(mouse0DownPosition, current.mousePosition - mouse0DownPosition).Abs().Extend(18,18);
+		var rect = new Rect(mouseDownPosition, current.mousePosition - mouseDownPosition).Abs().Extend(18,18);
 		for (int i = 0; i < curve.Points.Count; i++)
 		{
 			var point = curve.Points[i];
@@ -97,11 +156,6 @@ public partial class OtherCurvePropertyDrawer
 		CallAllSceneViewRepaint();
 	}
 
-	private void EditorFinished()
-	{
-		inputList = null;
-	}
-
 	/// <summary>
 	/// Draws curve in local space
 	/// </summary>
@@ -113,7 +167,7 @@ public partial class OtherCurvePropertyDrawer
 		foreach (var segment in curve.Segments)
 		{
 			Handles.color = CurveColor;
-			Handles.DrawBezier(segment[0], segment[3], segment[1], segment[2], CurveColor, null, curve._isMouseOverProperty ? 2f : 1f);
+			Handles.DrawBezier(segment[0], segment[3], segment[1], segment[2], CurveColor, null, curve._isMouseOverProperty ? 2.5f : 1.5f);
 			Handles.color = HandleColor;
 			if (curve._isInEditMode)
 			{
@@ -168,7 +222,6 @@ public partial class OtherCurvePropertyDrawer
 	/// Draw two sided curve
 	/// </summary>
 	/// <param name="vertexData"></param>
-	/// <exception cref="NotImplementedException"></exception>
 	private void DrawCurveFromVertexData(IEnumerable<(Vector3 position, Vector3 up)> vertexData)
 	{
 		var c = Handles.color;
@@ -214,7 +267,6 @@ public partial class OtherCurvePropertyDrawer
 		//Just a reminder: IMGUI coordinates starts from top-left of actual view
 		Vector2 mousePos = current.mousePosition;
 		var minDist = float.MaxValue;
-		var minCPDist = float.MaxValue;
 		var minHDist = float.MaxValue;
 		closestIndex = -1;
 		closestControlIndex = -1;
@@ -231,14 +283,6 @@ public partial class OtherCurvePropertyDrawer
 				minDist = dist;
 				closestIndex = i;
 			}
-			if (isContolPoint)
-			{
-				if (dist <= minCPDist + .01f)
-				{
-					minCPDist = dist;
-					closestControlIndex = i;
-				}
-			}
 			else
 			if (dist <= minHDist + .1f)
 			{
@@ -247,20 +291,22 @@ public partial class OtherCurvePropertyDrawer
 			}
 		}
 		closestPoint = curve.Points[closestIndex];
+		var cind = closestIndex + (closestPoint.isRightHandle ? -1 : closestPoint.isLeftHandle ? 1 : 0);
+		closestControlIndex = cind;
+		closestControlPoint = curve.Points[cind];
 		if (closestPoint.mode == OtherPoint.Mode.Linear)
 		{
-			closestIndex += closestPoint.type == OtherPoint.Type.Right ? -1 : closestPoint.type == OtherPoint.Type.Left ? 1 : 0;
-			closestPoint = curve.Points[closestIndex];
+			editedPosition = TransformPoint(curve.Points[cind]);
 		}
-
-		editedPosition = TransformPoint(closestPoint.position);
+		else
+			editedPosition = TransformPoint(closestPoint.position);
 		if (minDist > 100)
 			closestIndex = -1;
 	}
 
 	private void DrawStuff()
 	{
-		controlID = GUIUtility.GetControlID(932795648, FocusType.Passive);
+		controlID = GUIUtility.GetControlID(932795649, FocusType.Passive);
 		current = Event.current;
 		if (current.type == EventType.Layout)
 			//Magic thing to stop mouse from selecting other objects
@@ -282,11 +328,6 @@ public partial class OtherCurvePropertyDrawer
 		DrawTools();
 	}
 
-	private void ProcessInput()
-	{
-		inputList.Foreach(i=>i.ProcessEvent(current));
-	}
-
 	/// <summary>
 	/// Draws tool handles in global space
 	/// </summary>
@@ -298,23 +339,25 @@ public partial class OtherCurvePropertyDrawer
 			Tools.current = Tool.None;
 		}
 
-		if (selectingMultiple)
+		if (selectingMultiple && GUIUtility.hotControl == 0 )
 		{
-			if (current.type != EventType.Repaint) return;
-			var mousePos = current.mousePosition;
-			var rect = new Vector3[] {
-				HandleUtility.GUIPointToWorldRay(mouse0DownPosition).GetPoint(.1f),
-				HandleUtility.GUIPointToWorldRay(new Vector2(mouse0DownPosition.x, mousePos.y)).GetPoint(.1f),
+			if (current.type == EventType.Repaint)
+			{
+				var mousePos = current.mousePosition;
+				var rect = new Vector3[] {
+				HandleUtility.GUIPointToWorldRay(mouseDownPosition).GetPoint(.1f),
+				HandleUtility.GUIPointToWorldRay(new Vector2(mouseDownPosition.x, mousePos.y)).GetPoint(.1f),
 				HandleUtility.GUIPointToWorldRay(mousePos).GetPoint(.1f),
-				HandleUtility.GUIPointToWorldRay(new Vector2(mousePos.x, mouse0DownPosition.y)).GetPoint(.1f),
-				HandleUtility.GUIPointToWorldRay(mouse0DownPosition).GetPoint(.1f),
+				HandleUtility.GUIPointToWorldRay(new Vector2(mousePos.x, mouseDownPosition.y)).GetPoint(.1f),
+				HandleUtility.GUIPointToWorldRay(mouseDownPosition).GetPoint(.1f),
 			};
-			Handles.color = SelecrionRectColor * .5f;
-			Handles.DrawAAConvexPolygon(rect);
-			Handles.color = SelecrionRectColor;
-			Handles.DrawAAPolyLine(rect);
+				Handles.color = SelecrionRectColor * .5f;
+				Handles.DrawAAConvexPolygon(rect);
+				Handles.color = SelecrionRectColor;
+				Handles.DrawAAPolyLine(rect);
+			}
 		}
-		else
+		//else
 		if (closestIndex == -1 || !drawTools)
 			return;
 		else if (currentInternalTool == Tool.Move)
@@ -343,7 +386,9 @@ public partial class OtherCurvePropertyDrawer
 
 				if (selectedPointIdexes.Count == 0)
 				{
-					curve.SetPointPosition(closestIndex, InverseTransformPoint(pos));
+					var index = closestPoint.IsLinear ? closestControlIndex : closestIndex;
+
+					curve.SetPointPosition(index, InverseTransformPoint(pos));
 				}
 				else
 				{

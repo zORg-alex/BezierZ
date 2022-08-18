@@ -50,7 +50,7 @@ namespace BezierCurveZ
 
 		public BezierCurveVertexData(Curve bezierCurve, float minSamplingDistance = .001f, float maxAngleError = .05f, bool _useRotations = false)
 		{
-			var data = CurveInterpolation.SplitCurveByAngleError(bezierCurve, maxAngleError, minSamplingDistance, useRotations: _useRotations);
+			var data = CurveInterpolation.SplitCurveByAngleError(bezierCurve, maxAngleError, minSamplingDistance);
 
 			_points = data.points.ToArray();
 			_segmentIndexes = data.segmentIndices.ToArray();

@@ -422,9 +422,9 @@ namespace BezierCurveZ
 			//ControlPoint mode selection Dropdown menu
 			#region CP Mode Dropdown
 			//Cancel Dropdown
-			if (drawContextMenu && (current.type == EventType.Layout || GetMouseDown(0) || GetKeyDown(KeyCode.Escape)))
+			if (/*drawContextMenu && */(current.type == EventType.Layout || GetMouseDown(0) || GetKeyDown(KeyCode.Escape)))
 			{
-				drawContextMenu = false;
+				//drawContextMenu = false;
 			}
 			if (!showPointGUI && GetMouseDown(1) && closestControlIndex != -1)
 			{
@@ -453,13 +453,13 @@ namespace BezierCurveZ
 								}
 							else
 								curve.SetPointMode(closestControlIndex, mode);
-							drawContextMenu = false;
+							//drawContextMenu = false;
 							Undo.RecordObject(targetObject, $"Curve {closestControlIndex} point mode changed to {mode}");
 						});
 				}
 				contextMenu.DropDown(new Rect(mouse1Position, Vector2.zero));
 
-				drawContextMenu = true;
+				//drawContextMenu = true;
 			}
 			#endregion
 

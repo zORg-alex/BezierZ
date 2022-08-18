@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 [Serializable]
@@ -13,15 +14,21 @@ public struct OtherPoint
 	public Vector3 forward => rotation * Vector3.forward;
 	public Vector3 right => rotation * Vector3.right;
 	public Vector3 up => rotation * Vector3.up;
+	public float angle { get => _rotation.eulerAngles.z; }
 
 	[SerializeField] internal Type _type;
 	public Type type { get => _type; }
+	public bool IsControlPoint => type == Type.Control;
+	public bool isRightHandle => type == Type.Right;
+	public bool isLeftHandle => type == Type.Left;
 
 	[SerializeField] internal Mode _mode;
 	public Mode mode { get => _mode; }
+	public bool IsLinear => mode == Mode.Linear;
+	public bool IsAutomatic => mode.HasFlag(Mode.Automatic);
+	public bool IsManual => mode.HasFlag(Mode.Manual);
 
-	public float angle { get => _rotation.eulerAngles.z; }
-	public bool IsControlPoint => type == Type.Control;
+	public static Mode[] AllModes => new Mode[] { Mode.Automatic, Mode.Proportional, Mode.Manual, Mode.Linear };
 
 	public OtherPoint(Vector3 position) : this(position, Quaternion.identity) { }
 	public OtherPoint(Vector3 position, Type type = Type.Control) : this(position, Quaternion.identity, type) { }
