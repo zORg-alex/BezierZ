@@ -4,6 +4,7 @@ using UnityEditor;
 using System;
 using System.Collections.Generic;
 using RectEx;
+using Utility.Editor;
 
 public partial class OtherCurvePropertyDrawer
 {
@@ -90,7 +91,7 @@ public partial class OtherCurvePropertyDrawer
 			selectingMultiple = false;
 			mouseDownPosition = Vector2.zero;
 		}
-		else if (selectingMultiple)
+		if (selectingMultiple)
 			WhileSelectingMultiple();
 
 		//Context menu
@@ -132,7 +133,7 @@ public partial class OtherCurvePropertyDrawer
 			selectingMultiple = false;
 			return;
 		}
-		if (!(current.type == EventType.Repaint || current.type == EventType.MouseDrag))
+		if (!(current.type == EventType.Repaint || current.type == EventType.MouseDrag || current.type == EventType.MouseDown))
 			return;
 		if (!current.shift && !EditorGUI.actionKey)
 			selectedPointIdexes.Clear();
@@ -199,14 +200,15 @@ public partial class OtherCurvePropertyDrawer
 		{
 			var point = curve.Points[i];
 			float size = HandleUtility.GetHandleSize(point) * .2f;
-			Handles.color = HandleColor * (selectedPointIdexes.Contains(i) ? 1 : .8f);
+			bool isSelected = selectedPointIdexes.Contains(i);
+			Handles.color = HandleColor * (isSelected ? 1 : .8f);
 			if (point.type == OtherPoint.Type.Control)
 			{
-				Handles.DrawWireDisc(point, point - camLocalPos, size);
+				GUIUtils.DrawCircle(point, point - camLocalPos, size, false, isSelected ? 2.5f : 1.5f, 24);
 			}
 			else
 			{
-				Handles.DrawAAPolyLine(GetHandleShapePoints(point, point - camLocalPos, size));
+				Handles.DrawAAPolyLine(1.5f, GetHandleShapePoints(point, point - camLocalPos, size));
 			}
 		}
 
@@ -357,7 +359,7 @@ public partial class OtherCurvePropertyDrawer
 				Handles.DrawAAPolyLine(rect);
 			}
 		}
-		//else
+
 		if (closestIndex == -1 || !drawTools)
 			return;
 		else if (currentInternalTool == Tool.Move)
