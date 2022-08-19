@@ -30,6 +30,7 @@ public struct OtherPoint
 
 	public static Mode[] AllModes => new Mode[] { Mode.Automatic, Mode.Proportional, Mode.Manual, Mode.Linear };
 
+	public OtherPoint(OtherPoint point) : this(point.position, point.rotation, point.type, point.mode) { }
 	public OtherPoint(Vector3 position) : this(position, Quaternion.identity) { }
 	public OtherPoint(Vector3 position, Type type = Type.Control) : this(position, Quaternion.identity, type) { }
 	public OtherPoint(Vector3 position, Mode mode = Mode.Automatic) : this(position, Quaternion.identity, mode: mode) { }

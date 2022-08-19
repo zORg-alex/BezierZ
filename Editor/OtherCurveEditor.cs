@@ -61,6 +61,7 @@ public partial class OtherCurvePropertyDrawer
 	private DateTime mouseDownDateTime;
 	private bool selectingMultiple;
 	private int controlID;
+	private bool openContext;
 
 	private void EditorStarted()
 	{
@@ -95,13 +96,21 @@ public partial class OtherCurvePropertyDrawer
 			WhileSelectingMultiple();
 
 		//Context menu
+		if (openContext && current.type == EventType.Repaint)
+		{
+			openContext = false;
+			ContextMenuOpen();
+		}
 		if (GetMouseDown(1) && closestIndex != -1)
 		{
 			mouseDownPosition = current.mousePosition;
 			mouseDownDateTime = DateTime.Now;
 		}
 		else if (GetMouseUp(1) && !(mouseDownDateTime.AddSeconds(1f) < DateTime.Now || closestIndex == -1 || (mouseDownPosition - current.mousePosition).magnitude > 5f))
-			ContextMenuOpen();
+		{
+			openContext = true;
+			CallAllSceneViewRepaint();
+		}
 
 
 
@@ -113,18 +122,26 @@ public partial class OtherCurvePropertyDrawer
 
 	private void ContextMenuOpen()
 	{
-		var menu = new GenericMenu();
+		var contextMenu = new GenericMenu();
 		foreach (var mode in OtherPoint.AllModes)
 		{
 			var capturedMode = mode;
-			menu.AddItem(new GUIContent(mode.ToString()), curve.Points[closestIndex].mode == capturedMode, () =>
+			contextMenu.AddItem(new GUIContent(mode.ToString()), curve.Points[closestIndex].mode == capturedMode, () =>
 			{
-				curve.SetPointMode(closestIndex, capturedMode);
+				EditorGUI.BeginChangeCheck();
+				if (selectedPointIdexes.Count > 0)
+					foreach (var ind in selectedPointIdexes)
+					{
+						curve.SetPointMode(ind, capturedMode);
+					}
+				else
+					curve.SetPointMode(closestIndex, capturedMode);
+				Undo.RecordObject(targetObject, $"Curve {closestControlIndex} point mode changed to {mode}");
 			});
 		}
 
 		Vector2 mousePosition = current.mousePosition;
-		menu.DropDown(new Rect(mousePosition, Vector2.zero));
+		contextMenu.DropDown(new Rect(mousePosition, Vector2.zero));
 	}
 
 	private void WhileSelectingMultiple()
@@ -143,7 +160,7 @@ public partial class OtherCurvePropertyDrawer
 		for (int i = 0; i < curve.Points.Count; i++)
 		{
 			var point = curve.Points[i];
-			if (!point.IsControlPoint) continue;
+			if (!point.IsControlPoint || (curve.IsClosed && i == curve.LastPointInd)) continue;
 
 			if (rect.Contains(HandleUtility.WorldToGUIPoint(TransformPoint(point))))
 			{
@@ -266,6 +283,7 @@ public partial class OtherCurvePropertyDrawer
 
 	private void UpdateClosestPoint()
 	{
+		if (GUIUtility.hotControl != 0) return;
 		//Just a reminder: IMGUI coordinates starts from top-left of actual view
 		Vector2 mousePos = current.mousePosition;
 		var minDist = float.MaxValue;
@@ -292,6 +310,7 @@ public partial class OtherCurvePropertyDrawer
 				//closestHandleIndex = i;
 			}
 		}
+		if (curve.IsClosed && closestIndex == curve.LastPointInd) closestIndex = 0; 
 		closestPoint = curve.Points[closestIndex];
 		var cind = closestIndex + (closestPoint.isRightHandle ? -1 : closestPoint.isLeftHandle ? 1 : 0);
 		closestControlIndex = cind;
@@ -338,8 +357,11 @@ public partial class OtherCurvePropertyDrawer
 		if (Tools.current != Tool.None)
 		{
 			currentInternalTool = Tools.current;
-			Tools.current = Tool.None;
 		}
+		Tools.current = Tool.None;
+		Handles.BeginGUI();
+		GUI.Label(new Rect(5, 5, 200, 18), currentInternalTool.ToString());
+		Handles.EndGUI();
 
 		if (selectingMultiple && GUIUtility.hotControl == 0 )
 		{

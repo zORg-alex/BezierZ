@@ -99,6 +99,7 @@ public class OtherCurve : ICurve
 		{
 			Points.RemoveAt(LastPointInd);
 			Points.RemoveAt(LastPointInd);
+			Points.RemoveAt(LastPointInd);
 			Points[0] = Points[0].SetMode(_preservedNodeModesWhileClosed[0]);
 			Points[LastPointInd] = Points[LastPointInd].SetMode(_preservedNodeModesWhileClosed[1]);
 			_bVersion++;
@@ -107,8 +108,7 @@ public class OtherCurve : ICurve
 		{
 			Points.Add(new OtherPoint(getHandlePosition(LastPointInd, LastPointInd - 1), OtherPoint.Type.Right, _points[LastPointInd].mode));
 			Points.Add(new OtherPoint(getHandlePosition(0, 1), OtherPoint.Type.Left, _points[0].mode));
-			//SetPointPosition(0, points[1].position);
-			//SetPointPosition(lastPointInd - 2, points[lastPointInd - 2].position);
+			Points.Add(new OtherPoint(Points[0]));
 			_bVersion++;
 
 			Vector3 getHandlePosition(int ind, int otherind)
@@ -119,6 +119,7 @@ public class OtherCurve : ICurve
 		}
 	}
 
+	public void UpdatePosition(int index) => SetPointPosition(index, Points[index]);
 	public void SetPointPosition(int index, Vector3 position) => SetPointPosition((ushort)index, position, true);
 	public void SetPointPosition(int index, Vector3 position, bool recursive = true) => SetPointPosition((ushort)index, position, recursive);
 	public void SetPointPosition(ushort index, Vector3 position, bool recursive = true)
@@ -129,17 +130,19 @@ public class OtherCurve : ICurve
 			var diff = position - thisPoint;
 
 			Points[index] = thisPoint.SetPosition(position).SetTangent(index < lastPointInd ? thisPoint - Points[index + 1] : Points[index - 1] - thisPoint);
-			if (index == lastPointInd)
-				Points[lastPointInd] = thisPoint;
+			if (IsClosed && index == lastPointInd)
+				Points[0] = Points[lastPointInd];
+			if (IsClosed && index == 0)
+				Points[lastPointInd] = Points[0];
 
-			if (index > 0)
+			if (index > 0 || IsClosed)
 			{
-				var i = (PointCount + index - 1) % PointCount;
+				var i = GetControlsLeftIndex(index);
 				Points[i] = Points[i].IsLinear ? GetLinearHandle(i) : Points[i].SetPosition(Points[i] + diff).SetRotation(Quaternion.LookRotation(Points[i] - Points[index]));
 			}
-			if (index < lastPointInd)
+			if (index < lastPointInd || IsClosed)
 			{
-				var i = (index + 1) % PointCount;
+				var i = GetControlsRightHandle(index);
 				Points[i] = Points[i].IsLinear ? GetLinearHandle(i) : Points[i].SetPosition(Points[i] + diff).SetRotation(Quaternion.LookRotation(Points[i] - Points[index]));
 			}
 		}
@@ -151,13 +154,13 @@ public class OtherCurve : ICurve
 			if (!outOfBounds || IsClosed)
 			{
 				if (outOfBounds && IsClosed)
-					otherHandleIndex = (PointCount + otherHandleIndex) % PointCount;
+					otherHandleIndex = (PointCount + (thisPoint.isRightHandle ? index - 3 : index + 3)) % PointCount;
 				var otherHandle = Points[otherHandleIndex];
 
 				if (thisPoint.IsAutomatic && otherHandle.IsAutomatic)
 				{
 
-					if (thisPoint.IsManual && otherHandle.IsManual)
+					if (thisPoint.IsManual || otherHandle.IsManual)
 					{
 						//Proportional
 						var diff = position - controlPoint;
@@ -225,8 +228,27 @@ public class OtherCurve : ICurve
 	public void SetPointMode(ushort index, OtherPoint.Mode mode)
 	{
 		_points[index] = _points[index].SetMode(mode);
+		if (_points[index].IsControlPoint)
+		{
+
+			if (index > 0 || IsClosed)
+			{
+				var i = GetControlsLeftIndex(index);
+				Points[i] = Points[i].SetMode(mode);
+			}
+			if (index < lastPointInd || IsClosed)
+			{
+				int i = GetControlsRightHandle(index);
+				Points[i] = Points[i].SetMode(mode);
+			}
+
+			UpdatePosition(index);
+		}
 	}
 
+	private int GetControlsRightHandle(ushort index) => index + 1 - (IsClosed && index == lastPointInd ? lastPointInd : 0);
+
+	private int GetControlsLeftIndex(ushort index) => index - 1 + (IsClosed && index == 0 ? lastPointInd : 0);
 
 	public Quaternion GetCPRotation(int segmentIndex) => GetCPRotation((ushort)segmentIndex);
 	public Quaternion GetCPRotation(ushort segmentIndex)
