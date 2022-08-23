@@ -210,7 +210,9 @@ public partial class OtherCurvePropertyDrawer
 	/// </summary>
 	void DrawCurveHandles()
 	{
-
+		var c = Handles.color;
+		var m = Handles.matrix;
+		Handles.matrix = localToWorldMatrix;
 		var cam = Camera.current;
 		Vector3 camLocalPos = InverseTransformPoint(cam.transform.position);
 		for (int i = 0; i < curve.PointCount; i++)
@@ -228,6 +230,8 @@ public partial class OtherCurvePropertyDrawer
 				Handles.DrawAAPolyLine(1.5f, GetHandleShapePoints(point, point - camLocalPos, size));
 			}
 		}
+		Handles.color = c;
+		Handles.matrix = m;
 
 		Vector3[] GetHandleShapePoints(OtherPoint point, Vector3 normal, float size)
 		{
@@ -276,8 +280,19 @@ public partial class OtherCurvePropertyDrawer
 
 	private void DrawSceneEditor()
 	{
+		controlID = GUIUtility.GetControlID(932795649, FocusType.Passive);
+		current = Event.current;
+		if (current.type == EventType.Layout)
+			//Magic thing to stop mouse from selecting other objects
+			HandleUtility.AddDefaultControl(controlID);
+
+		//Update curve if Undo performed
+		if (current.type == EventType.ValidateCommand && current.commandName == "UndoRedoPerformed")
+			curve.Update(true);
+
 		if (updateClosestPoint && !selectingMultiple)
 			UpdateClosestPoint();
+		ProcessInput();
 		DrawStuff();
 	}
 
@@ -327,25 +342,8 @@ public partial class OtherCurvePropertyDrawer
 
 	private void DrawStuff()
 	{
-		controlID = GUIUtility.GetControlID(932795649, FocusType.Passive);
-		current = Event.current;
-		if (current.type == EventType.Layout)
-			//Magic thing to stop mouse from selecting other objects
-			HandleUtility.AddDefaultControl(controlID);
-
-		//Update curve if Undo performed
-		if (current.type == EventType.ValidateCommand && current.commandName == "UndoRedoPerformed")
-			curve.Update(true);
-
-		ProcessInput();
-		var m = Handles.matrix;
-		var c = Handles.color;
-		Handles.matrix = localToWorldMatrix;
 		DrawCurve(curve);
 		DrawCurveHandles();
-		Handles.matrix = m;
-		Handles.color = c;
-
 		DrawTools();
 	}
 
@@ -386,7 +384,7 @@ public partial class OtherCurvePropertyDrawer
 			return;
 		else if (currentInternalTool == Tool.Move)
 		{
-			Handles.Label(closestPoint, GUIUtility.hotControl.ToString());
+			Handles.Label(localToWorldMatrix * closestPoint.position, GUIUtility.hotControl.ToString());
 
 			EditorGUI.BeginChangeCheck();
 			var pos = Vector3.zero;

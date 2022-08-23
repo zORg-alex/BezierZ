@@ -26,7 +26,7 @@ namespace Utility.Editor {
 			var points = new Vector3[quality + 1];
 			for (int i = 0; i <= quality; i++)
 			{
-				points[i] = Handles.matrix * (center + from * radius);
+				points[i] = (center + from * radius);
 				from = q * from;
 			}
 			if (filled)
