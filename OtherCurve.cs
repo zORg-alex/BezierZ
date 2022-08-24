@@ -148,7 +148,11 @@ public class OtherCurve : ICurve
 		}
 		else
 		{
-			var controlPoint = thisPoint.isRightHandle ? Points[index - 1] : Points[index + 1];
+			var controlIndex = thisPoint.isRightHandle ? index - 1 : index + 1;
+			var controlPoint = Points[controlIndex];
+
+			Points[controlIndex] = controlPoint.SetRotation(Quaternion.LookRotation((position - controlPoint) * (thisPoint.isRightHandle ? 1 : -1), controlPoint.up).normalized);
+
 			var otherHandleIndex = thisPoint.isRightHandle ? index - 2 : index + 2;
 			bool outOfBounds = (otherHandleIndex < 0 || otherHandleIndex >= PointCount);
 			if (!outOfBounds || IsClosed)
@@ -159,7 +163,6 @@ public class OtherCurve : ICurve
 
 				if (thisPoint.IsAutomatic && otherHandle.IsAutomatic)
 				{
-
 					if (thisPoint.IsManual || otherHandle.IsManual)
 					{
 						//Proportional
@@ -167,7 +170,7 @@ public class OtherCurve : ICurve
 						Points[index] = Points[index].SetPosition(position);
 						if (IsClosed || (index > 1 && index < lastPointInd - 1))
 							Points[otherHandleIndex] = otherHandle.SetPosition(controlPoint - diff * ((otherHandle - controlPoint).magnitude / diff.magnitude))
-								.SetRotation(Quaternion.LookRotation(otherHandle - controlPoint));
+								.SetRotation(controlPoint.rotation);
 					}
 					else
 					{
@@ -175,7 +178,7 @@ public class OtherCurve : ICurve
 						Points[index] = thisPoint.SetPosition(position);
 						if (IsClosed || (index > 1 && index < lastPointInd - 1))
 							Points[otherHandleIndex] = otherHandle.SetPosition(controlPoint + controlPoint - position)
-								.SetRotation(Quaternion.LookRotation(otherHandle - controlPoint));
+								.SetRotation(controlPoint.rotation);
 					}
 				}
 			}
@@ -189,7 +192,7 @@ public class OtherCurve : ICurve
 			if (nextHandle.IsLinear)
 				Points[nextHandleIndex] = GetLinearHandle(nextHandleIndex);
 		}
-
+		_bVersion++;
 
 		OtherPoint GetLinearHandle(int index)
 		{
@@ -221,7 +224,45 @@ public class OtherCurve : ICurve
 	public void SetCPRotation(ushort segmentIndex, Quaternion rotation)
 	{
 		var index = GetPointIndex(segmentIndex);
+		var delta = _points[index].rotation.Inverted() * rotation;
 		_points[index] = _points[index].SetRotation(rotation);
+
+		RotateHandles(index, _points[index], delta, rotation);
+		_bVersion++;
+	}
+	public void AddCPRotation(int segmentIndex, Quaternion delta, bool local = false) => AddCPRotation((ushort)segmentIndex, delta, local);
+	public void AddCPRotation(ushort segmentIndex, Quaternion delta, bool local)
+	{
+		var index = GetPointIndex(segmentIndex);
+		var rotation = (local ? delta * _points[index].rotation : _points[index].rotation * delta).normalized;
+		if (!local)
+			delta = rotation * _points[index].rotation.Inverted();
+		var point = _points[index];
+		_points[index] = point.SetRotation(rotation);
+
+		RotateHandles(index, _points[index], delta, _points[index].rotation);
+		_bVersion++;
+	}
+
+	private void RotateHandles(int index, Vector3 origin, Quaternion delta, Quaternion rotation)
+	{
+		ProcessHandles(index, i =>
+		{
+			var pos = origin + delta * (Points[i] - origin);
+			Points[i] = Points[i].SetPosition(pos).SetRotation(rotation);
+		});
+	}
+
+	private void ProcessHandles(int index, Action<int> action)
+	{
+		if (index > 0 || IsClosed)
+		{
+			action(GetControlsLeftIndex(index));
+		}
+		if (index < lastPointInd || IsClosed)
+		{
+			action(GetControlsRightHandle(index));
+		}
 	}
 
 	public void SetPointMode(int index, OtherPoint.Mode mode) => SetPointMode((ushort)index, mode);
@@ -244,16 +285,50 @@ public class OtherCurve : ICurve
 
 			UpdatePosition(index);
 		}
+		_bVersion++;
 	}
 
-	private int GetControlsRightHandle(ushort index) => index + 1 - (IsClosed && index == lastPointInd ? lastPointInd : 0);
+	private int GetControlsRightHandle(int index) => index + 1 - (IsClosed && index == lastPointInd ? lastPointInd : 0);
 
-	private int GetControlsLeftIndex(ushort index) => index - 1 + (IsClosed && index == 0 ? lastPointInd : 0);
+	private int GetControlsLeftIndex(int index) => index - 1 + (IsClosed && index == 0 ? lastPointInd : 0);
 
 	public Quaternion GetCPRotation(int segmentIndex) => GetCPRotation((ushort)segmentIndex);
 	public Quaternion GetCPRotation(ushort segmentIndex)
 	{
 		return _points[GetSegmentIndex(segmentIndex)].GetRotation(Vector3.forward);
+	}
+
+	public Vector3 GetCPTangent(int segmentIndex)
+	{
+		var index = GetPointIndex(segmentIndex);
+		var point = _points[index];
+		bool isAuto = point.IsAutomatic;
+
+		//Manual 0 open || Auto < last open || Closed
+		//Calculate from next point
+		if (!IsClosed && ((isAuto && index < lastPointInd) || (!isAuto && index == 0)) || IsClosed)
+		{
+			var nextPoint = _points[(index + 1) % PointCount];
+			//if (nextPoint.IsLinear)
+			//	nextPoint = _points[(index + 2) % PointCount];
+			return (nextPoint - point).normalized;
+		}
+		//Auto last open || Manual last open
+		//Calculate from previous point
+		else if (!IsClosed && index == lastPointInd)
+		{
+			var prevPoint = _points[index - 1];
+			//if (prevPoint.IsLinear)
+			//	prevPoint = _points[(PointCount + index - 2) % PointCount];
+			return (point - prevPoint).normalized;
+		}
+		//Manual avg
+		else
+		{
+			var nextIndex = index + 1;
+			var prevIndex = index - 1;
+			return (_points[nextIndex] - _points[prevIndex]).normalized;
+		}
 	}
 
 

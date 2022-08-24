@@ -34,6 +34,7 @@ public partial class OtherCurvePropertyDrawer
 	Vector3 TransformVector(Vector3 v) => targetIsGameObject ? targetTransform.TransformVector(v) : v;
 	Vector3 InverseTransformVector(Vector3 v) => targetIsGameObject ? targetTransform.InverseTransformVector(v) : v;
 	Matrix4x4 localToWorldMatrix => targetIsGameObject ? targetTransform.localToWorldMatrix : Matrix4x4.identity;
+	Matrix4x4 worldToLocalMatrix => targetIsGameObject ? targetTransform.worldToLocalMatrix : Matrix4x4.identity;
 	Quaternion TransformRotation => targetIsGameObject ? targetTransform.rotation : Quaternion.identity;
 
 	public bool snapKeyDown { get; private set; }
@@ -52,6 +53,7 @@ public partial class OtherCurvePropertyDrawer
 	private OtherPoint closestPoint;
 	private OtherPoint closestControlPoint;
 	private Vector3 editedPosition;
+	private Quaternion editedRotation;
 	private bool drawTools = true;
 	private EditorInputProcessor selectMultipleInputProcessor;
 	private EditorInputProcessor contextMenuProcessor;
@@ -79,6 +81,9 @@ public partial class OtherCurvePropertyDrawer
 			snapKeyDown = true;
 		else if (GetKeyUp(KeyCode.S))
 			snapKeyDown = false;
+
+		if (GetKeyUp(KeyCode.X))
+			UpdateClosestPoint();
 
 		//Rect selection + Shift/Ctrl click
 		if (GetMouseDown(0))
@@ -146,7 +151,8 @@ public partial class OtherCurvePropertyDrawer
 
 	private void WhileSelectingMultiple()
 	{
-		if (GUIUtility.hotControl != 0) {
+		if (GUIUtility.hotControl != 0)
+		{
 			selectingMultiple = false;
 			return;
 		}
@@ -156,7 +162,7 @@ public partial class OtherCurvePropertyDrawer
 			selectedPointIdexes.Clear();
 
 		//Extend selection rect just enough to include points touching, this will also add clicked points
-		var rect = new Rect(mouseDownPosition, current.mousePosition - mouseDownPosition).Abs().Extend(18,18);
+		var rect = new Rect(mouseDownPosition, current.mousePosition - mouseDownPosition).Abs().Extend(18, 18);
 		for (int i = 0; i < curve.Points.Count; i++)
 		{
 			var point = curve.Points[i];
@@ -166,7 +172,7 @@ public partial class OtherCurvePropertyDrawer
 			{
 				if (EditorGUI.actionKey)
 					selectedPointIdexes.Remove(i);
-				else if(!selectedPointIdexes.Contains(i))
+				else if (!selectedPointIdexes.Contains(i))
 					selectedPointIdexes.Add(i);
 			}
 		}
@@ -325,7 +331,7 @@ public partial class OtherCurvePropertyDrawer
 				//closestHandleIndex = i;
 			}
 		}
-		if (curve.IsClosed && closestIndex == curve.LastPointInd) closestIndex = 0; 
+		if (curve.IsClosed && closestIndex == curve.LastPointInd) closestIndex = 0;
 		closestPoint = curve.Points[closestIndex];
 		var cind = closestIndex + (closestPoint.isRightHandle ? -1 : closestPoint.isLeftHandle ? 1 : 0);
 		closestControlIndex = cind;
@@ -335,7 +341,10 @@ public partial class OtherCurvePropertyDrawer
 			editedPosition = TransformPoint(curve.Points[cind]);
 		}
 		else
+		{
 			editedPosition = TransformPoint(closestPoint.position);
+		}
+		editedRotation = toolRotation;
 		if (minDist > 100)
 			closestIndex = -1;
 	}
@@ -361,7 +370,7 @@ public partial class OtherCurvePropertyDrawer
 		GUI.Label(new Rect(5, 5, 200, 18), currentInternalTool.ToString());
 		Handles.EndGUI();
 
-		if (selectingMultiple && GUIUtility.hotControl == 0 )
+		if (selectingMultiple && GUIUtility.hotControl == 0)
 		{
 			if (current.type == EventType.Repaint)
 			{
@@ -384,19 +393,16 @@ public partial class OtherCurvePropertyDrawer
 			return;
 		else if (currentInternalTool == Tool.Move)
 		{
-			Handles.Label(localToWorldMatrix * closestPoint.position, GUIUtility.hotControl.ToString());
-
 			EditorGUI.BeginChangeCheck();
 			var pos = Vector3.zero;
-			var rotation = Tools.pivotRotation == PivotRotation.Local ? TransformRotation * closestPoint.rotation : Quaternion.identity;
 			if (!current.shift)
 			{
-				pos = Handles.PositionHandle(editedPosition, rotation);
+				pos = Handles.PositionHandle(editedPosition, toolRotation);
 				if (snapKeyDown)
 					ProcessSnapping(ref pos);
 			}
 			else
-				pos = Handles.FreeMoveHandle(editedPosition, rotation, HandleUtility.GetHandleSize(editedPosition) * .16f, Vector3.one * .2f, Handles.RectangleHandleCap);
+				pos = Handles.FreeMoveHandle(editedPosition, toolRotation, HandleUtility.GetHandleSize(editedPosition) * .16f, Vector3.one * .2f, Handles.RectangleHandleCap);
 
 
 			if (EditorGUI.EndChangeCheck())
@@ -408,9 +414,9 @@ public partial class OtherCurvePropertyDrawer
 
 				if (selectedPointIdexes.Count == 0)
 				{
-					var index = closestPoint.IsLinear ? closestControlIndex : closestIndex;
+					var ind = closestPoint.IsLinear ? closestControlIndex : closestIndex;
 
-					curve.SetPointPosition(index, InverseTransformPoint(pos));
+					curve.SetPointPosition(ind, InverseTransformPoint(pos));
 				}
 				else
 				{
@@ -424,7 +430,48 @@ public partial class OtherCurvePropertyDrawer
 				editedPosition = TransformPoint(curve.Points[closestIndex]);
 			}
 		}
+		else if (currentInternalTool == Tool.Rotate)
+		{
+			EditorGUI.BeginChangeCheck();
+			int segmentIndex = curve.GetSegmentIndex(closestControlIndex);
+			float handleSize = HandleUtility.GetHandleSize(editedPosition);
+
+			var r = Handles.DoRotationHandle(editedRotation, editedPosition).normalized;
+			var delta = r * editedRotation.Inverted();
+			delta.ToAngleAxis(out var dangle, out var daxis);
+			var pointDelta = Quaternion.AngleAxis(dangle, InverseTransformVector(daxis));
+			editedRotation = r;
+			if (selectedPointIdexes.Count == 0)
+				GUIUtils.DrawAxes(editedPosition, localToWorldMatrix.rotation * curve.Points[closestControlIndex].rotation, handleSize, 3f);
+			else
+				foreach (var ind in selectedPointIdexes)
+				{
+					float size = HandleUtility.GetHandleSize(TransformPoint(curve.Points[ind]));
+					GUIUtils.DrawAxes(TransformPoint(curve.Points[ind]), localToWorldMatrix.rotation * curve.Points[ind].rotation, 3f);
+				}
+
+			if (EditorGUI.EndChangeCheck())
+			{
+				Undo.RecordObject(targetObject, "Point Roation changed");
+
+				if (selectedPointIdexes.Count == 0)
+				{
+					var ind = closestControlIndex;
+
+					curve.AddCPRotation(segmentIndex, pointDelta, true);
+				}
+				else
+				{
+					foreach (var ind in selectedPointIdexes)
+					{
+						curve.AddCPRotation(segmentIndex, pointDelta, true);
+					}
+				}
+			}
+		}
 	}
+
+	private Quaternion toolRotation => Tools.pivotRotation == PivotRotation.Local ? localToWorldMatrix.rotation * closestPoint.rotation : Quaternion.identity;
 
 	private void ProcessSnapping(ref Vector3 pos)
 	{

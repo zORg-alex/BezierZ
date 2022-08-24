@@ -51,5 +51,17 @@ namespace Utility.Editor {
 			points[4] = position + vector + vector2;
 			Handles.DrawAAPolyLine(width, points);
 		}
+
+		public static void DrawAxes(Vector3 position, Quaternion rotation, float handleSize, float thickness = 1f)
+		{
+			var c = Handles.color;
+			Handles.color = new Color(1f, .2f, .2f);
+			Handles.DrawAAPolyLine(thickness, position, position + rotation * Vector3.right * handleSize);
+			Handles.color = new Color(.2f, 1f, 0f);
+			Handles.DrawAAPolyLine(thickness, position, position + rotation * Vector3.up * handleSize);
+			Handles.color = new Color(.4f, .4f, 1f);
+			Handles.DrawAAPolyLine(thickness, position, position + rotation * Vector3.forward * handleSize);
+			Handles.color = c;
+		}
 	}
 }
