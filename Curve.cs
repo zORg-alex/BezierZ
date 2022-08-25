@@ -268,7 +268,7 @@ namespace BezierCurveZ
 			{
 				var leftHandle = points[index - 1];
 				BezierPoint v = leftHandle.SetPosition(point + deltaRotation * (leftHandle - point));
-				if (point.mode.HasFlag(BezierPoint.Mode.Automatic))
+					if (point.mode.HasFlag(BezierPoint.Mode.Automatic))
 					v.SetRotation(point.rotation);
 				else
 					v.SetRotation(Quaternion.LookRotation(point - v, point.rotation * Vector3.up));

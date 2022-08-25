@@ -1,15 +1,15 @@
 using BezierCurveZ;
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
 using UnityEngine;
 
 [Serializable]
-public class OtherCurve : ICurve
+public class OtherCurve : ISerializationCallbackReceiver, ICurve
 {
 #if UNITY_EDITOR
 	[SerializeField] public bool _previewOn;
@@ -219,7 +219,6 @@ public class OtherCurve : ICurve
 		}
 	}
 
-
 	public void SetCPRotation(int segmentIndex, Quaternion rotation) => SetCPRotation((ushort)segmentIndex, rotation);
 	public void SetCPRotation(ushort segmentIndex, Quaternion rotation)
 	{
@@ -246,14 +245,14 @@ public class OtherCurve : ICurve
 
 	private void RotateHandles(int index, Vector3 origin, Quaternion delta, Quaternion rotation)
 	{
-		ProcessHandles(index, i =>
+		DoActionForHandles(index, i =>
 		{
 			var pos = origin + delta * (Points[i] - origin);
 			Points[i] = Points[i].SetPosition(pos).SetRotation(rotation);
 		});
 	}
 
-	private void ProcessHandles(int index, Action<int> action)
+	private void DoActionForHandles(int index, Action<int> action)
 	{
 		if (index > 0 || IsClosed)
 		{
@@ -271,7 +270,6 @@ public class OtherCurve : ICurve
 		_points[index] = _points[index].SetMode(mode);
 		if (_points[index].IsControlPoint)
 		{
-
 			if (index > 0 || IsClosed)
 			{
 				var i = GetControlsLeftIndex(index);
@@ -288,6 +286,117 @@ public class OtherCurve : ICurve
 		_bVersion++;
 	}
 
+	public void OnBeforeSerialize() { }
+	public void OnAfterDeserialize() => UpdateVertexData(true);
+
+	//========================
+	public void SplitCurveAt(Vector3 point)
+	{
+		var t = GetClosestPointTimeSegment(point, out var segmentIndex);
+
+		SplitCurveAt(segmentIndex, t);
+	}
+
+	public void SplitCurveAt(int segmentIndex, float t)
+	{
+		var newSegments = CasteljauUtility.GetSplitSegmentPoints(t, Segment(segmentIndex));
+
+		ReplaceCurveSegment(segmentIndex, newSegments);
+	}
+
+	//TODO Debug how to work with low vertex count
+	public float GetClosestTimeSegment(Vector3 position, out int segmentInd)
+	{
+		UpdateVertexData();
+		var minDist = float.MaxValue;
+		var closestTime = float.MaxValue;
+		segmentInd = -1;
+
+		var prevVert = VertexData.FirstOrDefault();
+
+		var i = 1;
+		foreach (var v in VertexData.Skip(1))
+		{
+			Vector3 direction = (v.Position - prevVert.Position);
+			float magMax = direction.magnitude;
+			var normDirection = direction.normalized;
+			Vector3 localPosition = position - prevVert.Position;
+			var dot = Mathf.Clamp(Vector3.Dot(normDirection, localPosition), 0, magMax);
+			var point = prevVert.Position + normDirection * dot;
+			var dist = Vector3.Distance(point, position);
+			if (dist < minDist)
+			{
+				minDist = dist;
+				segmentInd = _vertexData[i].segmentInd;
+				closestTime = prevVert.cumulativeTime + (v.cumulativeTime - prevVert.cumulativeTime) * (localPosition.magnitude / direction.magnitude);
+			}
+
+			i++;
+			prevVert = v;
+		}
+
+		return closestTime;
+	}
+
+	public float GetClosestPointTimeSegment(Vector3 point, out int segmentIndex)
+	{
+		var z = VertexData.Take(2).ToArray();
+		float minDist = float.MaxValue;
+		foreach (var v in VertexData.Skip(1))
+		{
+			var dist = (point - v.Position).magnitude;
+			if (dist < minDist)
+			{
+				z[1] = z[0];
+				z[0] = v;
+				minDist = dist;
+			}
+		}
+		var a = z[0].cumulativeTime < z[1].cumulativeTime ? z[0] : z[1];
+		var b = z[0].cumulativeTime > z[1].cumulativeTime ? z[0] : z[1];
+		Vector3 dir = b.Position - a.Position;
+		float mag = dir.magnitude;
+		dir.Normalize();
+		var locPos = point - a.Position;
+		var dot = Mathf.Clamp(Vector3.Dot(dir, locPos), 0, mag) / mag;
+		var timeDist = b.cumulativeTime - a.cumulativeTime;
+		segmentIndex = Mathf.FloorToInt(a.cumulativeTime);
+		float t = a.cumulativeTime + dot * timeDist;
+		segmentIndex = Mathf.FloorToInt(t);
+		return t - segmentIndex;
+	}
+
+	private void ReplaceCurveSegment(int segmentInd, Vector3[] newSegments) => ReplaceCurveSegment(segmentInd, 1, newSegments);
+	private void ReplaceCurveSegment(int segmentInd, int replaceCount, Vector3[] newSegments)
+	{
+		if (newSegments.Length % 3 != 1) return;
+
+		var newPoints = new OtherPoint[newSegments.Length];
+		var types = OtherPoint.AllTypes;
+		var typeInd = 0;
+		for (int i = 0; i < newSegments.Length; i++)
+		{
+			var rot = Quaternion.identity;
+			if (typeInd == 0)
+			{
+				//Skip to current segmant and find closest point to get rotation from
+				var firstVInd = _vertexData.GetStartIndex(segmentInd);
+				var min = _vertexData.Select(v=>v.Position).Skip(firstVInd).Min((v) => newSegments[i].DistanceTo(v), out var ind);
+				rot = _vertexData[firstVInd + ind].Rotation;
+			}
+			newPoints[i] = new OtherPoint(newSegments[i], rot, types[typeInd], OtherPoint.Mode.Proportional);
+			typeInd++;
+			typeInd %= 3;
+		}
+
+		int index = GetPointIndex(segmentInd);
+
+		Points.RemoveRange(index, replaceCount * 3 + 1);
+		Points.InsertRange(index, newPoints);
+
+		_bVersion++;
+	}
+
 	private int GetControlsRightHandle(int index) => index + 1 - (IsClosed && index == lastPointInd ? lastPointInd : 0);
 
 	private int GetControlsLeftIndex(int index) => index - 1 + (IsClosed && index == 0 ? lastPointInd : 0);
@@ -298,7 +407,7 @@ public class OtherCurve : ICurve
 		return _points[GetSegmentIndex(segmentIndex)].GetRotation(Vector3.forward);
 	}
 
-	public Vector3 GetCPTangent(int segmentIndex)
+	public Vector3 GetCPTangentFromPoints(int segmentIndex)
 	{
 		var index = GetPointIndex(segmentIndex);
 		var point = _points[index];
@@ -334,17 +443,34 @@ public class OtherCurve : ICurve
 
 	private int _vVersion;
 	private OtherVertexData[] _vertexData;
-	public OtherVertexData[] VertexData;
-	private int[] _vertexDataGroupIndexes;
-	public IEnumerable<IEnumerable<OtherVertexData>> VertexDataGroups;
+	public OtherVertexData[] VertexData { [ DebuggerStepThrough] get
+		{
+			UpdateVertexData();
+			return _vertexData;
+		}
+	}
+	private int _vDPVersion;
+	private Vector3[] _vertexDataPoints;
+	public Vector3[] VertexDataPoints { [DebuggerStepThrough] get
+		{
+			UpdateVertexData();
+			if (_vDPVersion != _vVersion)
+			{
+				_vertexDataPoints = _vertexData.SelectArray(v => v.Position);
+				_vDPVersion = _vVersion;
+			}
+			return _vertexDataPoints;
+		}
+	}
+	//private int[] _vertexDataGroupIndexes;
+	//public IEnumerable<IEnumerable<OtherVertexData>> VertexDataGroups;
 
-	public void Update(bool force = false)
+	public void UpdateVertexData(bool force = false)
 	{
 		if (_bVersion != _vVersion || force)
 		{
 			_vertexData = OtherVertexData.GetVertexData(this, 1f, .01f, 10);
+			_vVersion = _bVersion;
 		}
-		_vVersion = _bVersion;
 	}
-
 }

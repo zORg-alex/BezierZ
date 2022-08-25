@@ -21,6 +21,7 @@ public struct OtherPoint
 	public bool IsControlPoint => type == Type.Control;
 	public bool isRightHandle => type == Type.Right;
 	public bool isLeftHandle => type == Type.Left;
+	public static Type[] AllTypes => new Type[] { Type.Control, Type.Right, Type.Left };
 
 	[SerializeField] internal Mode _mode;
 	public Mode mode { get => _mode; }

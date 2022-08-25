@@ -36,3 +36,9 @@ public struct OtherVertexData
 		return vd;
 	}
 }
+
+public static class OtherVertexDataExtensions
+{
+	internal static int GetStartIndex(this OtherVertexData[] vertexData, int segmentInd) =>
+		vertexData.BinarySearch(v => v.segmentInd.CompareTo(segmentInd)).segmentStartVertInd;
+}

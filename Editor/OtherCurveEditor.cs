@@ -45,6 +45,7 @@ public partial class OtherCurvePropertyDrawer
 	private Color ForwardColor = Color.blue * .5f + Color.white * .5f;
 	private Color HandleColor = Color.white * .8f;
 	private Color SelecrionRectColor = Color.blue * .5f + Color.white * .5f;
+	private Color CutColor = Color.red * .5f + Color.white * .5f;
 	private bool updateClosestPoint = true;
 	private int closestIndex;
 	private int closestControlIndex;
@@ -64,6 +65,8 @@ public partial class OtherCurvePropertyDrawer
 	private bool selectingMultiple;
 	private int controlID;
 	private bool openContext;
+	private bool cutInitiated;
+	private Vector3 cutPoint;
 
 	private void EditorStarted()
 	{
@@ -118,11 +121,39 @@ public partial class OtherCurvePropertyDrawer
 		}
 
 
+		//Cut/Extrude
+		if (GetKeyDown(KeyCode.V))
+		{
+			InitializeCutOrExtrude(ref cutInitiated);
+		}
+		else if (cutInitiated && GetMouseDown(0))
+		{
+			cutInitiated = false;
+			Cut();
+		}
+		else if (cutInitiated && (GetKeyDown(KeyCode.Escape) || GetMouseDown(1)))
+		{
+			cutInitiated = false;
+		}
+
+
 
 		bool GetKeyDown(KeyCode key) => current.type == EventType.KeyDown && current.keyCode == key;
 		bool GetKeyUp(KeyCode key) => current.type == EventType.KeyUp && current.keyCode == key;
 		bool GetMouseDown(int button) => current.type == EventType.MouseDown && current.button == button;
 		bool GetMouseUp(int button) => current.type == EventType.MouseUp && current.button == button;
+	}
+
+	private void InitializeCutOrExtrude(ref bool cutInitiated)
+	{
+		cutInitiated = true;
+		GUIUtility.hotControl = controlID;
+	}
+
+	private void Cut()
+	{
+		Undo.RecordObject(targetObject, "Curve Cut");
+		curve.SplitCurveAt(InverseTransformPoint(cutPoint));
 	}
 
 	private void ContextMenuOpen()
@@ -294,7 +325,7 @@ public partial class OtherCurvePropertyDrawer
 
 		//Update curve if Undo performed
 		if (current.type == EventType.ValidateCommand && current.commandName == "UndoRedoPerformed")
-			curve.Update(true);
+			curve.UpdateVertexData(true);
 
 		if (updateClosestPoint && !selectingMultiple)
 			UpdateClosestPoint();
@@ -366,6 +397,7 @@ public partial class OtherCurvePropertyDrawer
 			currentInternalTool = Tools.current;
 		}
 		Tools.current = Tool.None;
+		var c = Handles.color;
 		Handles.BeginGUI();
 		GUI.Label(new Rect(5, 5, 200, 18), currentInternalTool.ToString());
 		Handles.EndGUI();
@@ -376,19 +408,29 @@ public partial class OtherCurvePropertyDrawer
 			{
 				var mousePos = current.mousePosition;
 				var rect = new Vector3[] {
-				HandleUtility.GUIPointToWorldRay(mouseDownPosition).GetPoint(.1f),
-				HandleUtility.GUIPointToWorldRay(new Vector2(mouseDownPosition.x, mousePos.y)).GetPoint(.1f),
-				HandleUtility.GUIPointToWorldRay(mousePos).GetPoint(.1f),
-				HandleUtility.GUIPointToWorldRay(new Vector2(mousePos.x, mouseDownPosition.y)).GetPoint(.1f),
-				HandleUtility.GUIPointToWorldRay(mouseDownPosition).GetPoint(.1f),
-			};
+					HandleUtility.GUIPointToWorldRay(mouseDownPosition).GetPoint(.1f),
+					HandleUtility.GUIPointToWorldRay(new Vector2(mouseDownPosition.x, mousePos.y)).GetPoint(.1f),
+					HandleUtility.GUIPointToWorldRay(mousePos).GetPoint(.1f),
+					HandleUtility.GUIPointToWorldRay(new Vector2(mousePos.x, mouseDownPosition.y)).GetPoint(.1f),
+					HandleUtility.GUIPointToWorldRay(mouseDownPosition).GetPoint(.1f),
+				};
 				Handles.color = SelecrionRectColor * .5f;
 				Handles.DrawAAConvexPolygon(rect);
 				Handles.color = SelecrionRectColor;
 				Handles.DrawAAPolyLine(rect);
+				Handles.color = c;
 			}
 		}
 
+		if (cutInitiated && current.type == EventType.MouseMove)
+		{
+			cutPoint = HandleUtility.ClosestPointToPolyLine(curve.VertexDataPoints.SelectArray(v => TransformPoint(v)));
+		} else if (cutInitiated && current.type == EventType.Repaint)
+		{
+			Handles.color = CutColor;
+			Handles.DrawSolidDisc(cutPoint, cutPoint - Camera.current.transform.position, HandleUtility.GetHandleSize(cutPoint) * .1f);
+			Handles.color = c;
+		}
 		if (closestIndex == -1 || !drawTools)
 			return;
 		else if (currentInternalTool == Tool.Move)

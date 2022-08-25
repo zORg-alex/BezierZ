@@ -23,6 +23,26 @@ public static class DefaultUtils {
 		return array;
 	}
 
+	public static int BinarySearchIndex<T>(this T[] array, Func<T, int> comparer) => BinarySearchIndex(array, comparer, 0);
+	public static int BinarySearchIndex<T>(this T[] array, Func<T, int> comparer, int low = 0)
+	{
+		var high = array.Length - 1;
+		while (high - low != 1)
+		{
+			var mid = (high - low) / 2 + low;
+			int rez = comparer(array[mid]);
+			if (rez == 0)
+				return mid;
+			if (rez > 0)
+				low = mid;
+			else
+				high = mid;
+		}
+		return low;
+	}
+	public static T BinarySearch<T>(this T[] array, Func<T, int> comparer, int low = 0) => array[BinarySearchIndex(array, comparer, low)];
+	public static T BinarySearch<T>(this T[] array, Func<T, int> comparer) => array[BinarySearchIndex(array, comparer, 0)];
+
 	public static void AddRange_<T>(this List<T> collection, params T[] values) => collection.AddRange(values);
 
 	public static float LerpTo(this float value, float targetValue, float t = .5f) =>
