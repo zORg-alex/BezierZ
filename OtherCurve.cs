@@ -233,9 +233,7 @@ public class OtherCurve : ISerializationCallbackReceiver, ICurve
 	public void AddCPRotation(ushort segmentIndex, Quaternion delta, bool local)
 	{
 		var index = GetPointIndex(segmentIndex);
-		var rotation = (local ? delta * _points[index].rotation : _points[index].rotation * delta).normalized;
-		if (!local)
-			delta = rotation * _points[index].rotation.Inverted();
+		var rotation = delta * _points[index].rotation;
 		var point = _points[index];
 		_points[index] = point.SetRotation(rotation);
 
@@ -290,11 +288,12 @@ public class OtherCurve : ISerializationCallbackReceiver, ICurve
 	public void OnAfterDeserialize() => UpdateVertexData(true);
 
 	//========================
-	public void SplitCurveAt(Vector3 point)
+	public OtherPoint SplitCurveAt(Vector3 point)
 	{
 		var t = GetClosestPointTimeSegment(point, out var segmentIndex);
 
 		SplitCurveAt(segmentIndex, t);
+		return Points[segmentIndex];
 	}
 
 	public void SplitCurveAt(int segmentIndex, float t)
@@ -364,6 +363,44 @@ public class OtherCurve : ISerializationCallbackReceiver, ICurve
 		float t = a.cumulativeTime + dot * timeDist;
 		segmentIndex = Mathf.FloorToInt(t);
 		return t - segmentIndex;
+	}
+
+	public void DissolveCP(int segmentIndex)
+	{
+		if (segmentIndex <= 0 && segmentIndex >= SegmentCount) return;
+
+		var s = Segments.Skip(segmentIndex - 1).Take(2);
+		var segment = CasteljauUtility.JoinSegments(s);
+
+		ReplaceCurveSegment(segmentIndex - 1, 2, segment);
+	}
+
+	public void RemoveMany(IEnumerable<int> indexes)
+	{
+		foreach (var index in indexes.Where(i => IsControlPoint(i)).OrderByDescending(i => i))
+		{
+			if (PointCount <= (IsClosed ? 7 : 4))
+			{
+				_bVersion++;
+				return;
+			}
+			else if (index == 0 || index == LastPointInd)
+			{
+				if (index == 0 || (IsClosed && index == LastPointInd))
+					_points.RemoveRange(0, 3);
+				if (index == LastPointInd || (IsClosed && index == 0))
+				_points.RemoveRange(PointCount - 3, 3);
+			}
+			else
+			{
+				//Cancel if not a control point
+				if (!IsControlPoint(index)) return;
+				//First just remove that point
+				_points.RemoveRange(index - 1, 3);
+
+			}
+		}
+		_bVersion++;
 	}
 
 	private void ReplaceCurveSegment(int segmentInd, Vector3[] newSegments) => ReplaceCurveSegment(segmentInd, 1, newSegments);

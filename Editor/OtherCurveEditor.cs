@@ -67,6 +67,7 @@ public partial class OtherCurvePropertyDrawer
 	//private EditorInputProcessor[] inputList;
 	private List<int> selectedPointIdexes = new List<int>();
 	private Vector2 mouseDownPosition;
+	private Vector2 rightMouseDownPosition;
 	private DateTime mouseDownDateTime;
 	private bool selectingMultiple;
 	private int controlID;
@@ -74,6 +75,7 @@ public partial class OtherCurvePropertyDrawer
 	private bool cutInitiated;
 	private Vector3 cutPoint;
 	private bool extrudeInitiated;
+	private int extrudedIndex;
 
 	private void EditorStarted()
 	{
@@ -87,6 +89,24 @@ public partial class OtherCurvePropertyDrawer
 
 	private void ProcessInput()
 	{
+		if (GetKeyDown(KeyCode.Delete) && closestIndex != -1)
+		{
+			current.Use();
+			if (selectedPointIdexes.Count == 0)
+				curve.DissolveCP(curve.GetSegmentIndex(closestIndex));
+			else
+				curve.RemoveMany(selectedPointIdexes);
+		}
+
+		if (GetKeyDown(KeyCode.C))
+		{
+			selectHandlesOnly = true;
+		}
+		else if (GetKeyUp(KeyCode.C))
+		{
+			selectHandlesOnly = false;
+		}
+
 		if (GetKeyDown(KeyCode.S))
 			snapKeyDown = true;
 		else if (GetKeyUp(KeyCode.S))
@@ -122,10 +142,11 @@ public partial class OtherCurvePropertyDrawer
 		}
 		if (GetMouseDown(1) && closestIndex != -1)
 		{
-			mouseDownPosition = current.mousePosition;
+			rightMouseDownPosition = current.mousePosition;
 			mouseDownDateTime = DateTime.Now;
 		}
-		else if (GetMouseUp(1) && !(mouseDownDateTime.AddSeconds(1f) < DateTime.Now || closestIndex == -1 || (mouseDownPosition - current.mousePosition).magnitude > 5f))
+		else if (GetMouseUp(1))
+			if (!(mouseDownDateTime.AddSeconds(1f) < DateTime.Now || closestIndex == -1 || (rightMouseDownPosition - current.mousePosition).magnitude > 5f))
 		{
 			openContext = true;
 			CallAllSceneViewRepaint();
@@ -135,7 +156,21 @@ public partial class OtherCurvePropertyDrawer
 		//Cut/Extrude
 		if (GetKeyDown(KeyCode.V))
 		{
-			InitializeCutOrExtrude(ref cutInitiated);
+			if (PositionHandleIds_copy.@default.Has(GUIUtility.hotControl))
+			{
+				extrudeInitiated = true;
+				extrudedIndex = closestIndex;
+				StartExtruding();
+			}
+			else
+			{
+				cutInitiated = true;
+				GUIUtility.hotControl = controlID;
+			}
+		}
+		else if (GetKeyUp(KeyCode.V))
+		{
+			extrudeInitiated = false;
 		}
 		else if (cutInitiated && GetMouseDown(0))
 		{
@@ -155,17 +190,20 @@ public partial class OtherCurvePropertyDrawer
 		bool GetMouseUp(int button) => current.type == EventType.MouseUp && current.button == button;
 	}
 
-	private void InitializeCutOrExtrude(ref bool cutInitiated)
+	private void StartExtruding()
 	{
-		if (PositionHandleIds_copy.@default.Has(GUIUtility.hotControl))
+		Undo.RecordObject(targetObject, "Curve Extrude");
+		int segmentIndex = curve.GetSegmentIndex(closestIndex);
+		if (curve.GetCPTangentFromPoints(segmentIndex).Dot(TransformPoint(closestPoint) - editedPosition) > 0)
 		{
-			extrudeInitiated = true;
+			curve.SplitCurveAt(segmentIndex, 0f);
+			closestIndex += 2;
 		}
 		else
 		{
-			cutInitiated = true;
-			GUIUtility.hotControl = controlID;
+			curve.SplitCurveAt(segmentIndex - 1, 1f);
 		}
+		closestPoint = curve.Points[closestIndex];
 	}
 
 	private void Cut()
@@ -467,27 +505,34 @@ public partial class OtherCurvePropertyDrawer
 
 			if (EditorGUI.EndChangeCheck())
 			{
-				Undo.RecordObject(targetObject, "Point position changed");
-
-				//TODO Extrude mechanics. Here we know movement direction, so we can start extruding in right direction and change if needed
-				//DoExtrusionWhileMoveTool(pos);
-
-				if (selectedPointIdexes.Count == 0)
+				if (extrudeInitiated)
 				{
-					var ind = closestPoint.IsLinear ? closestControlIndex : closestIndex;
-
-					curve.SetPointPosition(ind, InverseTransformPoint(pos));
-					editedPosition = TransformPoint(curve.Points[closestIndex]);
+					Undo.RecordObject(targetObject, "Point extrusion");
 				}
 				else
 				{
-					var delta = InverseTransformVector(pos - editedPosition);
-					foreach (var ind in selectedPointIdexes)
+					Undo.RecordObject(targetObject, "Point position changed");
+
+					//TODO Extrude mechanics. Here we know movement direction, so we can start extruding in right direction and change if needed
+					//DoExtrusionWhileMoveTool(pos);
+
+					if (selectedPointIdexes.Count == 0)
 					{
-						var point = curve.Points[ind];
-						curve.SetPointPosition(ind, point + delta);
+						var ind = closestPoint.IsLinear ? closestControlIndex : closestIndex;
+
+						curve.SetPointPosition(ind, InverseTransformPoint(pos));
+						editedPosition = TransformPoint(curve.Points[closestIndex]);
 					}
-					editedPosition += TransformVector(delta);
+					else
+					{
+						var delta = InverseTransformVector(pos - editedPosition);
+						foreach (var ind in selectedPointIdexes)
+						{
+							var point = curve.Points[ind];
+							curve.SetPointPosition(ind, point + delta);
+						}
+						editedPosition += TransformVector(delta);
+					}
 				}
 			}
 		}
