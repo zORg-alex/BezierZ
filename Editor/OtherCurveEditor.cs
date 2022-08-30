@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using RectEx;
 using Utility.Editor;
+using BezierCurveZ;
 
 public partial class OtherCurvePropertyDrawer
 {
@@ -26,8 +27,13 @@ public partial class OtherCurvePropertyDrawer
 			curve.SetIsClosed(!curve.IsClosed);
 		}
 	}
-
+	/// <summary>
+	/// Transforms position from local space to world space.
+	/// </summary>
 	Vector3 TransformPoint(Vector3 v) => targetIsGameObject ? targetTransform.TransformPoint(v) : v;
+	/// <summary>
+	/// Transforms position from world space to local space.
+	/// </summary>
 	Vector3 InverseTransformPoint(Vector3 v) => targetIsGameObject ? targetTransform.InverseTransformPoint(v) : v;
 	Vector3 TransformDirection(Vector3 v) => targetIsGameObject ? targetTransform.TransformDirection(v) : v;
 	Vector3 InverseTransformDirection(Vector3 v) => targetIsGameObject ? targetTransform.InverseTransformDirection(v) : v;
@@ -67,6 +73,7 @@ public partial class OtherCurvePropertyDrawer
 	private bool openContext;
 	private bool cutInitiated;
 	private Vector3 cutPoint;
+	private bool extrudeInitiated;
 
 	private void EditorStarted()
 	{
@@ -89,19 +96,23 @@ public partial class OtherCurvePropertyDrawer
 			UpdateClosestPoint();
 
 		//Rect selection + Shift/Ctrl click
+		if (selectingMultiple && GUIUtility.hotControl == 0 && current.type == EventType.MouseDrag )
+			WhileSelectingMultiple();
+		else if (selectingMultiple && GUIUtility.hotControl == 0 && mouseDownPosition == current.mousePosition)
+		{
+			selectedPointIdexes.Clear();
+			WhileSelectingMultiple();
+		}
 		if (GetMouseDown(0))
 		{
 			mouseDownPosition = current.mousePosition;
 			selectingMultiple = true;
-			selectedPointIdexes.Clear();
 		}
-		else if (GetMouseUp(0))
+		else if (GetMouseUp(0) || GUIUtility.hotControl != 0)
 		{
 			selectingMultiple = false;
 			mouseDownPosition = Vector2.zero;
 		}
-		if (selectingMultiple)
-			WhileSelectingMultiple();
 
 		//Context menu
 		if (openContext && current.type == EventType.Repaint)
@@ -146,8 +157,15 @@ public partial class OtherCurvePropertyDrawer
 
 	private void InitializeCutOrExtrude(ref bool cutInitiated)
 	{
-		cutInitiated = true;
-		GUIUtility.hotControl = controlID;
+		if (PositionHandleIds_copy.@default.Has(GUIUtility.hotControl))
+		{
+			extrudeInitiated = true;
+		}
+		else
+		{
+			cutInitiated = true;
+			GUIUtility.hotControl = controlID;
+		}
 	}
 
 	private void Cut()
@@ -459,17 +477,18 @@ public partial class OtherCurvePropertyDrawer
 					var ind = closestPoint.IsLinear ? closestControlIndex : closestIndex;
 
 					curve.SetPointPosition(ind, InverseTransformPoint(pos));
+					editedPosition = TransformPoint(curve.Points[closestIndex]);
 				}
 				else
 				{
-					var delta = InverseTransformPoint(pos) - curve.Points[closestIndex];
+					var delta = InverseTransformVector(pos - editedPosition);
 					foreach (var ind in selectedPointIdexes)
 					{
 						var point = curve.Points[ind];
 						curve.SetPointPosition(ind, point + delta);
 					}
+					editedPosition += TransformVector(delta);
 				}
-				editedPosition = TransformPoint(curve.Points[closestIndex]);
 			}
 		}
 		else if (currentInternalTool == Tool.Rotate)
@@ -489,7 +508,7 @@ public partial class OtherCurvePropertyDrawer
 				foreach (var ind in selectedPointIdexes)
 				{
 					float size = HandleUtility.GetHandleSize(TransformPoint(curve.Points[ind]));
-					GUIUtils.DrawAxes(TransformPoint(curve.Points[ind]), localToWorldMatrix.rotation * curve.Points[ind].rotation, 3f);
+					GUIUtils.DrawAxes(TransformPoint(curve.Points[ind]), localToWorldMatrix.rotation * curve.Points[ind].rotation, size, 3f);
 				}
 
 			if (EditorGUI.EndChangeCheck())
@@ -504,9 +523,12 @@ public partial class OtherCurvePropertyDrawer
 				}
 				else
 				{
+					Vector3 localEditedPosition = InverseTransformPoint(editedPosition);
 					foreach (var ind in selectedPointIdexes)
 					{
-						curve.AddCPRotation(segmentIndex, pointDelta, true);
+						var pos = pointDelta * (curve.Points[ind] - localEditedPosition) + localEditedPosition;
+						curve.SetPointPosition(ind, pos);
+						curve.AddCPRotation(curve.GetSegmentIndex(ind), pointDelta, true);
 					}
 				}
 			}
