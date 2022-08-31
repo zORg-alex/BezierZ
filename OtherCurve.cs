@@ -78,16 +78,32 @@ public class OtherCurve : ISerializationCallbackReceiver, ICurve
 
 	public OtherCurve()
 	{
-		var rot = Quaternion.LookRotation(Vector3.right);
-		_points = new List<OtherPoint> {
-				new OtherPoint(Vector3.zero, rot, OtherPoint.Type.Control),
-				new OtherPoint(Vector3.right * .33333f, rot, OtherPoint.Type.Right),
-				new OtherPoint(Vector3.right * .66666f, rot, OtherPoint.Type.Left),
-				new OtherPoint(Vector3.right, rot, OtherPoint.Type.Control),
-			};
+		_points = defaultPoints;
 		_bVersion = 1;
 	}
 
+	public void Reset()
+	{
+		_points = defaultPoints;
+		_bVersion = -1;
+		_vertexData = null;
+		_pointPositions = null;
+		_pointRotations = null;
+		_vertexDataPoints = null;
+	}
+	private static List<OtherPoint> defaultPoints
+	{
+		get
+		{
+			var rot = Quaternion.LookRotation(Vector3.right);
+			return new List<OtherPoint> {
+				new OtherPoint(Vector3.zero, rot, OtherPoint.Type.Control, OtherPoint.Mode.Automatic),
+				new OtherPoint(Vector3.right * .33333f, rot, OtherPoint.Type.Right, OtherPoint.Mode.Automatic),
+				new OtherPoint(Vector3.right * .66666f, rot, OtherPoint.Type.Left, OtherPoint.Mode.Automatic),
+				new OtherPoint(Vector3.right, rot, OtherPoint.Type.Control, OtherPoint.Mode.Automatic),
+			};
+		}
+	}
 
 	[SerializeField]
 	private OtherPoint.Mode[] _preservedNodeModesWhileClosed = new OtherPoint.Mode[2];
@@ -138,12 +154,16 @@ public class OtherCurve : ISerializationCallbackReceiver, ICurve
 			if (index > 0 || IsClosed)
 			{
 				var i = GetControlsLeftIndex(index);
-				Points[i] = Points[i].IsLinear ? GetLinearHandle(i) : Points[i].SetPosition(Points[i] + diff).SetRotation(Quaternion.LookRotation(Points[i] - Points[index]));
+				Vector3 dir = Points[i] - Points[index];
+				if (dir == Vector3.zero) dir = Points[i - 1] - Points[index];
+				Points[i] = Points[i].IsLinear ? GetLinearHandle(i) : Points[i].SetPosition(Points[i] + diff).SetRotation(Quaternion.LookRotation(dir));
 			}
 			if (index < lastPointInd || IsClosed)
 			{
 				var i = GetControlsRightHandle(index);
-				Points[i] = Points[i].IsLinear ? GetLinearHandle(i) : Points[i].SetPosition(Points[i] + diff).SetRotation(Quaternion.LookRotation(Points[i] - Points[index]));
+				Vector3 dir = Points[i] - Points[index];
+				if (dir == Vector3.zero) dir = Points[i + 1] - Points[index];
+				Points[i] = Points[i].IsLinear ? GetLinearHandle(i) : Points[i].SetPosition(Points[i] + diff).SetRotation(Quaternion.LookRotation(dir));
 			}
 		}
 		else

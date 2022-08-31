@@ -14,6 +14,7 @@ public struct OtherVertexData
 
 	internal static OtherVertexData[] GetVertexData(OtherCurve otherCurve, float maxAngleError, float minSplitDistance, int accuracy)
 	{
+		if (otherCurve.PointCount == 0) otherCurve.Reset();
 		var splitdata = CurveInterpolation.SplitCurveByAngleError(otherCurve, maxAngleError, minSplitDistance, accuracy);
 		var vd = new OtherVertexData[splitdata.Count];
 		var segInd = 0;

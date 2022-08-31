@@ -37,7 +37,7 @@ public partial class OtherCurvePropertyDrawer : PropertyDrawer
 
     public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
     {
-        GetObjects(property);
+        propValue = property.GetValue<OtherCurve>();
         return EditorGUIUtility.singleLineHeight + EditorHeight(propValue);
     }
 
@@ -81,6 +81,7 @@ public partial class OtherCurvePropertyDrawer : PropertyDrawer
         var c = GUI.color;
         current = Event.current;
         GetObjects(property);
+        if (propValue.PointCount == 0) propValue.Reset();
         if (!initialized) Initialize(property);
 
         if (propValue == null)
@@ -111,7 +112,8 @@ public partial class OtherCurvePropertyDrawer : PropertyDrawer
         if (edited != propValue._isInEditMode)
 		{
             propValue._isInEditMode = edited;
-            EditPressed();
+            GetObjects(property);
+            EditPressed(property);
 		}
         GUI.color = c;
 
@@ -197,7 +199,7 @@ public partial class OtherCurvePropertyDrawer : PropertyDrawer
         DrawCurve(curve);
         Handles.matrix = m;
     }
-    private void EditPressed()
+    private void EditPressed(SerializedProperty property)
     {
         if (propValue._isInEditMode)
             StartEditor();
@@ -208,9 +210,9 @@ public partial class OtherCurvePropertyDrawer : PropertyDrawer
 
     private void StartEditor()
     {
-        curve = propValue;
         var capturedThing = propValue;
         FinishCurrentEditorAction?.Invoke();
+        curve = propValue;
         FinishCurrentEditorAction = () => {
             FinishEditor(capturedThing);
             EditorUtility.SetDirty(targetObject);
@@ -238,6 +240,7 @@ public partial class OtherCurvePropertyDrawer : PropertyDrawer
 
 	private void OnEditorSceneView(SceneView obj)
     {
+        if (curve == null) return;
         DrawSceneEditor();
     }
     internal class PreviewCallbacks

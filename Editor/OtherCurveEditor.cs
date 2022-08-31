@@ -92,6 +92,7 @@ public partial class OtherCurvePropertyDrawer
 		if (GetKeyDown(KeyCode.Delete) && closestIndex != -1)
 		{
 			current.Use();
+			Undo.RecordObject(targetObject, "Delete Points");
 			if (selectedPointIdexes.Count == 0)
 				curve.DissolveCP(curve.GetSegmentIndex(closestIndex));
 			else
@@ -279,12 +280,6 @@ public partial class OtherCurvePropertyDrawer
 		{
 			Handles.color = CurveColor;
 			Handles.DrawBezier(segment[0], segment[3], segment[1], segment[2], CurveColor, null, curve._isMouseOverProperty ? 2.5f : 1.5f);
-			Handles.color = HandleColor;
-			if (curve._isInEditMode)
-			{
-				Handles.DrawAAPolyLine(segment[0], segment[1]);
-				Handles.DrawAAPolyLine(segment[2], segment[3]);
-			}
 		}
 
 		Handles.color = Color.red / 2 + Color.white / 2;
@@ -306,6 +301,12 @@ public partial class OtherCurvePropertyDrawer
 		var c = Handles.color;
 		var m = Handles.matrix;
 		Handles.matrix = localToWorldMatrix;
+		Handles.color = HandleColor;
+		foreach (var segment in curve.Segments)
+		{
+			Handles.DrawAAPolyLine(segment[0], segment[1]);
+			Handles.DrawAAPolyLine(segment[2], segment[3]);
+		}
 		var cam = Camera.current;
 		Vector3 camLocalPos = InverseTransformPoint(cam.transform.position);
 		for (int i = 0; i < curve.PointCount; i++)
