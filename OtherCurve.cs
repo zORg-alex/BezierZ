@@ -530,4 +530,19 @@ public class OtherCurve : ISerializationCallbackReceiver, ICurve
 			_vVersion = _bVersion;
 		}
 	}
+
+	public OtherCurve Copy()
+	{
+		var c = new OtherCurve();
+		c._points = _points;
+		c._isClosed = _isClosed;
+		return c;
+	}
+
+	public void CopyFrom(OtherCurve curve)
+	{
+		_points = curve._points;
+		_isClosed = curve._isClosed;
+		_bVersion++;
+	}
 }

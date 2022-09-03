@@ -76,6 +76,9 @@ public partial class OtherCurvePropertyDrawer
 	private Vector3 cutPoint;
 	private bool extrudeInitiated;
 	private int extrudedIndex;
+	private OtherCurve _backupCurve;
+	private int _backupClosestIndex;
+	private Vector3 _backupEditedPosition;
 
 	private void EditorStarted()
 	{
@@ -195,15 +198,30 @@ public partial class OtherCurvePropertyDrawer
 	{
 		Undo.RecordObject(targetObject, "Curve Extrude");
 		int segmentIndex = curve.GetSegmentIndex(closestIndex);
+		BackupCurve();
 		if (curve.GetCPTangentFromPoints(segmentIndex).Dot(TransformPoint(closestPoint) - editedPosition) > 0)
 		{
 			curve.SplitCurveAt(segmentIndex, 0f);
-			closestIndex += 2;
+			closestIndex += 3;
 		}
 		else
 		{
 			curve.SplitCurveAt(segmentIndex - 1, 1f);
 		}
+		closestPoint = curve.Points[closestIndex];
+	}
+
+	private void BackupCurve()
+	{
+		_backupCurve = curve.Copy();
+		_backupClosestIndex = closestIndex;
+		_backupEditedPosition = editedPosition;
+	}
+	private void RestoreBackup()
+	{
+		curve.CopyFrom(_backupCurve);
+		closestIndex = _backupClosestIndex;
+		editedPosition = _backupEditedPosition;
 		closestPoint = curve.Points[closestIndex];
 	}
 
