@@ -201,12 +201,12 @@ public partial class OtherCurvePropertyDrawer
 		BackupCurve();
 		if (curve.GetCPTangentFromPoints(segmentIndex).Dot(TransformPoint(closestPoint) - editedPosition) > 0)
 		{
-			curve.SplitCurveAt(segmentIndex, 0f);
-			closestIndex += 3;
+			curve.SplitCurveAt(segmentIndex - 1, 1f);
 		}
 		else
 		{
-			curve.SplitCurveAt(segmentIndex - 1, 1f);
+			curve.SplitCurveAt(segmentIndex, 0f);
+			closestIndex += 3;
 		}
 		closestPoint = curve.Points[closestIndex];
 	}
@@ -522,14 +522,17 @@ public partial class OtherCurvePropertyDrawer
 				pos = Handles.FreeMoveHandle(editedPosition, toolRotation, HandleUtility.GetHandleSize(editedPosition) * .16f, Vector3.one * .2f, Handles.RectangleHandleCap);
 
 
+
 			if (EditorGUI.EndChangeCheck())
 			{
-				if (extrudeInitiated)
-				{
-					Undo.RecordObject(targetObject, "Point extrusion");
-				}
-				else
-				{
+				//if (extrudeInitiated)
+				//{
+				//	Undo.RecordObject(targetObject, "Point extrusion");
+
+
+				//}
+				//else
+				//{
 					Undo.RecordObject(targetObject, "Point position changed");
 
 					//TODO Extrude mechanics. Here we know movement direction, so we can start extruding in right direction and change if needed
@@ -552,7 +555,7 @@ public partial class OtherCurvePropertyDrawer
 						}
 						editedPosition += TransformVector(delta);
 					}
-				}
+				//}
 			}
 		}
 		else if (currentInternalTool == Tool.Rotate)
