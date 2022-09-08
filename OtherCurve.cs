@@ -43,10 +43,10 @@ public class OtherCurve : ISerializationCallbackReceiver, ICurve
 	public Vector3 GetPointPosition(int index) => Points[index].position;
 
 	[DebuggerStepThrough]
-	public bool IsAutomaticHandle(int index) => Points[index].mode.HasFlag(OtherPoint.Mode.Automatic);
+	public bool IsAutomaticHandle(int index) => Points[index].IsAutomatic;
 
 	[DebuggerStepThrough]
-	public bool IsControlPoint(int index) => Points[index].type == OtherPoint.Type.Control;
+	public bool IsControlPoint(int index) => Points[index].IsControlPoint;
 
 	public Vector3[][] Segments
 	{
@@ -140,46 +140,63 @@ public class OtherCurve : ISerializationCallbackReceiver, ICurve
 	public void SetPointPosition(int index, Vector3 position, bool recursive = true) => SetPointPosition((ushort)index, position, recursive);
 	public void SetPointPosition(ushort index, Vector3 position, bool recursive = true)
 	{
-		var thisPoint = Points[index];
+		var thisPoint = _points[index];
 		if (thisPoint.IsControlPoint)
 		{
 			var diff = position - thisPoint;
 
-			Points[index] = thisPoint.SetPosition(position).SetTangent(index < lastPointInd ? thisPoint - Points[index + 1] : Points[index - 1] - thisPoint);
+			_points[index] = thisPoint.SetPosition(position).SetTangent(index < lastPointInd ? thisPoint - _points[index + 1] : _points[index - 1] - thisPoint);
 			if (IsClosed && index == lastPointInd)
-				Points[0] = Points[lastPointInd];
+				_points[0] = _points[lastPointInd];
 			if (IsClosed && index == 0)
-				Points[lastPointInd] = Points[0];
+				_points[lastPointInd] = _points[0];
 
+			var leftIsLinear = false;
+			var rightIsLinear = false;
+			var leftIsAuto = false;
+			var rightIsAuto = false;
+			OtherPoint leftPoint = default(OtherPoint); OtherPoint rightPoint = default(OtherPoint);
 			if (index > 0 || IsClosed)
 			{
-				var i = GetControlsLeftIndex(index);
-				Vector3 dir = Points[i] - Points[index];
-				if (dir == Vector3.zero) dir = Points[i - 1] - Points[index];
-				Points[i] = Points[i].IsLinear ? GetLinearHandle(i) : Points[i].SetPosition(Points[i] + diff).SetRotation(Quaternion.LookRotation(dir));
+				var i = GetLeftIndex(index);
+				leftIsLinear = _points[i].IsLinear;
+				leftIsAuto = _points[i].IsAutomatic;
+				Vector3 dir = _points[i] - _points[index];
+				if (dir == Vector3.zero) dir = _points[i - 1] - _points[index];
+				leftPoint = leftIsLinear ? GetLinearHandle(i) : _points[i].SetPosition(_points[i] + diff).SetRotation(Quaternion.LookRotation(dir));
+				_points[i] = leftPoint;
 			}
 			if (index < lastPointInd || IsClosed)
 			{
-				var i = GetControlsRightHandle(index);
-				Vector3 dir = Points[i] - Points[index];
-				if (dir == Vector3.zero) dir = Points[i + 1] - Points[index];
-				Points[i] = Points[i].IsLinear ? GetLinearHandle(i) : Points[i].SetPosition(Points[i] + diff).SetRotation(Quaternion.LookRotation(dir));
+				var i = GetRightIndex(index);
+				rightIsLinear = _points[i].IsLinear;
+				rightIsAuto = _points[i].IsAutomatic;
+				Vector3 dir = _points[i] - _points[index];
+				if (dir == Vector3.zero) dir = _points[i + 1] - _points[index];
+				rightPoint = rightIsLinear ? GetLinearHandle(i) : _points[i].SetPosition(_points[i] + diff).SetRotation(Quaternion.LookRotation(dir));
+				_points[i] = rightPoint;
 			}
+			if (rightIsAuto && leftIsLinear)
+			{
+				_points[GetRightIndex(index)] = rightPoint.SetPosition(-(leftPoint - thisPoint).normalized * (rightPoint - thisPoint).magnitude);
+			}
+			if (leftIsAuto && rightIsLinear)
+				_points[GetLeftIndex(index)] = leftPoint.SetPosition(-(rightPoint - thisPoint).normalized * (leftPoint - thisPoint).magnitude);
 		}
 		else
 		{
 			var controlIndex = thisPoint.isRightHandle ? index - 1 : index + 1;
-			var controlPoint = Points[controlIndex];
+			var controlPoint = _points[controlIndex];
 
-			Points[controlIndex] = controlPoint.SetRotation(Quaternion.LookRotation((position - controlPoint) * (thisPoint.isRightHandle ? 1 : -1), controlPoint.up).normalized);
+			_points[controlIndex] = controlPoint.SetRotation(Quaternion.LookRotation((position - controlPoint) * (thisPoint.isRightHandle ? 1 : -1), controlPoint.up).normalized);
 
 			var otherHandleIndex = thisPoint.isRightHandle ? index - 2 : index + 2;
 			bool outOfBounds = (otherHandleIndex < 0 || otherHandleIndex >= PointCount);
+			if (outOfBounds)
+				otherHandleIndex = thisPoint.isRightHandle ? LastPointInd - 1 : 1;
+			var otherHandle = _points[otherHandleIndex];
 			if (!outOfBounds || IsClosed)
 			{
-				if (outOfBounds && IsClosed)
-					otherHandleIndex = (PointCount + (thisPoint.isRightHandle ? index - 3 : index + 3)) % PointCount;
-				var otherHandle = Points[otherHandleIndex];
 
 				if (thisPoint.IsAutomatic && otherHandle.IsAutomatic)
 				{
@@ -187,30 +204,36 @@ public class OtherCurve : ISerializationCallbackReceiver, ICurve
 					{
 						//Proportional
 						var diff = position - controlPoint;
-						Points[index] = Points[index].SetPosition(position);
+						//_points[index] = _points[index].SetPosition(position);
 						if (IsClosed || (index > 1 && index < lastPointInd - 1))
-							Points[otherHandleIndex] = otherHandle.SetPosition(controlPoint - diff * ((otherHandle - controlPoint).magnitude / diff.magnitude))
+							_points[otherHandleIndex] = otherHandle.SetPosition(controlPoint - diff * ((otherHandle - controlPoint).magnitude / diff.magnitude))
 								.SetRotation(controlPoint.rotation);
 					}
 					else
 					{
 						//Automatic, edit both handles mirrored
-						Points[index] = thisPoint.SetPosition(position);
+						//_points[index] = thisPoint.SetPosition(position);
 						if (IsClosed || (index > 1 && index < lastPointInd - 1))
-							Points[otherHandleIndex] = otherHandle.SetPosition(controlPoint + controlPoint - position)
+							_points[otherHandleIndex] = otherHandle.SetPosition(controlPoint + controlPoint - position)
 								.SetRotation(controlPoint.rotation);
 					}
 				}
 			}
-			
-			if (!thisPoint.IsLinear)
+
+			if (thisPoint.IsAutomatic && (!outOfBounds || IsClosed) && otherHandle.IsLinear)
+			{
+				otherHandle = GetLinearHandle(otherHandleIndex);
+				_points[otherHandleIndex] = otherHandle;
+				_points[index] = thisPoint.SetPosition(-(otherHandle - controlPoint).normalized * (position - controlPoint).magnitude);
+			}
+			else if (!thisPoint.IsLinear)
 				_points[index] = thisPoint.SetPosition(position).SetRotation(Quaternion.LookRotation(thisPoint - controlPoint));
 
 			var nextHandleIndex = thisPoint.isRightHandle ? index + 1 : index - 1;
-			var nextHandle = Points[nextHandleIndex];
+			var nextHandle = _points[nextHandleIndex];
 
 			if (nextHandle.IsLinear)
-				Points[nextHandleIndex] = GetLinearHandle(nextHandleIndex);
+				_points[nextHandleIndex] = GetLinearHandle(nextHandleIndex);
 		}
 		_bVersion++;
 
@@ -218,24 +241,24 @@ public class OtherCurve : ISerializationCallbackReceiver, ICurve
 		{
 			int segmentIndex = GetSegmentIndex(index);
 			int aind = GetPointIndex(segmentIndex);
-			var a = Points[aind];
-			var b = Points[aind + 3 < Points.Count ? aind + 3 : GetPointIndex(segmentIndex + 1)];
+			var a = _points[aind];
+			var b = _points[aind + 3 < _points.Count ? aind + 3 : GetPointIndex(segmentIndex + 1)];
 			var isRight = index == GetPointIndex(segmentIndex) + 1;
 			var otherInd = index + (isRight ? 1 : -1);
 			Vector3 otherPoint;
-			if (Points[otherInd].IsLinear)
+			if (_points[otherInd].IsLinear)
 			{
 				otherInd += isRight ? 1 : -1;
 				if (recursive)
-					SetPointPosition((ushort)otherInd, Points[otherInd], false);
-				otherPoint = Points[otherInd];
+					SetPointPosition((ushort)otherInd, _points[otherInd], false);
+				otherPoint = _points[otherInd];
 			}
 			else
-				otherPoint = Points[otherInd];
+				otherPoint = _points[otherInd];
 			var diff = a - b;
 			var tang = isRight ? otherPoint - a : otherPoint - b;
 			var pos = (isRight ? a : b) + tang.normalized * diff.magnitude * .1f;
-			return new OtherPoint(pos, Quaternion.LookRotation(tang), isRight? OtherPoint.Type.Right : OtherPoint.Type.Left, OtherPoint.Mode.Linear);
+			return new OtherPoint(pos, Quaternion.LookRotation(tang), isRight ? OtherPoint.Type.Right : OtherPoint.Type.Left, OtherPoint.Mode.Linear);
 		}
 	}
 
@@ -245,17 +268,21 @@ public class OtherCurve : ISerializationCallbackReceiver, ICurve
 		var index = GetPointIndex(segmentIndex);
 		var delta = _points[index].rotation.Inverted() * rotation;
 		_points[index] = _points[index].SetRotation(rotation);
+		if (IsClosed && (index == 0 || index == LastPointInd))
+			_points[index == 0 ? LastPointInd : 0] = _points[index];
 
 		RotateHandles(index, _points[index], delta, rotation);
 		_bVersion++;
 	}
-	public void AddCPRotation(int segmentIndex, Quaternion delta, bool local = false) => AddCPRotation((ushort)segmentIndex, delta, local);
-	public void AddCPRotation(ushort segmentIndex, Quaternion delta, bool local)
+	public void AddCPRotation(int segmentIndex, Quaternion delta) => AddCPRotation((ushort)segmentIndex, delta);
+	public void AddCPRotation(ushort segmentIndex, Quaternion delta)
 	{
 		var index = GetPointIndex(segmentIndex);
 		var rotation = delta * _points[index].rotation;
 		var point = _points[index];
-		_points[index] = point.SetRotation(rotation);
+		_points[index] = point.SetRotation(Quaternion.LookRotation(GetCPTangentFromPoints(segmentIndex, index), rotation * Vector3.up));
+		if (IsClosed && (index == 0 || index == LastPointInd))
+			_points[index == 0 ? LastPointInd : 0] = _points[index];
 
 		RotateHandles(index, _points[index], delta, _points[index].rotation);
 		_bVersion++;
@@ -265,8 +292,8 @@ public class OtherCurve : ISerializationCallbackReceiver, ICurve
 	{
 		DoActionForHandles(index, i =>
 		{
-			var pos = origin + delta * (Points[i] - origin);
-			Points[i] = Points[i].SetPosition(pos).SetRotation(rotation);
+			var pos = origin + delta * (_points[i] - origin);
+			_points[i] = _points[i].SetPosition(pos).SetRotation(rotation);
 		});
 	}
 
@@ -274,29 +301,30 @@ public class OtherCurve : ISerializationCallbackReceiver, ICurve
 	{
 		if (index > 0 || IsClosed)
 		{
-			action(GetControlsLeftIndex(index));
+			action(GetLeftIndex(index));
 		}
 		if (index < lastPointInd || IsClosed)
 		{
-			action(GetControlsRightHandle(index));
+			action(GetRightIndex(index));
 		}
 	}
 
 	public void SetPointMode(int index, OtherPoint.Mode mode) => SetPointMode((ushort)index, mode);
 	public void SetPointMode(ushort index, OtherPoint.Mode mode)
 	{
-		_points[index] = _points[index].SetMode(mode);
+		OtherPoint thisPoint = _points[index];
+		_points[index] = thisPoint.SetMode(mode);
 		if (_points[index].IsControlPoint)
 		{
 			if (index > 0 || IsClosed)
 			{
-				var i = GetControlsLeftIndex(index);
-				Points[i] = Points[i].SetMode(mode);
+				var i = GetLeftIndex(index);
+				_points[i] = _points[i].SetMode(mode);
 			}
 			if (index < lastPointInd || IsClosed)
 			{
-				int i = GetControlsRightHandle(index);
-				Points[i] = Points[i].SetMode(mode);
+				int i = GetRightIndex(index);
+				_points[i] = _points[i].SetMode(mode);
 			}
 
 			UpdatePosition(index);
@@ -313,7 +341,7 @@ public class OtherCurve : ISerializationCallbackReceiver, ICurve
 		var t = GetClosestPointTimeSegment(point, out var segmentIndex);
 
 		SplitCurveAt(segmentIndex, t);
-		return Points[segmentIndex];
+		return _points[segmentIndex];
 	}
 
 	public void SplitCurveAt(int segmentIndex, float t)
@@ -409,7 +437,7 @@ public class OtherCurve : ISerializationCallbackReceiver, ICurve
 				if (index == 0 || (IsClosed && index == LastPointInd))
 					_points.RemoveRange(0, 3);
 				if (index == LastPointInd || (IsClosed && index == 0))
-				_points.RemoveRange(PointCount - 3, 3);
+					_points.RemoveRange(PointCount - 3, 3);
 			}
 			else
 			{
@@ -438,7 +466,7 @@ public class OtherCurve : ISerializationCallbackReceiver, ICurve
 			{
 				//Skip to current segmant and find closest point to get rotation from
 				var firstVInd = _vertexData.GetStartIndex(segmentInd);
-				var min = _vertexData.Select(v=>v.Position).Skip(firstVInd).Min((v) => newSegments[i].DistanceTo(v), out var ind);
+				var min = _vertexData.Select(v => v.Position).Skip(firstVInd).Min((v) => newSegments[i].DistanceTo(v), out var ind);
 				rot = _vertexData[firstVInd + ind].Rotation;
 			}
 			newPoints[i] = new OtherPoint(newSegments[i], rot, types[typeInd], OtherPoint.Mode.Proportional);
@@ -454,19 +482,28 @@ public class OtherCurve : ISerializationCallbackReceiver, ICurve
 		_bVersion++;
 	}
 
-	private int GetControlsRightHandle(int index) => index + 1 - (IsClosed && index == lastPointInd ? lastPointInd : 0);
+	private int GetRightIndex(int index) => index + 1 - (IsClosed && index == lastPointInd ? lastPointInd : 0);
 
-	private int GetControlsLeftIndex(int index) => index - 1 + (IsClosed && index == 0 ? lastPointInd : 0);
+	private int GetLeftIndex(int index) => index - 1 + (IsClosed && index == 0 ? lastPointInd : 0);
 
 	public Quaternion GetCPRotation(int segmentIndex) => GetCPRotation((ushort)segmentIndex);
-	public Quaternion GetCPRotation(ushort segmentIndex)
+	public Quaternion GetCPRotation(int segmentIndex, int index = -1) => GetCPRotation((ushort)segmentIndex, index);
+	public Quaternion GetCPRotation(ushort segmentIndex, int index = -1)
 	{
-		return _points[GetSegmentIndex(segmentIndex)].GetRotation(Vector3.forward);
+		if (index == -1)
+			index = GetPointIndex(segmentIndex);
+		return Quaternion.LookRotation(GetCPTangentFromPoints(segmentIndex, index), _points[index].up);
 	}
 
-	public Vector3 GetCPTangentFromPoints(int segmentIndex)
+	public Vector3 GetCPTangentFromPoints(int segmentIndex, int index = -1)
 	{
-		var index = GetPointIndex(segmentIndex);
+		if (IsClosed && segmentIndex == SegmentCount)
+		{
+			segmentIndex = 0;
+			index = 0;
+		}
+		if (index == -1)
+			index = GetPointIndex(segmentIndex);
 		var point = _points[index];
 		bool isAuto = point.IsAutomatic;
 
@@ -500,7 +537,10 @@ public class OtherCurve : ISerializationCallbackReceiver, ICurve
 
 	private int _vVersion;
 	private OtherVertexData[] _vertexData;
-	public OtherVertexData[] VertexData { [ DebuggerStepThrough] get
+	public OtherVertexData[] VertexData
+	{
+		[DebuggerStepThrough]
+		get
 		{
 			UpdateVertexData();
 			return _vertexData;
@@ -508,7 +548,17 @@ public class OtherCurve : ISerializationCallbackReceiver, ICurve
 	}
 	private int _vDPVersion;
 	private Vector3[] _vertexDataPoints;
-	public Vector3[] VertexDataPoints { [DebuggerStepThrough] get
+	private float interpolationMaxAngleError;
+	private float interpolationMinDistance;
+	private int interpolationAccuracy;
+	public int InterpolationAccuracy { get => interpolationAccuracy; set { interpolationAccuracy = value; _vVersion++; } }
+	public float InterpolationMaxAngleError { get => interpolationMaxAngleError; set { interpolationMaxAngleError = value; _vVersion++; } }
+	public float InterpolationMinDistance { get => interpolationMinDistance; set { interpolationMinDistance = value; _vVersion++; } }
+
+	public Vector3[] VertexDataPoints
+	{
+		[DebuggerStepThrough]
+		get
 		{
 			UpdateVertexData();
 			if (_vDPVersion != _vVersion)
@@ -519,6 +569,9 @@ public class OtherCurve : ISerializationCallbackReceiver, ICurve
 			return _vertexDataPoints;
 		}
 	}
+
+
+
 	//private int[] _vertexDataGroupIndexes;
 	//public IEnumerable<IEnumerable<OtherVertexData>> VertexDataGroups;
 
@@ -526,7 +579,7 @@ public class OtherCurve : ISerializationCallbackReceiver, ICurve
 	{
 		if (_bVersion != _vVersion || force)
 		{
-			_vertexData = OtherVertexData.GetVertexData(this, 1f, .01f, 10);
+			_vertexData = OtherVertexData.GetVertexData(this, InterpolationMaxAngleError, InterpolationMinDistance, InterpolationAccuracy);
 			_vVersion = _bVersion;
 		}
 	}

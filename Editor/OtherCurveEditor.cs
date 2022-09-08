@@ -14,12 +14,23 @@ public partial class OtherCurvePropertyDrawer
 	private void DrawEditor(Rect position)
 	{
 		var lines = position.Column(new float[] { 0, 0 }, new float[] { EditorGUIUtility.singleLineHeight, 64 });
-		var firstLine = lines[0].Row(2);
+		var firstLine = lines[0].Row(3, 4);
 		var secLine = lines[1].Row(new float[] { 0, 1 }, new float[] { 64, 0 });
 
-		//var maxAngleError = EditorGUI.PropertyField();
-
-		//var minDistance = EditorGUI.PropertyField();
+		var lw = EditorGUIUtility.labelWidth;
+		EditorGUIUtility.labelWidth = EditorStyles.label.CalcSize(_maxAngleErrorLabel).x;
+		curve.InterpolationMaxAngleError = Mathf.Clamp(
+			EditorGUI.FloatField(firstLine[0], _maxAngleErrorLabel, curve.InterpolationMaxAngleError)
+			, 0, 180);
+		EditorGUIUtility.labelWidth = EditorStyles.label.CalcSize(_minDistLabel).x;
+		curve.InterpolationMinDistance = Mathf.Max(CurveInterpolation.MinSplitDistance,
+			EditorGUI.FloatField(firstLine[1], _minDistLabel, curve.InterpolationMinDistance)
+			);
+		EditorGUIUtility.labelWidth = EditorStyles.label.CalcSize(_accuracyLabel).x;
+		curve.InterpolationAccuracy = (int)Mathf.Clamp(
+			EditorGUI.IntField(firstLine[2], _accuracyLabel, curve.InterpolationAccuracy)
+			, 1, 1000);
+		EditorGUIUtility.labelWidth = lw;
 
 		if (GUI.Button(secLine[0], isOpenClosedTexture))
 		{
@@ -52,6 +63,7 @@ public partial class OtherCurvePropertyDrawer
 	private Color HandleColor = Color.white * .8f;
 	private Color SelecrionRectColor = Color.blue * .5f + Color.white * .5f;
 	private Color CutColor = Color.red * .5f + Color.white * .5f;
+
 	private bool updateClosestPoint = true;
 	private int closestIndex;
 	private int closestControlIndex;
@@ -79,6 +91,9 @@ public partial class OtherCurvePropertyDrawer
 	private OtherCurve _backupCurve;
 	private int _backupClosestIndex;
 	private Vector3 _backupEditedPosition;
+	private GUIContent _maxAngleErrorLabel = new GUIContent("Max Ang");
+	private GUIContent _minDistLabel = new GUIContent("Min Dist");
+	private GUIContent _accuracyLabel = new GUIContent("Acc");
 
 	private void EditorStarted()
 	{
@@ -198,7 +213,7 @@ public partial class OtherCurvePropertyDrawer
 	{
 		Undo.RecordObject(targetObject, "Curve Extrude");
 		int segmentIndex = curve.GetSegmentIndex(closestIndex);
-		BackupCurve();
+		//BackupCurve();
 		if (curve.GetCPTangentFromPoints(segmentIndex).Dot(TransformPoint(closestPoint) - editedPosition) > 0)
 		{
 			curve.SplitCurveAt(segmentIndex - 1, 1f);
@@ -294,19 +309,25 @@ public partial class OtherCurvePropertyDrawer
 		var c = Handles.color;
 		var m = Handles.matrix;
 		Handles.matrix = localToWorldMatrix;
-		foreach (var segment in curve.Segments)
-		{
-			Handles.color = CurveColor;
-			Handles.DrawBezier(segment[0], segment[3], segment[1], segment[2], CurveColor, null, curve._isMouseOverProperty ? 2.5f : 1.5f);
-		}
+		//foreach (var segment in curve.Segments)
+		//{
+		//	Handles.color = CurveColor;
+		//	Handles.DrawBezier(segment[0], segment[3], segment[1], segment[2], CurveColor, null, curve._isMouseOverProperty ? 2.5f : 1.5f);
+		//}
 
 		Handles.color = Color.red / 2 + Color.white / 2;
-		//foreach (var vert in curve.VertexData)
-		//{
-		//	Handles.DrawAAPolyLine(vert.point, vert.point + vert.normal * .2f);
-		//	//Handles.Label(vert.point, $"{vert.length}, {vert.time}");
-		//}
-		//DrawCurveFromVertexData(curve.VertexData);
+		foreach (var vert in curve.VertexData)
+		{
+			Handles.DrawAAPolyLine(vert, vert + vert.normal * .2f);
+			//Handles.Label(vert.point, $"{vert.length}, {vert.time}");
+		}
+		for (int i = 0; i < curve.SegmentCount; i++)
+		{
+			GUIUtils.DrawAxes(curve.Points[curve.GetPointIndex(i)], curve.GetCPRotation(i),.1f, 3);
+			Handles.color = Color.blue;
+			Handles.DrawAAPolyLine(1, curve.Points[curve.GetPointIndex(i)], curve.Points[curve.GetPointIndex(i)] + curve.GetCPTangentFromPoints(i));
+		}
+		DrawCurveFromVertexData(curve.VertexData.Select(v=>(v.Position, v.up)));
 		Handles.color = c;
 		Handles.matrix = m;
 	}
@@ -336,6 +357,7 @@ public partial class OtherCurvePropertyDrawer
 			if (point.type == OtherPoint.Type.Control)
 			{
 				GUIUtils.DrawCircle(point, point - camLocalPos, size, false, isSelected ? 2.5f : 1.5f, 24);
+				Handles.Label(point, i.ToString());
 			}
 			else
 			{
@@ -525,37 +547,25 @@ public partial class OtherCurvePropertyDrawer
 
 			if (EditorGUI.EndChangeCheck())
 			{
-				//if (extrudeInitiated)
-				//{
-				//	Undo.RecordObject(targetObject, "Point extrusion");
-
-
-				//}
-				//else
-				//{
 					Undo.RecordObject(targetObject, "Point position changed");
 
-					//TODO Extrude mechanics. Here we know movement direction, so we can start extruding in right direction and change if needed
-					//DoExtrusionWhileMoveTool(pos);
+				if (selectedPointIdexes.Count == 0)
+				{
+					var ind = closestPoint.IsLinear ? closestControlIndex : closestIndex;
 
-					if (selectedPointIdexes.Count == 0)
+					curve.SetPointPosition(ind, InverseTransformPoint(pos));
+					editedPosition = TransformPoint(curve.Points[closestIndex]);
+				}
+				else
+				{
+					var delta = InverseTransformVector(pos - editedPosition);
+					foreach (var ind in selectedPointIdexes)
 					{
-						var ind = closestPoint.IsLinear ? closestControlIndex : closestIndex;
-
-						curve.SetPointPosition(ind, InverseTransformPoint(pos));
-						editedPosition = TransformPoint(curve.Points[closestIndex]);
+						var point = curve.Points[ind];
+						curve.SetPointPosition(ind, point + delta);
 					}
-					else
-					{
-						var delta = InverseTransformVector(pos - editedPosition);
-						foreach (var ind in selectedPointIdexes)
-						{
-							var point = curve.Points[ind];
-							curve.SetPointPosition(ind, point + delta);
-						}
-						editedPosition += TransformVector(delta);
-					}
-				//}
+					editedPosition += TransformVector(delta);
+				}
 			}
 		}
 		else if (currentInternalTool == Tool.Rotate)
@@ -586,7 +596,7 @@ public partial class OtherCurvePropertyDrawer
 				{
 					var ind = closestControlIndex;
 
-					curve.AddCPRotation(segmentIndex, pointDelta, true);
+					curve.AddCPRotation(segmentIndex, pointDelta);
 				}
 				else
 				{
@@ -595,7 +605,7 @@ public partial class OtherCurvePropertyDrawer
 					{
 						var pos = pointDelta * (curve.Points[ind] - localEditedPosition) + localEditedPosition;
 						curve.SetPointPosition(ind, pos);
-						curve.AddCPRotation(curve.GetSegmentIndex(ind), pointDelta, true);
+						curve.AddCPRotation(curve.GetSegmentIndex(ind), pointDelta);
 					}
 				}
 			}

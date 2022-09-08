@@ -6,6 +6,14 @@ public struct OtherVertexData
 {
 	public Vector3 Position;
 	public Quaternion Rotation;
+	public Vector3 up => Rotation * Vector3.up;
+	public Vector3 right => Rotation * Vector3.right;
+	public Vector3 normal => Rotation * Vector3.right;
+	public Vector3 forward => Rotation * Vector3.forward;
+	public Vector3 tangent => Rotation * Vector3.forward;
+
+	public static implicit operator Vector3(OtherVertexData v) => v.Position;
+
 	public float cumulativeTime;
 	public float distance;
 	public int segmentInd;
