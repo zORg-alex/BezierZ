@@ -23,7 +23,12 @@ public struct OtherVertexData
 	internal static OtherVertexData[] GetVertexData(OtherCurve otherCurve, float maxAngleError, float minSplitDistance, int accuracy)
 	{
 		if (otherCurve.PointCount == 0) otherCurve.Reset();
-		var splitdata = CurveInterpolation.SplitCurveByAngleError(otherCurve, maxAngleError, minSplitDistance, accuracy);
+		var splitdata = CurveInterpolation.SplitCurveByAngleError(
+			otherCurve.Segments,
+			otherCurve.ControlPoints.SelectArray(p=>p.rotation),
+			otherCurve.ControlPoints.SelectArray(p=>!p.IsAutomatic),
+			otherCurve.IsClosed,
+			maxAngleError, minSplitDistance, accuracy);
 		var vd = new OtherVertexData[splitdata.Count];
 		var segInd = 0;
 		for (int i = 0; i < splitdata.Count; i++)

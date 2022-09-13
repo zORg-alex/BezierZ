@@ -54,5 +54,19 @@ namespace BezierCurveZ
 
 			return c0 * p1 + c1 * dv1 + c2 * p2 + c3 * dv2;
 		}
+		public static Quaternion EvaluateAngleAxis(float t, float tension, Quaternion p0, Quaternion p1, Quaternion p2, Quaternion p3)
+		{
+			p0.ToAngleAxis(out var a0, out var x0);
+			p1.ToAngleAxis(out var a1, out var x1);
+			p2.ToAngleAxis(out var a2, out var x2);
+			p3.ToAngleAxis(out var a3, out var x3);
+
+			return Quaternion.AngleAxis(Evaluate(t, tension, a0, a1, a2, a3), Evaluate(t, tension, x0, x1, x2, x3).normalized);
+		}
+
+		//      public static Quaternion EvaluateAngleAxis(float t, float tension, Quaternion p0, Quaternion p1, Quaternion p2, Quaternion p3)
+		//{
+		//	p0.to
+		//}
 	}
 }

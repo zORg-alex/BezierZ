@@ -9,11 +9,12 @@ using UnityEditor;
 using UnityEngine;
 
 [Serializable]
-public class OtherCurve : ISerializationCallbackReceiver, ICurve
+public class OtherCurve : ISerializationCallbackReceiver
 {
 #if UNITY_EDITOR
 	[SerializeField] public bool _previewOn;
-	[SerializeField] public bool _isInEditMode;
+	//[SerializeField]
+	public bool _isInEditMode;
 	public bool _isMouseOverProperty;
 #endif
 
@@ -25,8 +26,26 @@ public class OtherCurve : ISerializationCallbackReceiver, ICurve
 	/// Points and segment in closed curve: {Control, Right, Left},{Control, Right, Left}
 	/// </summary>
 	public List<OtherPoint> Points { [DebuggerStepThrough] get => _points; }
+	public IEnumerable<OtherPoint> ControlPoints
+	{
+		[DebuggerStepThrough]
+		get
+		{
+			for (int i = 0; i < _points.Count; i += 3)
+				yield return _points[i];
+		}
+	}
 	public int LastPointInd { [DebuggerStepThrough] get => _points.Count - 1; }
 	public int ControlPointCount { [DebuggerStepThrough] get => (_points.Count / 3f).CeilToInt(); }
+	public IEnumerable<int> ControlPointIndexes
+	{
+		[DebuggerStepThrough]
+		get
+		{
+			for (int i = 0; i < _points.Count; i += 3)
+				yield return i;
+		}
+	}
 
 	public int SegmentCount { [DebuggerStepThrough] get => (_points.Count / 3f).FloorToInt(); }
 
@@ -60,10 +79,6 @@ public class OtherCurve : ISerializationCallbackReceiver, ICurve
 		}
 	}
 
-	[DebuggerStepThrough]
-	public Vector3[] Segment(int segmentIndex) => Segments[segmentIndex];
-
-	IEnumerable<Vector3[]> ICurve.Segments => Segments;
 	private int _pposVersion;
 	private Vector3[] _pointPositions;
 	public Vector3[] PointPositions { get { if (_pposVersion != _bVersion) _pointPositions = Points.SelectArray(p => p.position); return _pointPositions; } }
@@ -145,7 +160,7 @@ public class OtherCurve : ISerializationCallbackReceiver, ICurve
 		{
 			var diff = position - thisPoint;
 
-			_points[index] = thisPoint.SetPosition(position).SetTangent(index < lastPointInd ? thisPoint - _points[index + 1] : _points[index - 1] - thisPoint);
+			_points[index] = thisPoint.SetPosition(position);
 			if (IsClosed && index == lastPointInd)
 				_points[0] = _points[lastPointInd];
 			if (IsClosed && index == 0)
@@ -346,7 +361,7 @@ public class OtherCurve : ISerializationCallbackReceiver, ICurve
 
 	public void SplitCurveAt(int segmentIndex, float t)
 	{
-		var newSegments = CasteljauUtility.GetSplitSegmentPoints(t, Segment(segmentIndex));
+		var newSegments = CasteljauUtility.GetSplitSegmentPoints(t, Segments[segmentIndex]);
 
 		ReplaceCurveSegment(segmentIndex, newSegments);
 	}
@@ -495,6 +510,12 @@ public class OtherCurve : ISerializationCallbackReceiver, ICurve
 		return Quaternion.LookRotation(GetCPTangentFromPoints(segmentIndex, index), _points[index].up);
 	}
 
+	/// <summary>
+	/// Calculates tangent of set point. Pass either segmentIndex or point index
+	/// </summary>
+	/// <param name="segmentIndex">if index is set, it's optional</param>
+	/// <param name="index"></param>
+	/// <returns></returns>
 	public Vector3 GetCPTangentFromPoints(int segmentIndex, int index = -1)
 	{
 		if (IsClosed && segmentIndex == SegmentCount)
@@ -548,8 +569,11 @@ public class OtherCurve : ISerializationCallbackReceiver, ICurve
 	}
 	private int _vDPVersion;
 	private Vector3[] _vertexDataPoints;
+	[SerializeField]
 	private float interpolationMaxAngleError;
+	[SerializeField]
 	private float interpolationMinDistance;
+	[SerializeField]
 	private int interpolationAccuracy;
 	public int InterpolationAccuracy { get => interpolationAccuracy; set { interpolationAccuracy = value; _vVersion++; } }
 	public float InterpolationMaxAngleError { get => interpolationMaxAngleError; set { interpolationMaxAngleError = value; _vVersion++; } }

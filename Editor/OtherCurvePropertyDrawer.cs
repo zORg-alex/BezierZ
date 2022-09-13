@@ -125,7 +125,10 @@ public partial class OtherCurvePropertyDrawer : PropertyDrawer
         }
 
         if (propValue._isInEditMode)
+        {
+            curve = propValue;
             DrawEditor(posDivided[1]);
+        }
 
         EditorGUI.EndProperty();
         GUI.color = c;

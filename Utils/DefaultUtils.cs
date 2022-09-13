@@ -7,6 +7,23 @@ using UnityEngine;
 
 public static class DefaultUtils {
 
+	public static float SmoothStep(this float t) => t * t * (3f - 2f * t);
+	public static float SmootherStep(this float t) => t * t * t * (t * (t * 6 - 15) + 10);
+	public static float InverseSmoothStep(this float t) => .5f - Mathf.Sin(Mathf.Asin(1f - 2f * t) / 3f);
+    public static float SinStep(this float t) => Mathf.Sin(Mathf.PI * (t - .5f)) / 2 + .5f;
+
+    /// <summary>
+    /// Smoothly interpolates t with variable curvature of p
+    /// </summary>
+    /// <param name="t"></param>
+    /// <param name="p">[0..1] For Inverse smoothstep, [1..infinity] for smoothstep<para/> When equals to 2 returns similar results as Smoothstep</param>
+    /// <returns></returns>
+    public static float SmoothStepParametric(this float t, float p = 2f)
+    {
+        var tp = Mathf.Pow(t, p);
+        return tp / (tp + Mathf.Pow(1 - t, p));
+    }
+    [DebuggerStepperBoundary]
 	public static T2[] SelectArray<T1,T2>( this IEnumerable<T1> collection, Func<T1,T2> selector) {
 		var r = new T2[collection.Count()];
 		var ind = 0;

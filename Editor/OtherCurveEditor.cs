@@ -107,14 +107,20 @@ public partial class OtherCurvePropertyDrawer
 
 	private void ProcessInput()
 	{
-		if (GetKeyDown(KeyCode.Delete) && closestIndex != -1)
+		if (GetKeyDown(KeyCode.Delete))
 		{
 			current.Use();
-			Undo.RecordObject(targetObject, "Delete Points");
-			if (selectedPointIdexes.Count == 0)
-				curve.DissolveCP(curve.GetSegmentIndex(closestIndex));
-			else
-				curve.RemoveMany(selectedPointIdexes);
+			if (closestIndex != -1 || selectedPointIdexes.Count > 0)
+			{
+				Undo.RecordObject(targetObject, "Delete Points");
+				if (selectedPointIdexes.Count == 0)
+					curve.DissolveCP(curve.GetSegmentIndex(closestIndex));
+				else
+				{
+					curve.RemoveMany(selectedPointIdexes);
+					selectedPointIdexes.Clear();
+				}
+			}
 		}
 
 		if (GetKeyDown(KeyCode.C))
@@ -208,20 +214,38 @@ public partial class OtherCurvePropertyDrawer
 		bool GetMouseDown(int button) => current.type == EventType.MouseDown && current.button == button;
 		bool GetMouseUp(int button) => current.type == EventType.MouseUp && current.button == button;
 	}
-
+	float dot;
 	private void StartExtruding()
 	{
 		Undo.RecordObject(targetObject, "Curve Extrude");
 		int segmentIndex = curve.GetSegmentIndex(closestIndex);
 		//BackupCurve();
-		if (curve.GetCPTangentFromPoints(segmentIndex).Dot(TransformPoint(closestPoint) - editedPosition) > 0)
+		curve.SetPointPosition(closestIndex, closestPoint);
+		dot = curve.GetCPTangentFromPoints(segmentIndex).Dot(TransformPoint(closestPoint) - editedPosition);
+		if (curve.GetCPTangentFromPoints(segmentIndex).Dot(TransformPoint(closestPoint) - editedPosition) < 0)
 		{
-			curve.SplitCurveAt(segmentIndex - 1, 1f);
+			if (curve.IsClosed) segmentIndex %= curve.SegmentCount;
+			if (segmentIndex == curve.SegmentCount)
+			{
+				curve.SplitCurveAt(segmentIndex - 1, 1f);
+				closestIndex += 3;
+			}
+			else
+			{
+				curve.SplitCurveAt(segmentIndex, 0f);
+			}
 		}
 		else
 		{
-			curve.SplitCurveAt(segmentIndex, 0f);
-			closestIndex += 3;
+			var prevSegmentIndex = segmentIndex - 1;
+			if (curve.IsClosed) prevSegmentIndex = (curve.SegmentCount + prevSegmentIndex) % curve.SegmentCount;
+			if (prevSegmentIndex > 0)
+				curve.SplitCurveAt(prevSegmentIndex, 1f);
+			else
+			{
+				curve.SplitCurveAt(segmentIndex, 0f);
+				closestIndex += 3;
+			}
 		}
 		closestPoint = curve.Points[closestIndex];
 	}
@@ -321,11 +345,12 @@ public partial class OtherCurvePropertyDrawer
 			Handles.DrawAAPolyLine(vert, vert + vert.normal * .2f);
 			//Handles.Label(vert.point, $"{vert.length}, {vert.time}");
 		}
-		for (int i = 0; i < curve.SegmentCount; i++)
+		foreach(int i in curve.ControlPointIndexes)
 		{
-			GUIUtils.DrawAxes(curve.Points[curve.GetPointIndex(i)], curve.GetCPRotation(i),.1f, 3);
+			OtherPoint point = curve.Points[i];
+			GUIUtils.DrawAxes(point, point.rotation,.1f, 3);
 			Handles.color = Color.blue;
-			Handles.DrawAAPolyLine(1, curve.Points[curve.GetPointIndex(i)], curve.Points[curve.GetPointIndex(i)] + curve.GetCPTangentFromPoints(i));
+			Handles.DrawAAPolyLine(1, curve.Points[curve.GetPointIndex(i)], curve.Points[i] + curve.GetCPTangentFromPoints(-1, i));
 		}
 		DrawCurveFromVertexData(curve.VertexData.Select(v=>(v.Position, v.up)));
 		Handles.color = c;
@@ -489,6 +514,7 @@ public partial class OtherCurvePropertyDrawer
 	/// </summary>
 	private void DrawTools()
 	{
+		Handles.Label(editedPosition, "\n" + dot.ToString());
 		if (Tools.current != Tool.None)
 		{
 			currentInternalTool = Tools.current;

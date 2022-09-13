@@ -8,50 +8,38 @@ namespace BezierCurveZ
 	public static class CurveInterpolation
 	{
 		public static float MinSplitDistance = 0.000001f;
-		public static SplitData SplitCurveByAngleError(ICurve curve, float maxAngleError, float minSplitDistance, int accuracy = 10)
+		public static SplitData SplitCurveByAngleError(Vector3[][] segments, Quaternion[] cpRotations, bool[] cpIsSharp, bool IsClosed, float maxAngleError, float minSplitDistance, int accuracy = 10)
 		{
-			if (curve.ControlPointCount == 1)
-				return new SplitData()
-				{
-					points = new List<Vector3>() { curve.PointPositions[0], curve.PointPositions[0] },
-					tangents = new List<Vector3>() { curve.PointRotations[0] * Vector3.forward, curve.PointRotations[0] * Vector3.forward },
-					segmentIndices = new List<int>() { 0 },
-					cumulativeLength = new List<float>() { 0, 0 },
-					cumulativeTime = new List<float>() { 0, 0 },
-					rotations = new List<Quaternion> { curve.PointRotations[0], curve.PointRotations[0] }
-				};
-			else if (curve.PointCount == 0) return null;
+			if (segments.Length == 0) return null;
 
 			var data = new SplitData();
 
-			var firstSegment = curve.Segments.FirstOrDefault();
+			var firstSegment = segments[0];
 			var firstTangent = CurveUtils.EvaluateDerivative(0, firstSegment).normalized;
 			var _currentPoint = CurveUtils.Evaluate(0, firstSegment);
 			var _lastAddedPoint = _currentPoint - firstTangent;
 			var _previousAngle = 0f;
 
-			//Should correct for previous point estimation
-			var _dist = -1f;
+            //Should correct for previous point estimation
+            var _dist = -1f;
 			var length = -1f;
-			bool nextCPIsAutomatic = curve.IsAutomaticHandle(curve.GetPointIndex(1));
+			bool nextCPIsAutomatic = cpIsSharp[0];
 			var segInd = 0;
-			foreach (var segment in curve.Segments)
+			foreach (var segment in segments)
 			{
-				var prevUp = curve.GetCPRotation(segInd) * Vector3.up;//curve.PointRotations[curve.GetPointIndex(segInd)] * Vector3.up;
+				var prevUp = cpRotations[segInd] * Vector3.up;//curve.PointRotations[curve.GetPointIndex(segInd)] * Vector3.up;
+				var prevTang = cpRotations[segInd] * Vector3.forward;
 				var firstIndex = data.points.Count;
 				var estimatedSegmentLength = CurveUtils.EstimateSegmentLength(segment);
 				int divisions = (estimatedSegmentLength * accuracy).CeilToInt();
 				float increment = divisions == 1 ? 1f : 1f / divisions;
 				Vector3 _nextEvalPoint = CurveUtils.Evaluate(increment, segment);
-				bool prevCPIsAutomatic = curve.IsAutomaticHandle(curve.GetPointIndex(curve.GetPointIndex(segInd)));
-
-				int lastSegmentIndex = (curve.GetPointIndex(segInd) + 3).Min(curve.PointCount - 1);
-				Vector3 finalTangent = CurveUtils.EvaluateDerivative(1, segment).normalized;
+				bool prevCPIsAutomatic = cpIsSharp[segInd];
 
 				float t = 0f;
 				while (true)
 				{
-					var _edgePoint = (t == 0) || (t >= 1 && segInd == curve.SegmentCount - 1);
+					var _edgePoint = (t == 0) || (t >= 1 && segInd == segments.Length - 1);
 					var _isSharp = (t == 0 && !prevCPIsAutomatic) || (t >= 1 && !nextCPIsAutomatic);
 
 					Vector3 _toLastPoint = _lastAddedPoint - _currentPoint;
@@ -63,6 +51,7 @@ namespace BezierCurveZ
 					{
 						length += _toLastPointMag;
 						Vector3 tang = CurveUtils.EvaluateDerivative(t, segment).normalized;
+						if (tang == Vector3.zero) tang = prevTang;
 						Quaternion rotation = Quaternion.LookRotation(tang, prevUp);
 						prevUp = rotation * Vector3.up;
 
@@ -73,9 +62,10 @@ namespace BezierCurveZ
 						if (data.segmentIndices.Count == segInd)
 							data.segmentIndices.Add(data.points.Count - 1);
 						data.rotations.Add(rotation);
-						data.isSharp.Add(_isSharp || (segInd == 0 && t == 0) || (segInd == curve.SegmentCount - 1 && t == 1));
+						data.isSharp.Add(_isSharp || (segInd == 0 && t == 0) || (segInd == segments.Length - 1 && t == 1));
 						_dist = 0;
 						_lastAddedPoint = _currentPoint;
+						prevTang = tang;
 					}
 					else _dist += (_currentPoint - _nextEvalPoint).magnitude;
 
@@ -89,14 +79,13 @@ namespace BezierCurveZ
 
 				var i = data.rotations.Count - 1;
 
-				var right = curve.GetCPRotation(segInd + 1);
+				var right = cpRotations[(segInd + 1) % cpRotations.Length];
 				var rmLast = data.rotations[data.rotations.Count - 1];
-				var correction = rmLast.Inverted() * right;
+				var correction = (rmLast.Inverted() * right).normalized;
 				while (i > firstIndex)
 				{
 					t = data.cumulativeTime[i] - segInd;
-
-					var r = data.rotations[i] * Quaternion.Slerp(Quaternion.identity, correction, t);
+					var r = data.rotations[i] * Quaternion.Slerp(Quaternion.identity, correction, t.SmoothStep());
 					data.rotations[i] = r;
 
 					i--;

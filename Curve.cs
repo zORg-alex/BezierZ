@@ -8,28 +8,8 @@ using System.Diagnostics;
 namespace BezierCurveZ
 {
 
-	public interface ICurve
-	{
-		IEnumerable<Vector3[]> Segments { get; }
-		Vector3[] PointPositions { get; }
-		Quaternion[] PointRotations { get; }
-		int PointCount { get; }
-		int ControlPointCount { get; }
-		int SegmentCount { get; }
-		bool IsClosed { get; set; }
-
-		int GetPointIndex(int segmentIndex);
-		int GetSegmentIndex(int index);
-		Quaternion GetCPRotation(int segmentIndex);
-		Vector3 GetPointPosition(int index);
-		[DebuggerStepThrough]
-		bool IsAutomaticHandle(int index);
-		[DebuggerStepThrough]
-		bool IsControlPoint(int index);
-		Vector3[] Segment(int segmentIndex);
-	}
 	[Serializable]
-	public partial class Curve : ISerializationCallbackReceiver, ICurve
+	public partial class Curve : ISerializationCallbackReceiver
 	{
 		public Curve()
 		{
@@ -335,11 +315,11 @@ namespace BezierCurveZ
 
 		public IEnumerable<Vector3[]> Segments { get {
 				for (int i = 0; i < SegmentCount; i++)
-					yield return Segment(i);
+					yield return GetSegment(i);
 			}
 		}
 
-		public Vector3[] Segment(int segmentIndex) => IsClosed ?
+		public Vector3[] GetSegment(int segmentIndex) => IsClosed ?
 			new Vector3[] { points[segmentIndex * 3 + 1], points[segmentIndex * 3 + 2], points[(segmentIndex * 3 + 3) % points.Count], points[(segmentIndex * 3 + 4) % points.Count] } :
 			new Vector3[] { points[segmentIndex * 3], points[segmentIndex * 3 + 1], points[segmentIndex * 3 + 2], points[segmentIndex * 3 + 3] };
 
@@ -541,7 +521,7 @@ namespace BezierCurveZ
 
 		public void SplitAt(int segmentIndex, float t)
 		{
-			var newSegments = CasteljauUtility.GetSplitSegmentPoints(t, Segment(segmentIndex));
+			var newSegments = CasteljauUtility.GetSplitSegmentPoints(t, GetSegment(segmentIndex));
 
 			ReplaceSegment(segmentIndex, newSegments);
 		}
