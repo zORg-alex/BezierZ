@@ -132,6 +132,8 @@ public static class DefaultUtils {
 	public static Color MultiplyAlpha(this Color c, float alpha) => new Color(c.r, c.g, c.b, c.a * alpha);
 
 	[DebuggerStepThrough]
+	public static Vector3 Abs(this Vector3 v) => new Vector3(v.x.Abs(), v.y.Abs(), v.z.Abs());
+	[DebuggerStepThrough]
 	public static float Abs(this float v) => Math.Abs(v);
 	[DebuggerStepThrough]
 	public static int Abs(this int v) => Math.Abs(v);

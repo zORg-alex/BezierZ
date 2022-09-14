@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using RectEx;
 using Utility.Editor;
 using BezierCurveZ;
+using System.Runtime.InteropServices;
 
 public partial class OtherCurvePropertyDrawer
 {
@@ -137,11 +138,6 @@ public partial class OtherCurvePropertyDrawer
 
 		if (GetKeyUp(KeyCode.X))
 			UpdateClosestPoint();
-
-		Handles.BeginGUI();
-		GUI.Label(new Rect(current.mousePosition, new Vector2(200, 20)), current.mousePosition.ToString());
-		GUI.Label(new Rect(0,0,200,20), GUIUtility.hotControl.ToString());
-		Handles.EndGUI();
 
 		//Rect selection + Shift/Ctrl click
 		if (selectingMultiple && GUIUtility.hotControl == 0 && current.type == EventType.MouseDrag )
@@ -352,8 +348,6 @@ public partial class OtherCurvePropertyDrawer
 		{
 			OtherPoint point = curve.Points[i];
 			GUIUtils.DrawAxes(point, point.rotation,.1f, 3);
-			Handles.color = Color.blue;
-			Handles.DrawAAPolyLine(1, curve.Points[curve.GetPointIndex(i)], curve.Points[i] + curve.GetCPTangentFromPoints(-1, i));
 		}
 		DrawCurveFromVertexData(curve.VertexData.Select(v=>(v.Position, v.up)));
 		Handles.color = c;
@@ -517,7 +511,6 @@ public partial class OtherCurvePropertyDrawer
 	/// </summary>
 	private void DrawTools()
 	{
-		Handles.Label(editedPosition, "\n" + dot.ToString());
 		if (Tools.current != Tool.None)
 		{
 			currentInternalTool = Tools.current;
@@ -642,6 +635,22 @@ public partial class OtherCurvePropertyDrawer
 
 	private void ProcessSnapping(ref Vector3 pos)
 	{
-
+		var invRot = toolRotation.Inverted();
+		var m = Matrix4x4.TRS(pos, toolRotation, Vector3.one);
+		var im = m.inverse;
+		Handles.BeginGUI();
+		GUI.Label(new Rect(current.mousePosition, new Vector2(200,20)),"     " + (m.MultiplyPoint3x4(pos)).ToString());
+		Handles.EndGUI();
+		var d = curve.Points.Select(p => im.MultiplyPoint3x4(TransformPoint(p)).Abs()).ToArray();
+		Handles.color = Color.yellow * .8f;
+		for (int i = 0; i < d.Length; i++)
+		{
+			if (d[i].x < .01f && d[i].y < .01f)
+				Handles.DrawAAPolyLine(TransformPoint(curve.Points[i]), pos);
+			if (d[i].z < .01f && d[i].y < .01f)
+				Handles.DrawAAPolyLine(TransformPoint(curve.Points[i]), pos);
+			if (d[i].x < .01f && d[i].z < .01f)
+				Handles.DrawAAPolyLine(TransformPoint(curve.Points[i]), pos);	
+		}
 	}
 }
