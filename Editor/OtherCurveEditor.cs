@@ -74,8 +74,6 @@ public partial class OtherCurvePropertyDrawer
 	private Vector3 editedPosition;
 	private Quaternion editedRotation;
 	private bool drawTools = true;
-	private EditorInputProcessor selectMultipleInputProcessor;
-	private EditorInputProcessor contextMenuProcessor;
 	//private EditorInputProcessor[] inputList;
 	private List<int> selectedPointIdexes = new List<int>();
 	private Vector2 mouseDownPosition;
@@ -102,7 +100,7 @@ public partial class OtherCurvePropertyDrawer
 
 	private void EditorFinished()
 	{
-
+		Tools.current = currentInternalTool;
 	}
 
 	private void ProcessInput()
@@ -140,6 +138,11 @@ public partial class OtherCurvePropertyDrawer
 		if (GetKeyUp(KeyCode.X))
 			UpdateClosestPoint();
 
+		Handles.BeginGUI();
+		GUI.Label(new Rect(current.mousePosition, new Vector2(200, 20)), current.mousePosition.ToString());
+		GUI.Label(new Rect(0,0,200,20), GUIUtility.hotControl.ToString());
+		Handles.EndGUI();
+
 		//Rect selection + Shift/Ctrl click
 		if (selectingMultiple && GUIUtility.hotControl == 0 && current.type == EventType.MouseDrag )
 			WhileSelectingMultiple();
@@ -153,7 +156,7 @@ public partial class OtherCurvePropertyDrawer
 			mouseDownPosition = current.mousePosition;
 			selectingMultiple = true;
 		}
-		else if (GetMouseUp(0) || GUIUtility.hotControl != 0)
+		if ((selectingMultiple && current.type == EventType.MouseMove) || (GetMouseUp(0) || GUIUtility.hotControl != 0))
 		{
 			selectingMultiple = false;
 			mouseDownPosition = Vector2.zero;
@@ -521,9 +524,6 @@ public partial class OtherCurvePropertyDrawer
 		}
 		Tools.current = Tool.None;
 		var c = Handles.color;
-		Handles.BeginGUI();
-		GUI.Label(new Rect(5, 5, 200, 18), currentInternalTool.ToString());
-		Handles.EndGUI();
 
 		if (selectingMultiple && GUIUtility.hotControl == 0)
 		{

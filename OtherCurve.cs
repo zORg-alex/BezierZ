@@ -59,13 +59,13 @@ public class OtherCurve : ISerializationCallbackReceiver
 	public int GetPointIndex(int segmentIndex) => GetPointIndex((ushort)segmentIndex);
 
 	[DebuggerStepThrough]
-	public Vector3 GetPointPosition(int index) => Points[index].position;
+	public Vector3 GetPointPosition(int index) => _points[index].position;
 
 	[DebuggerStepThrough]
-	public bool IsAutomaticHandle(int index) => Points[index].IsAutomatic;
+	public bool IsAutomaticHandle(int index) => _points[index].IsAutomatic;
 
 	[DebuggerStepThrough]
-	public bool IsControlPoint(int index) => Points[index].IsControlPoint;
+	public bool IsControlPoint(int index) => _points[index].IsControlPoint;
 
 	public Vector3[][] Segments
 	{
@@ -74,18 +74,18 @@ public class OtherCurve : ISerializationCallbackReceiver
 		{
 			Vector3[][] r = new Vector3[SegmentCount][];
 			for (int i = 0; i < SegmentCount; i++)
-				r[i] = new Vector3[] { _points[i * 3].position, _points[i * 3 + 1].position, _points[i * 3 + 2].position, _points[(i * 3 + 3) % Points.Count].position };
+				r[i] = new Vector3[] { _points[i * 3].position, _points[i * 3 + 1].position, _points[i * 3 + 2].position, _points[(i * 3 + 3) % _points.Count].position };
 			return r;
 		}
 	}
 
 	private int _pposVersion;
 	private Vector3[] _pointPositions;
-	public Vector3[] PointPositions { get { if (_pposVersion != _bVersion) _pointPositions = Points.SelectArray(p => p.position); return _pointPositions; } }
+	public Vector3[] PointPositions { get { if (_pposVersion != _bVersion) _pointPositions = _points.SelectArray(p => p.position); return _pointPositions; } }
 	private int _protVersion;
 	private Quaternion[] _pointRotations;
-	public Quaternion[] PointRotations { get { if (_protVersion != _bVersion) _pointRotations = Points.SelectArray(p => p.rotation); return _pointRotations; } }
-	public int PointCount { [DebuggerStepThrough] get => Points.Count; }
+	public Quaternion[] PointRotations { get { if (_protVersion != _bVersion) _pointRotations = _points.SelectArray(p => p.rotation); return _pointRotations; } }
+	public int PointCount { [DebuggerStepThrough] get => _points.Count; }
 	private ushort lastPointInd { [DebuggerStepThrough] get => (ushort)(Points.Count - 1); }
 
 	[SerializeField] internal bool _isClosed;
@@ -128,29 +128,29 @@ public class OtherCurve : ISerializationCallbackReceiver
 		_isClosed = value;
 		if (!IsClosed)
 		{
-			Points.RemoveAt(LastPointInd);
-			Points.RemoveAt(LastPointInd);
-			Points.RemoveAt(LastPointInd);
-			Points[0] = Points[0].SetMode(_preservedNodeModesWhileClosed[0]);
-			Points[LastPointInd] = Points[LastPointInd].SetMode(_preservedNodeModesWhileClosed[1]);
+			_points.RemoveAt(LastPointInd);
+			_points.RemoveAt(LastPointInd);
+			_points.RemoveAt(LastPointInd);
+			_points[0] = _points[0].SetMode(_preservedNodeModesWhileClosed[0]);
+			_points[LastPointInd] = _points[LastPointInd].SetMode(_preservedNodeModesWhileClosed[1]);
 			_bVersion++;
 		}
 		else
 		{
-			Points.Add(new OtherPoint(getHandlePosition(LastPointInd, LastPointInd - 1), OtherPoint.Type.Right, _points[LastPointInd].mode));
-			Points.Add(new OtherPoint(getHandlePosition(0, 1), OtherPoint.Type.Left, _points[0].mode));
-			Points.Add(new OtherPoint(Points[0]));
+			_points.Add(new OtherPoint(getHandlePosition(LastPointInd, LastPointInd - 1), OtherPoint.Type.Right, _points[LastPointInd].mode));
+			_points.Add(new OtherPoint(getHandlePosition(0, 1), OtherPoint.Type.Left, _points[0].mode));
+			_points.Add(new OtherPoint(Points[0]));
 			_bVersion++;
 
 			Vector3 getHandlePosition(int ind, int otherind)
 			{
-				Vector3 r = Points[ind] * 2f - Points[otherind];
+				Vector3 r = _points[ind] * 2f - _points[otherind];
 				return r;
 			}
 		}
 	}
 
-	public void UpdatePosition(int index) => SetPointPosition(index, Points[index]);
+	public void UpdatePosition(int index) => SetPointPosition(index, _points[index]);
 	public void SetPointPosition(int index, Vector3 position) => SetPointPosition((ushort)index, position, true);
 	public void SetPointPosition(int index, Vector3 position, bool recursive = true) => SetPointPosition((ushort)index, position, recursive);
 	public void SetPointPosition(ushort index, Vector3 position, bool recursive = true)
@@ -570,14 +570,14 @@ public class OtherCurve : ISerializationCallbackReceiver
 	private int _vDPVersion;
 	private Vector3[] _vertexDataPoints;
 	[SerializeField]
-	private float interpolationMaxAngleError;
+	private float _interpolationMaxAngleError;
 	[SerializeField]
-	private float interpolationMinDistance;
+	private float _interpolationMinDistance;
 	[SerializeField]
-	private int interpolationAccuracy;
-	public int InterpolationAccuracy { get => interpolationAccuracy; set { interpolationAccuracy = value; _vVersion++; } }
-	public float InterpolationMaxAngleError { get => interpolationMaxAngleError; set { interpolationMaxAngleError = value; _vVersion++; } }
-	public float InterpolationMinDistance { get => interpolationMinDistance; set { interpolationMinDistance = value; _vVersion++; } }
+	private int _interpolationAccuracy;
+	public int InterpolationAccuracy { get => _interpolationAccuracy; set { _interpolationAccuracy = value; _vVersion++; } }
+	public float InterpolationMaxAngleError { get => _interpolationMaxAngleError; set { _interpolationMaxAngleError = value; _vVersion++; } }
+	public float InterpolationMinDistance { get => _interpolationMinDistance; set { _interpolationMinDistance = value; _vVersion++; } }
 
 	public Vector3[] VertexDataPoints
 	{
@@ -613,6 +613,9 @@ public class OtherCurve : ISerializationCallbackReceiver
 		var c = new OtherCurve();
 		c._points = _points;
 		c._isClosed = _isClosed;
+		c._interpolationMaxAngleError = _interpolationMaxAngleError;
+		c._interpolationMinDistance = _interpolationMinDistance;
+		c._interpolationAccuracy = _interpolationAccuracy;
 		return c;
 	}
 
@@ -620,6 +623,9 @@ public class OtherCurve : ISerializationCallbackReceiver
 	{
 		_points = curve._points;
 		_isClosed = curve._isClosed;
+		_interpolationMinDistance = curve._interpolationMinDistance;
+		_interpolationMaxAngleError = curve._interpolationMaxAngleError;
+		_interpolationAccuracy = curve._interpolationAccuracy;
 		_bVersion++;
 	}
 }
