@@ -93,6 +93,7 @@ public partial class OtherCurvePropertyDrawer
 	private GUIContent _maxAngleErrorLabel = new GUIContent("Max Ang");
 	private GUIContent _minDistLabel = new GUIContent("Min Dist");
 	private GUIContent _accuracyLabel = new GUIContent("Acc");
+	private float snapDistance = .01f;
 
 	private void EditorStarted()
 	{
@@ -214,6 +215,7 @@ public partial class OtherCurvePropertyDrawer
 		bool GetMouseUp(int button) => current.type == EventType.MouseUp && current.button == button;
 	}
 	float dot;
+
 	private void StartExtruding()
 	{
 		Undo.RecordObject(targetObject, "Curve Extrude");
@@ -638,19 +640,35 @@ public partial class OtherCurvePropertyDrawer
 		var invRot = toolRotation.Inverted();
 		var m = Matrix4x4.TRS(pos, toolRotation, Vector3.one);
 		var im = m.inverse;
-		Handles.BeginGUI();
-		GUI.Label(new Rect(current.mousePosition, new Vector2(200,20)),"     " + (m.MultiplyPoint3x4(pos)).ToString());
-		Handles.EndGUI();
-		var d = curve.Points.Select(p => im.MultiplyPoint3x4(TransformPoint(p)).Abs()).ToArray();
-		Handles.color = Color.yellow * .8f;
-		for (int i = 0; i < d.Length; i++)
+		var dist = curve.Points.Select(p => im.MultiplyPoint3x4(TransformPoint(p)));
+		var dd = new List<(int i, Vector3 v, float dist)>();
 		{
-			if (d[i].x < .01f && d[i].y < .01f)
-				Handles.DrawAAPolyLine(TransformPoint(curve.Points[i]), pos);
-			if (d[i].z < .01f && d[i].y < .01f)
-				Handles.DrawAAPolyLine(TransformPoint(curve.Points[i]), pos);
-			if (d[i].x < .01f && d[i].z < .01f)
-				Handles.DrawAAPolyLine(TransformPoint(curve.Points[i]), pos);	
+			int i = 0;
+			foreach (var d in dist)
+			{
+				if (i != closestIndex && ((d.x.Abs() < snapDistance ? 1 : 0) + (d.y.Abs() < snapDistance ? 1 : 0) + (d.z.Abs() < snapDistance ? 1 : 0) > 1))
+					dd.Add((i, trimDistanceMaximum(d, snapDistance), d.x.Abs() + d.y.Abs() + d.z.Abs()));
+				i++;
+			}
+		}
+		dd.Sort((a, b) => a.dist.CompareTo(b.dist));
+
+		Handles.color = Color.yellow * .8f;
+		foreach (var d in dd)
+		{
+			Handles.DrawAAPolyLine(TransformPoint(curve.Points[d.i]), pos);
+		}
+
+		if (dd.Count == 0) return;
+
+		pos = m.MultiplyPoint3x4(dd.First().v);
+
+		Vector3 trimDistanceMaximum(Vector3 v, float minDist)
+		{
+			if (v.x.Abs() > minDist) return new Vector3(0, v.y, v.z);
+			if (v.y.Abs() > minDist) return new Vector3(v.x, 0, v.z);
+			if (v.z.Abs() > minDist) return new Vector3(v.x, v.y, 0);
+			return v;
 		}
 	}
 }
