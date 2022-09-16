@@ -55,7 +55,7 @@ namespace BezierCurveZ
 			var P = s.First();
 			var Q = s.Last();
 
-			//Hope it works just that easy
+			//Hope it works just that easy... Yep it is!
 			float t = (P[3] - P[2]).magnitude / (Q[1] - P[2]).magnitude;
 
 			var newSegment = new Vector3[] {

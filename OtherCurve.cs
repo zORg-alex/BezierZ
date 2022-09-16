@@ -13,13 +13,20 @@ public class OtherCurve : ISerializationCallbackReceiver
 {
 #if UNITY_EDITOR
 	[SerializeField] public bool _previewOn;
-	//[SerializeField]
+	[NonSerialized]
 	public bool _isInEditMode;
+	[NonSerialized]
 	public bool _isMouseOverProperty;
 #endif
 
 	[SerializeField] internal List<OtherPoint> _points;
 	private int _bVersion = 1;
+
+	public void BumpVersion()
+	{
+		_bVersion++;
+		UpdateVertexData(force: true);
+	}
 
 	/// <summary>
 	/// Points and segments in open curve: {Control, Right, Left}, {Control}
@@ -67,21 +74,36 @@ public class OtherCurve : ISerializationCallbackReceiver
 	[DebuggerStepThrough]
 	public bool IsControlPoint(int index) => _points[index].IsControlPoint;
 
+	private Vector3[][] _segments;
+	[NonSerialized]
+	private int _sVersion;
 	public Vector3[][] Segments
 	{
 		[DebuggerStepThrough]
 		get
 		{
-			Vector3[][] r = new Vector3[SegmentCount][];
-			for (int i = 0; i < SegmentCount; i++)
-				r[i] = new Vector3[] { _points[i * 3].position, _points[i * 3 + 1].position, _points[i * 3 + 2].position, _points[(i * 3 + 3) % _points.Count].position };
-			return r;
+			if (_sVersion != _bVersion)
+			{
+				_segments = getValue();
+				_sVersion = _bVersion;
+			}
+			return _segments;
+
+			Vector3[][] getValue()
+			{
+				Vector3[][] r = new Vector3[SegmentCount][];
+				for (int i = 0; i < SegmentCount; i++)
+					r[i] = new Vector3[] { _points[i * 3].position, _points[i * 3 + 1].position, _points[i * 3 + 2].position, _points[(i * 3 + 3) % _points.Count].position };
+				return r;
+			}
 		}
 	}
 
+	[NonSerialized]
 	private int _pposVersion;
 	private Vector3[] _pointPositions;
 	public Vector3[] PointPositions { get { if (_pposVersion != _bVersion) _pointPositions = _points.SelectArray(p => p.position); return _pointPositions; } }
+	[NonSerialized]
 	private int _protVersion;
 	private Quaternion[] _pointRotations;
 	public Quaternion[] PointRotations { get { if (_protVersion != _bVersion) _pointRotations = _points.SelectArray(p => p.rotation); return _pointRotations; } }
@@ -432,10 +454,19 @@ public class OtherCurve : ISerializationCallbackReceiver
 	{
 		if (segmentIndex <= 0 && segmentIndex >= SegmentCount) return;
 
-		var s = Segments.Skip(segmentIndex - 1).Take(2);
-		var segment = CasteljauUtility.JoinSegments(s);
+		if ((segmentIndex == 0 || segmentIndex == SegmentCount) && IsClosed)
+		{
+			var s = new Vector3[][] { Segments[SegmentCount - 1], Segments[0] };
+			ReplaceCurveSegment(0, 1, CasteljauUtility.JoinSegments(s));
+			_points.RemoveRange(PointCount - 3, 3);
+		}
+		else
+		{
+			var s = Segments.Skip(segmentIndex - 1).Take(2);
+			var segment = CasteljauUtility.JoinSegments(s);
 
-		ReplaceCurveSegment(segmentIndex - 1, 2, segment);
+			ReplaceCurveSegment(segmentIndex - 1, 2, segment);
+		}
 	}
 
 	public void RemoveMany(IEnumerable<int> indexes)
@@ -556,6 +587,7 @@ public class OtherCurve : ISerializationCallbackReceiver
 	}
 
 
+	[NonSerialized]
 	private int _vVersion;
 	private OtherVertexData[] _vertexData;
 	public OtherVertexData[] VertexData
@@ -567,6 +599,8 @@ public class OtherCurve : ISerializationCallbackReceiver
 			return _vertexData;
 		}
 	}
+
+	[NonSerialized]
 	private int _vDPVersion;
 	private Vector3[] _vertexDataPoints;
 	[SerializeField]

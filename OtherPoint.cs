@@ -91,7 +91,7 @@ public struct OtherPoint
 	[DebuggerStepThrough]
 	public static OtherPoint LeftHandle(Vector3 position, Quaternion rotation = default, Mode mode = Mode.Automatic) => new OtherPoint(position, rotation, Type.Left, mode);
 
-	public enum Mode { Automatic = 1, Manual = 2, Linear = 4, Proportional = Automatic | Manual}
+	public enum Mode { None = 0, Automatic = 1, Manual = 2, Linear = 4, Proportional = Automatic | Manual}
 	public enum Type { Control, Right, Left}
 
 	[DebuggerStepThrough]

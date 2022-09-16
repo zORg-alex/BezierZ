@@ -110,11 +110,11 @@ public partial class OtherCurvePropertyDrawer
 		if (GetKeyDown(KeyCode.Delete))
 		{
 			current.Use();
-			if (closestIndex != -1 || selectedPointIdexes.Count > 0)
+			if (closestControlIndex != -1 || selectedPointIdexes.Count > 0)
 			{
 				Undo.RecordObject(targetObject, "Delete Points");
 				if (selectedPointIdexes.Count == 0)
-					curve.DissolveCP(curve.GetSegmentIndex(closestIndex));
+					curve.DissolveCP(curve.GetSegmentIndex(closestControlIndex));
 				else
 				{
 					curve.RemoveMany(selectedPointIdexes);
@@ -446,7 +446,10 @@ public partial class OtherCurvePropertyDrawer
 
 		//Update curve if Undo performed
 		if (current.type == EventType.ValidateCommand && current.commandName == "UndoRedoPerformed")
-			curve.UpdateVertexData(true);
+		{
+			curve.BumpVersion();
+			CallAllSceneViewRepaint();
+		}
 
 		if (updateClosestPoint && !selectingMultiple)
 			UpdateClosestPoint();
