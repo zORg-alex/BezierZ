@@ -7,6 +7,7 @@ using RectEx;
 using Utility.Editor;
 using BezierCurveZ;
 using System.Runtime.InteropServices;
+using static UnityEngine.GraphicsBuffer;
 
 public partial class OtherCurvePropertyDrawer
 {
