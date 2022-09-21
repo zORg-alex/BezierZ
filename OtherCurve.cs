@@ -628,16 +628,16 @@ public class OtherCurve : ISerializationCallbackReceiver
 		}
 	}
 
-
-
-	//private int[] _vertexDataGroupIndexes;
-	//public IEnumerable<IEnumerable<OtherVertexData>> VertexDataGroups;
+	public int IterpolationOptionsInd;
+	bool useLinearInterpolation => IterpolationOptionsInd == 1;
+	bool useSmoothInterpolation => IterpolationOptionsInd == 2;
+	bool useCatmullRomInterpolation => IterpolationOptionsInd == 3;
 
 	public void UpdateVertexData(bool force = false)
 	{
 		if (_bVersion != _vVersion || force)
 		{
-			_vertexData = OtherVertexData.GetVertexData(this, InterpolationMaxAngleError, InterpolationMinDistance, InterpolationAccuracy);
+			_vertexData = OtherVertexData.GetVertexData(this, InterpolationMaxAngleError, InterpolationMinDistance, InterpolationAccuracy, useLinearInterpolation, useSmoothInterpolation, useCatmullRomInterpolation);
 			_vVersion = _bVersion;
 		}
 	}

@@ -13,6 +13,8 @@ public partial class OtherCurvePropertyDrawer
 {
 	private float EditorHeight(OtherCurve curve) => propValue._isInEditMode ? EditorGUIUtility.singleLineHeight + 64 + 2 * 3 : 0;
 
+	GUIContent[] interpolationOptions = new GUIContent[] { new GUIContent("Rotation Minimization"), new GUIContent("Linear Interpolation"), new GUIContent("Smooth Interpolation"), new GUIContent("CatmullRom Additive Interpolation")};
+
 	private void DrawEditor(Rect position)
 	{
 		var lines = position.Column(new float[] { 0, 0 }, new float[] { EditorGUIUtility.singleLineHeight, 64 });
@@ -39,6 +41,10 @@ public partial class OtherCurvePropertyDrawer
 			Undo.RecordObject(targetObject, $"IsClosed changed on {curve}");
 			curve.SetIsClosed(!curve.IsClosed);
 		}
+
+		var ops = EditorGUI.Popup(secLine[1], curve.IterpolationOptionsInd, interpolationOptions);
+		if (ops != curve.IterpolationOptionsInd)
+			curve.IterpolationOptionsInd = ops;
 	}
 	/// <summary>
 	/// Transforms position from local space to world space.

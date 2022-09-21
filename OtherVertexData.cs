@@ -20,7 +20,7 @@ public struct OtherVertexData
 	public int segmentStartVertInd;
 	public bool isSharp;
 
-	internal static OtherVertexData[] GetVertexData(OtherCurve otherCurve, float maxAngleError, float minSplitDistance, int accuracy)
+	internal static OtherVertexData[] GetVertexData(OtherCurve otherCurve, float maxAngleError, float minSplitDistance, int accuracy, bool useLinearInterpolation = false, bool useSmoothInterpolation = false, bool useCatmullRomInterpolation = true)
 	{
 		if (otherCurve.PointCount == 0) otherCurve.Reset();
 		var splitdata = CurveInterpolation.SplitCurveByAngleError(
@@ -28,7 +28,7 @@ public struct OtherVertexData
 			otherCurve.ControlPoints.SelectArray(p=>p.rotation),
 			otherCurve.ControlPoints.SelectArray(p=>!p.IsAutomatic),
 			otherCurve.IsClosed,
-			maxAngleError, minSplitDistance, accuracy);
+			maxAngleError, minSplitDistance, accuracy, useLinearInterpolation, useSmoothInterpolation, useCatmullRomInterpolation);
 		var vd = new OtherVertexData[splitdata.Count];
 		var segInd = 0;
 		for (int i = 0; i < splitdata.Count; i++)

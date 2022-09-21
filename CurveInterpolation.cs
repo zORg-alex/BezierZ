@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using UnityEditor;
 using UnityEngine;
 
 namespace BezierCurveZ
@@ -8,7 +9,7 @@ namespace BezierCurveZ
 	public static class CurveInterpolation
 	{
 		public static float MinSplitDistance = 0.000001f;
-		public static SplitData SplitCurveByAngleError(Vector3[][] segments, Quaternion[] cpRotations, bool[] cpIsSharp, bool IsClosed, float maxAngleError, float minSplitDistance, int accuracy = 10)
+		public static SplitData SplitCurveByAngleError(Vector3[][] segments, Quaternion[] cpRotations, bool[] cpIsSharp, bool IsClosed, float maxAngleError, float minSplitDistance, int accuracy = 10, bool useLinear = false, bool useSmooth = false, bool useCR = true)
 		{
 			if (segments.Length == 0) return null;
 
@@ -23,11 +24,14 @@ namespace BezierCurveZ
 			var rotationsCR = new Quaternion[cpRotations.Length + 2];
 			var relrotationCR = new Quaternion[cpRotations.Length + 2];
 			var relAnglesCR = new float[cpRotations.Length + 2];
-			rotationsCR[0] = IsClosed ? cpRotations[cpRotations.Length - 2] : cpRotations[0];
-			rotationsCR[rotationsCR.Length - 1] = IsClosed ? cpRotations[1] : cpRotations[cpRotations.Length - 1];
-			for (int i = 0; i < cpRotations.Length; i++)
+			if (useCR)
 			{
-				rotationsCR[i + 1] = cpRotations[i];
+				rotationsCR[0] = IsClosed ? cpRotations[cpRotations.Length - 2] : cpRotations[0];
+				rotationsCR[rotationsCR.Length - 1] = IsClosed ? cpRotations[1] : cpRotations[cpRotations.Length - 1];
+				for (int i = 0; i < cpRotations.Length; i++)
+				{
+					rotationsCR[i + 1] = cpRotations[i];
+				}
 			}
 
 			//Should correct for previous point estimation
@@ -38,13 +42,16 @@ namespace BezierCurveZ
 			var prevUp = cpRotations[segInd] * Vector3.up;
 			foreach (var segment in segments)
 			{
-				//var prevUp = cpRotations[segInd] * Vector3.up;//curve.PointRotations[curve.GetPointIndex(segInd)] * Vector3.up;
+				if (useLinear || useSmooth)
+					prevUp = cpRotations[segInd] * Vector3.up;
 				var prevTang = cpRotations[segInd] * Vector3.forward;
 				var firstIndex = data.points.Count;
 				var estimatedSegmentLength = CurveUtils.EstimateSegmentLength(segment);
 				int divisions = (estimatedSegmentLength * accuracy).CeilToInt();
 				float increment = divisions == 1 ? 1f : 1f / divisions;
 				Vector3 _nextEvalPoint = CurveUtils.Evaluate(increment, segment);
+				float _rollAngle = 0f;
+					float _rollIncrement = segInd < cpRotations.Length - 1 ? ((cpRotations[segInd].eulerAngles.z - cpRotations[segInd + 1].eulerAngles.z) / divisions).Abs() : 0f;
 				bool prevCPIsAutomatic = cpIsSharp[segInd];
 
 				float t = 0f;
@@ -57,9 +64,14 @@ namespace BezierCurveZ
 					var _toLastPointMag = _toLastPoint.magnitude;
 					float _angle = 180 - Vector3.Angle(_toLastPoint, _nextEvalPoint - _currentPoint);
 					float _angleError = _angle.Max(_previousAngle);
+					if (segInd < cpRotations.Length - 1)
+						_rollAngle += _rollIncrement;
 
-					if (_isSharp || (_edgePoint && _lastAddedPoint != _currentPoint) || _angleError > maxAngleError && _dist >= minSplitDistance)
+					if (_isSharp || (_edgePoint && _lastAddedPoint != _currentPoint)
+						|| (_angleError > maxAngleError || _rollAngle > maxAngleError)
+						&& _dist >= minSplitDistance)
 					{
+						_rollAngle = 0;
 						length += _toLastPointMag;
 						Vector3 tang = CurveUtils.EvaluateDerivative(t, segment).normalized;
 						if (tang == Vector3.zero) tang = prevTang;
@@ -95,19 +107,24 @@ namespace BezierCurveZ
 					relAnglesCR[segInd + 2] = diff.eulerAngles.z;
 				}
 
-				//var i = data.rotations.Count - 1;
+				if (useLinear || useSmooth)
+				{
+					var i = data.rotations.Count - 1;
 
-				//var right = cpRotations[(segInd + 1) % cpRotations.Length];
-				//var rmLast = data.rotations[data.rotations.Count - 1];
-				//var correction = (rmLast.Inverted() * right).normalized;
-				//while (i > firstIndex)
-				//{
-				//	t = data.cumulativeTime[i] - segInd;
-				//	var r = data.rotations[i] * Quaternion.Slerp(Quaternion.identity, correction, t.SmoothStep());
-				//	data.rotations[i] = r;
+					var right = cpRotations[(segInd + 1) % cpRotations.Length];
+					var rmLast = data.rotations[data.rotations.Count - 1];
+					var correction = (rmLast.Inverted() * right).normalized;
+					while (i > firstIndex)
+					{
+						t = data.cumulativeTime[i] - segInd;
+						if (useSmooth)
+							data.rotations[i] = data.rotations[i] * Quaternion.Slerp(Quaternion.identity, correction, t.SmoothStep());
+						if (useLinear)
+							data.rotations[i] = data.rotations[i] * Quaternion.Slerp(Quaternion.identity, correction, t);
 
-				//	i--;
-				//}
+						i--;
+					}
+				}
 
 				segInd++;
 			}
@@ -119,36 +136,36 @@ namespace BezierCurveZ
 			Quaternion allignedSecondToLastRotation() => Quaternion.LookRotation(secondToLastCPRotation() * Vector3.forward, secondToLastRotation() * Vector3.up);
 			Quaternion allignedSecondRoation() => Quaternion.LookRotation(secondCPRotation() * Vector3.forward, secondRotation() * Vector3.up);
 
-
-			relrotationCR[0] = IsClosed ? allignedSecondToLastRotation().Inverted() * secondToLastCPRotation() : Quaternion.identity;
-			relrotationCR[1] = Quaternion.identity;
-			relrotationCR[relrotationCR.Length - 1] = IsClosed ? allignedSecondRoation().Inverted() * secondCPRotation() : relrotationCR[relrotationCR.Length - 2];
-			relAnglesCR[0] = (IsClosed ? allignedSecondToLastRotation().Inverted() * secondToLastCPRotation() : Quaternion.identity).eulerAngles.z;
-			relAnglesCR[1] = 0;
-			relAnglesCR[relrotationCR.Length - 1] = (IsClosed ? allignedSecondRoation().Inverted() * secondCPRotation() : relrotationCR[relrotationCR.Length - 2]).eulerAngles.z;
-			for (int i = 0; i < relAnglesCR.Length; i++)
+			if (useCR)
 			{
-				relAnglesCR[(i + 1) % relAnglesCR.Length] = relAnglesCR[i] + Mathf.DeltaAngle(relAnglesCR[i], relAnglesCR[(i + 1) % relAnglesCR.Length]);
-			}
-			Debug.Log(string.Join(", ", relAnglesCR) + "\n" + string.Join(", ", data.rotations.Select(q=>q.eulerAngles)));
-			var rotations = new Quaternion[data.rotations.Count];// data.rotations.ToArray();
-			{
-				int i = 0;
-				foreach (var r in data.rotations)
+				relrotationCR[0] = IsClosed ? allignedSecondToLastRotation().Inverted() * secondToLastCPRotation() : Quaternion.identity;
+				relrotationCR[1] = Quaternion.identity;
+				relrotationCR[relrotationCR.Length - 1] = IsClosed ? allignedSecondRoation().Inverted() * secondCPRotation() : relrotationCR[relrotationCR.Length - 2];
+				relAnglesCR[0] = (IsClosed ? allignedSecondToLastRotation().Inverted() * secondToLastCPRotation() : Quaternion.identity).eulerAngles.z;
+				relAnglesCR[1] = 0;
+				relAnglesCR[relrotationCR.Length - 1] = (IsClosed ? allignedSecondRoation().Inverted() * secondCPRotation() : relrotationCR[relrotationCR.Length - 2]).eulerAngles.z;
+				for (int i = 0; i < relAnglesCR.Length - 1; i++)
 				{
-					segInd = data.cumulativeTime[i].FloorToInt();
-					if (segInd == cpRotations.Length - 1)
-					{
-						rotations[i] = rotations[i - 1];
-					}
-					else
-						rotations[i] = r * Quaternion.Euler(0,0,
-							CatmullRomCurveUtility.Evaluate(data.cumulativeTime[i] - segInd, 1f,
-							relrotationCR[segInd].eulerAngles.z, relAnglesCR[segInd + 1], relAnglesCR[segInd + 2], relAnglesCR[segInd + 3]));
-							//Quaternion.Euler(0, 0, CatmullRomCurveUtility.Evaluate(data.cumulativeTime[i] - segInd, 1f, relrotationCR[segInd].eulerAngles.z, relrotationCR[segInd + 1].eulerAngles.z, relrotationCR[segInd + 2].eulerAngles.z, relrotationCR[segInd + 3].eulerAngles.z));
-					i++;
+					relAnglesCR[(i + 1) % relAnglesCR.Length] = relAnglesCR[i] + Mathf.DeltaAngle(relAnglesCR[i], relAnglesCR[(i + 1) % relAnglesCR.Length]);
 				}
-				data.rotations = new List<Quaternion>(rotations);
+				var rotations = new Quaternion[data.rotations.Count];
+				{
+					int i = 0;
+					foreach (var r in data.rotations)
+					{
+						segInd = data.cumulativeTime[i].FloorToInt();
+						if (segInd == cpRotations.Length - 1)
+						{
+							rotations[i] = rotations[i - 1];
+						}
+						else
+							rotations[i] = r * Quaternion.Euler(0, 0,
+								CatmullRomCurveUtility.Evaluate(data.cumulativeTime[i] - segInd, 1f,
+								relrotationCR[segInd].eulerAngles.z, relAnglesCR[segInd + 1], relAnglesCR[segInd + 2], relAnglesCR[segInd + 3]));
+						i++;
+					}
+					data.rotations = new List<Quaternion>(rotations);
+				}
 			}
 
 			return data;
