@@ -779,7 +779,9 @@ namespace BezierCurveZ
 						SnapPointToCurvePoints(ref pos, closestIndex);
 					}
 					else
-						pos = Handles.FreeMoveHandle(editedPosition, rotation, HandleUtility.GetHandleSize(editedPosition) * .2f, Vector3.one * .2f, Handles.RectangleHandleCap);
+					{
+						pos = Handles.FreeMoveHandle(editedPosition, HandleUtility.GetHandleSize(editedPosition) * .2f, Vector3.one * .2f, Handles.RectangleHandleCap);
+					}
 
 					if (EditorGUI.EndChangeCheck())
 					{

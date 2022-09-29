@@ -100,7 +100,7 @@ namespace BezierCurveZ
 					nextCPIsAutomatic = prevCPIsAutomatic;
 				}
 
-				if (segInd < cpRotations.Length)
+				if (useCR && segInd < cpRotations.Length - 1)
 				{
 					Quaternion diff = Quaternion.LookRotation(cpRotations[segInd + 1] * Vector3.forward, prevUp).Inverted() * cpRotations[segInd + 1]; //(rotation.Inverted() * cpRotations[segInd + 1]).Inverted();
 					relrotationCR[segInd + 2] = diff;
@@ -154,14 +154,12 @@ namespace BezierCurveZ
 					foreach (var r in data.rotations)
 					{
 						segInd = data.cumulativeTime[i].FloorToInt();
-						if (segInd == cpRotations.Length - 1)
-						{
-							rotations[i] = rotations[i - 1];
-						}
-						else
+						if (segInd < cpRotations.Length - 1)
 							rotations[i] = r * Quaternion.Euler(0, 0,
 								CatmullRomCurveUtility.Evaluate(data.cumulativeTime[i] - segInd, 1f,
-								relrotationCR[segInd].eulerAngles.z, relAnglesCR[segInd + 1], relAnglesCR[segInd + 2], relAnglesCR[segInd + 3]));
+								relAnglesCR[segInd], relAnglesCR[segInd + 1], relAnglesCR[segInd + 2], relAnglesCR[segInd + 3]));
+						else
+							rotations[i] = rotations[i - 1];
 						i++;
 					}
 					data.rotations = new List<Quaternion>(rotations);

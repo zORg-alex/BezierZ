@@ -8,6 +8,7 @@ using Utility.Editor;
 using BezierCurveZ;
 using System.Runtime.InteropServices;
 using static UnityEngine.GraphicsBuffer;
+using UnityEditor.ShortcutManagement;
 
 public partial class OtherCurvePropertyDrawer
 {
@@ -104,12 +105,24 @@ public partial class OtherCurvePropertyDrawer
 
 	private void EditorStarted()
 	{
+		Tools.pivotModeChanged += Tools_pivotModeChanged;
+	}
 
+	[UnityEditor.ShortcutManagement.ClutchShortcut("Scene View/SomeShortcut", typeof(SceneView), KeyCode.C, displayName = "_ some shortcut")]
+	private static void someCommand(ShortcutArguments args)
+	{
+		Debug.Log("someCommand");
+	}
+
+	private void Tools_pivotModeChanged()
+	{
+		UpdateClosestPoint();
 	}
 
 	private void EditorFinished()
 	{
 		Tools.current = currentInternalTool;
+		Tools.pivotModeChanged -= Tools_pivotModeChanged;
 	}
 
 	private void ProcessInput()
@@ -143,9 +156,6 @@ public partial class OtherCurvePropertyDrawer
 			snapKeyDown = true;
 		else if (GetKeyUp(KeyCode.S))
 			snapKeyDown = false;
-
-		if (GetKeyUp(KeyCode.X))
-			UpdateClosestPoint();
 
 		//Rect selection + Shift/Ctrl click
 		if (selectingMultiple && GUIUtility.hotControl == 0 && current.type == EventType.MouseDrag )
@@ -572,7 +582,7 @@ public partial class OtherCurvePropertyDrawer
 					ProcessSnapping(ref pos);
 			}
 			else
-				pos = Handles.FreeMoveHandle(editedPosition, toolRotation, HandleUtility.GetHandleSize(editedPosition) * .16f, Vector3.one * .2f, Handles.RectangleHandleCap);
+			 {	var fmh_575_50_637997192434284899 = toolRotation; pos = Handles.FreeMoveHandle(editedPosition, HandleUtility.GetHandleSize(editedPosition) * .16f, Vector3.one * .2f, Handles.RectangleHandleCap); }
 
 
 

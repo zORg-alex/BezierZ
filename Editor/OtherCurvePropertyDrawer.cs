@@ -211,11 +211,14 @@ public partial class OtherCurvePropertyDrawer : PropertyDrawer
         CallAllSceneViewRepaint();
     }
 
-    private void StartEditor()
+	private OtherCurvePropertyDrawer _instance { get; set; }
+
+	private void StartEditor()
     {
         var capturedThing = propValue;
         FinishCurrentEditorAction?.Invoke();
         curve = propValue;
+        _instance = this;
         FinishCurrentEditorAction = () => {
             FinishEditor(capturedThing);
             EditorUtility.SetDirty(targetObject);
@@ -226,27 +229,36 @@ public partial class OtherCurvePropertyDrawer : PropertyDrawer
         EditorSceneManager.sceneClosed += FinishCurrentEditor;
         AssemblyReloadEvents.beforeAssemblyReload += FinishCurrentEditor;
         SceneView.duringSceneGui += OnEditorSceneView;
+        EditorApplication.update += OnEditorSceneView;
         EditorStarted();
     }
 
     private void FinishEditor(OtherCurve curve)
     {
+        _instance = null;
         Selection.selectionChanged -= FinishCurrentEditor;
         EditorSceneManager.sceneClosed -= FinishCurrentEditor;
         AssemblyReloadEvents.beforeAssemblyReload -= FinishCurrentEditor;
         SceneView.duringSceneGui -= OnEditorSceneView;
-        curve._isInEditMode = false;
+        EditorApplication.update -= OnEditorSceneView;
+		curve._isInEditMode = false;
         FinishCurrentEditorAction = null;
         EditorFinished();
         this.curve = null;
     }
 
-	private void OnEditorSceneView(SceneView obj)
+    private void OnEditorSceneView(SceneView obj) => OnEditorSceneView();
+
+	private void OnEditorSceneView()
     {
-        if (curve == null) return;
-        DrawSceneEditor();
-    }
-    internal class PreviewCallbacks
+
+		if (curve == null || _instance == null) return;
+        current = Event.current;
+        if(current == null) return;
+		DrawSceneEditor();
+	}
+
+	internal class PreviewCallbacks
     {
 		public PreviewCallbacks(OtherCurve curve, OtherCurvePropertyDrawer drawer)
 		{
