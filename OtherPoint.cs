@@ -15,7 +15,6 @@ public struct OtherPoint
 	public Vector3 forward { [DebuggerStepThrough] get => rotation * Vector3.forward; }
 	public Vector3 right { [DebuggerStepThrough] get => rotation * Vector3.right; }
 	public Vector3 up { [DebuggerStepThrough] get => rotation * Vector3.up; }
-	public float angle { [DebuggerStepThrough] get => _rotation.eulerAngles.z; }
 
 	[SerializeField] internal Type _type;
 	public Type type { [DebuggerStepThrough] get => _type; }

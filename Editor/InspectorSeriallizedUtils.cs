@@ -12,6 +12,14 @@ namespace Utility {
 	public static class InspectorSeriallizedUtils {
 
 		public static T GetValue<T>(this SerializedProperty property) where T : class {
+			try
+			{
+				if (property.serializedObject.targetObject == null) return null;
+			}
+			catch
+			{
+				return null;
+			}
 			object obj = property.serializedObject.targetObject;
 			string path = property.propertyPath.Replace(".Array.data", "");
 			string[] fieldStructure = path.Split('.');

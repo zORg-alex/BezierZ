@@ -1,6 +1,7 @@
 using BezierCurveZ;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
 #if UNITY_EDITOR
@@ -127,6 +128,10 @@ public class OtherCurve : ISerializationCallbackReceiver
 		_pointPositions = null;
 		_pointRotations = null;
 		_vertexDataPoints = null;
+		_interpolationAccuracy = 10;
+		_interpolationMaxAngleError = 5;
+		_interpolationMinDistance = 0;
+		_interpolationCapmullRomTension = 1f;
 	}
 	private static List<OtherPoint> defaultPoints
 	{
@@ -606,7 +611,7 @@ public class OtherCurve : ISerializationCallbackReceiver
 	[SerializeField]
 	private float _interpolationMaxAngleError;
 	[SerializeField]
-	private float _interpolationMinDistance;
+	private float _interpolationMinDistance;	
 	[SerializeField]
 	private int _interpolationAccuracy;
 	public int InterpolationAccuracy { get => _interpolationAccuracy; set { _interpolationAccuracy = value; _vVersion++; } }
@@ -628,16 +633,19 @@ public class OtherCurve : ISerializationCallbackReceiver
 		}
 	}
 
-	public int IterpolationOptionsInd;
+	public int IterpolationOptionsInd = 3;
 	bool useLinearInterpolation => IterpolationOptionsInd == 1;
 	bool useSmoothInterpolation => IterpolationOptionsInd == 2;
 	bool useCatmullRomInterpolation => IterpolationOptionsInd == 3;
+	[SerializeField]
+	float _interpolationCapmullRomTension;
+	public float InterpolationCapmullRomTension { get => _interpolationCapmullRomTension; set { _interpolationCapmullRomTension = value; _vVersion++; } }
 
 	public void UpdateVertexData(bool force = false)
 	{
 		if (_bVersion != _vVersion || force)
 		{
-			_vertexData = OtherVertexData.GetVertexData(this, InterpolationMaxAngleError, InterpolationMinDistance, InterpolationAccuracy, useLinearInterpolation, useSmoothInterpolation, useCatmullRomInterpolation);
+			_vertexData = OtherVertexData.GetVertexData(this, InterpolationMaxAngleError, InterpolationMinDistance, InterpolationAccuracy, useLinearInterpolation, useSmoothInterpolation, useCatmullRomInterpolation, _interpolationCapmullRomTension);
 			_vVersion = _bVersion;
 		}
 	}

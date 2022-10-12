@@ -12,38 +12,44 @@ using UnityEditor.ShortcutManagement;
 
 public partial class OtherCurvePropertyDrawer
 {
-	private float EditorHeight(OtherCurve curve) => propValue._isInEditMode ? EditorGUIUtility.singleLineHeight + 64 + 2 * 3 : 0;
+	private float EditorHeight(OtherCurve curve) => propValue._isInEditMode ? 64 + 2 * 3 : 0;
 
 	GUIContent[] interpolationOptions = new GUIContent[] { new GUIContent("Rotation Minimization"), new GUIContent("Linear Interpolation"), new GUIContent("Smooth Interpolation"), new GUIContent("CatmullRom Additive Interpolation")};
 
 	private void DrawEditor(Rect position)
 	{
-		var lines = position.Column(new float[] { 0, 0 }, new float[] { EditorGUIUtility.singleLineHeight, 64 });
-		var firstLine = lines[0].Row(3, 4);
-		var secLine = lines[1].Row(new float[] { 0, 1 }, new float[] { 64, 0 });
+		var line = position.Row(new float[] { 0, 1, 1 }, new float[] { 64, 0, 0 }, 4);
+		var detStack = line[1].Column(3);
+		var interpStack = line[2].Column(3);
 
 		var lw = EditorGUIUtility.labelWidth;
-		EditorGUIUtility.labelWidth = EditorStyles.label.CalcSize(_maxAngleErrorLabel).x;
-		curve.InterpolationMaxAngleError = Mathf.Clamp(
-			EditorGUI.FloatField(firstLine[0], _maxAngleErrorLabel, curve.InterpolationMaxAngleError)
-			, 0, 180);
-		EditorGUIUtility.labelWidth = EditorStyles.label.CalcSize(_minDistLabel).x;
-		curve.InterpolationMinDistance = Mathf.Max(CurveInterpolation.MinSplitDistance,
-			EditorGUI.FloatField(firstLine[1], _minDistLabel, curve.InterpolationMinDistance)
+		EditorGUIUtility.labelWidth = Mathf.Max(
+			EditorStyles.label.CalcSize(_maxAngleErrorLabel).x,
+			EditorStyles.label.CalcSize(_minDistLabel).x,
+			EditorStyles.label.CalcSize(_accuracyLabel).x
 			);
-		EditorGUIUtility.labelWidth = EditorStyles.label.CalcSize(_accuracyLabel).x;
+		curve.InterpolationMaxAngleError = Mathf.Clamp(
+			EditorGUI.FloatField(detStack[0], _maxAngleErrorLabel, curve.InterpolationMaxAngleError)
+			, 0, 180);
+		curve.InterpolationMinDistance = Mathf.Max(CurveInterpolation.MinSplitDistance,
+			EditorGUI.FloatField(detStack[1], _minDistLabel, curve.InterpolationMinDistance)
+			);
 		curve.InterpolationAccuracy = (int)Mathf.Clamp(
-			EditorGUI.IntField(firstLine[2], _accuracyLabel, curve.InterpolationAccuracy)
+			EditorGUI.IntField(detStack[2], _accuracyLabel, curve.InterpolationAccuracy)
 			, 1, 1000);
+		if (curve.IterpolationOptionsInd == 3)
+			curve.InterpolationCapmullRomTension = Mathf.Max(
+				EditorGUI.FloatField(interpStack[1], "tension", curve.InterpolationCapmullRomTension)
+				, 0.01f);
 		EditorGUIUtility.labelWidth = lw;
 
-		if (GUI.Button(secLine[0], isOpenClosedTexture))
+		if (GUI.Button(line[0], isOpenClosedTexture))
 		{
 			Undo.RecordObject(targetObject, $"IsClosed changed on {curve}");
 			curve.SetIsClosed(!curve.IsClosed);
 		}
 
-		var ops = EditorGUI.Popup(secLine[1], curve.IterpolationOptionsInd, interpolationOptions);
+		var ops = EditorGUI.Popup(interpStack[0], curve.IterpolationOptionsInd, interpolationOptions);
 		if (ops != curve.IterpolationOptionsInd)
 			curve.IterpolationOptionsInd = ops;
 	}
@@ -102,6 +108,8 @@ public partial class OtherCurvePropertyDrawer
 	private GUIContent _minDistLabel = new GUIContent("Min Dist");
 	private GUIContent _accuracyLabel = new GUIContent("Acc");
 	private float snapDistance = .01f;
+	private bool showPointGUI;
+	private bool mouseCaptured;
 
 	private void EditorStarted()
 	{
@@ -141,6 +149,13 @@ public partial class OtherCurvePropertyDrawer
 					selectedPointIdexes.Clear();
 				}
 			}
+		}
+
+		if (GetKeyUp(KeyCode.Q))
+		{
+			showPointGUI = !showPointGUI;
+		} else if (showPointGUI && (GetMouseDown(2) || GetKeyDown(KeyCode.Escape))) {
+			showPointGUI = false;
 		}
 
 		if (GetKeyDown(KeyCode.C))
@@ -231,7 +246,6 @@ public partial class OtherCurvePropertyDrawer
 		bool GetMouseDown(int button) => current.type == EventType.MouseDown && current.button == button;
 		bool GetMouseUp(int button) => current.type == EventType.MouseUp && current.button == button;
 	}
-	float dot;
 
 	private void StartExtruding()
 	{
@@ -239,7 +253,6 @@ public partial class OtherCurvePropertyDrawer
 		int segmentIndex = curve.GetSegmentIndex(closestIndex);
 		//BackupCurve();
 		curve.SetPointPosition(closestIndex, closestPoint);
-		dot = curve.GetCPTangentFromPoints(segmentIndex).Dot(TransformPoint(closestPoint) - editedPosition);
 		if (curve.GetCPTangentFromPoints(segmentIndex).Dot(TransformPoint(closestPoint) - editedPosition) < 0)
 		{
 			if (curve.IsClosed) segmentIndex %= curve.SegmentCount;
@@ -468,7 +481,7 @@ public partial class OtherCurvePropertyDrawer
 			CallAllSceneViewRepaint();
 		}
 
-		if (updateClosestPoint && !selectingMultiple)
+		if (updateClosestPoint && !selectingMultiple && !mouseCaptured)
 			UpdateClosestPoint();
 		ProcessInput();
 		DrawStuff();
@@ -650,6 +663,55 @@ public partial class OtherCurvePropertyDrawer
 					}
 				}
 			}
+		}
+		else if (showPointGUI && closestIndex != -1 && current.type != EventType.Layout)
+		{
+			Handles.BeginGUI();
+			var guiRect = new Rect(HandleUtility.WorldToGUIPoint(editedPosition), new Vector3(300, EditorGUIUtility.singleLineHeight * 3 + 8));
+			mouseCaptured = guiRect.Contains(current.mousePosition);
+			GUI.Box(guiRect, GUIContent.none);
+
+			//Draw position line
+			var line = guiRect.FirstLine(EditorGUIUtility.singleLineHeight + 4).Extend(-2);
+			GUI.Label(line.MoveLeftFor(30), "pos");
+			EditorGUI.BeginChangeCheck();
+			var pos = EditorGUI.Vector3Field(line, GUIContent.none, closestPoint);
+			if (EditorGUI.EndChangeCheck())
+			{
+				Undo.RecordObject(targetObject, "Set position");
+				curve.SetPointPosition(closestIndex, pos);
+				closestPoint = curve.Points[closestIndex];
+			}
+			//Draw Eulers Angles line
+			line = line.MoveDown();
+			GUI.Label(line.MoveLeftFor(30), "rot");
+			EditorGUI.BeginChangeCheck();
+			var rot = EditorGUI.Vector3Field(line, GUIContent.none, closestPoint.rotation.eulerAngles);
+			if (EditorGUI.EndChangeCheck())
+			{
+				Undo.RecordObject(targetObject, "Set rotation");
+				curve.SetCPRotation(curve.GetSegmentIndex(closestIndex), Quaternion.Euler(rot));
+				closestPoint = curve.Points[closestIndex];
+			}
+			//Draw Modes dropdown
+			line = line.MoveDown();
+			GUI.Label(line.MoveLeftFor(30), "mode");
+			GUI.enabled = curve.IsControlPoint(closestIndex);
+			EditorGUI.BeginChangeCheck();
+			var modeId = EditorGUI.Popup(line, OtherPoint.AllModes.IndexOf(closestPoint.mode), Curve.BezierPoint.AllModes.SelectArray(m => m.ToString()));
+			if (EditorGUI.EndChangeCheck())
+			{
+				Undo.RecordObject(targetObject, "Set mode");
+				curve.SetPointMode(closestIndex, OtherPoint.AllModes[modeId]);
+				closestPoint = curve.Points[closestIndex];
+			}
+			GUI.enabled = true;
+			Handles.EndGUI();
+
+			Quaternion r = Camera.current.transform.rotation;
+			float h = HandleUtility.GetHandleSize(editedPosition) * .2f;
+			Handles.color = Color.white / 5 * 3;
+			Handles.DrawAAConvexPolygon(editedPosition, editedPosition + r * Vector3.right * h, editedPosition + r * Vector3.down * h);
 		}
 	}
 

@@ -9,7 +9,7 @@ namespace BezierCurveZ
 	public static class CurveInterpolation
 	{
 		public static float MinSplitDistance = 0.000001f;
-		public static SplitData SplitCurveByAngleError(Vector3[][] segments, Quaternion[] cpRotations, bool[] cpIsSharp, bool IsClosed, float maxAngleError, float minSplitDistance, int accuracy = 10, bool useLinear = false, bool useSmooth = false, bool useCR = true)
+		public static SplitData SplitCurveByAngleError(Vector3[][] segments, Quaternion[] cpRotations, bool[] cpIsSharp, bool IsClosed, float maxAngleError, float minSplitDistance, int accuracy = 10, bool useLinear = false, bool useSmooth = false, bool useCR = true, float crTension = 1f)
 		{
 			if (segments.Length == 0) return null;
 
@@ -156,7 +156,7 @@ namespace BezierCurveZ
 						segInd = data.cumulativeTime[i].FloorToInt();
 						if (segInd < cpRotations.Length - 1)
 							rotations[i] = r * Quaternion.Euler(0, 0,
-								CatmullRomCurveUtility.Evaluate(data.cumulativeTime[i] - segInd, 1f,
+								CatmullRomCurveUtility.Evaluate(data.cumulativeTime[i] - segInd, crTension,
 								relAnglesCR[segInd], relAnglesCR[segInd + 1], relAnglesCR[segInd + 2], relAnglesCR[segInd + 3]));
 						else
 							rotations[i] = rotations[i - 1];
