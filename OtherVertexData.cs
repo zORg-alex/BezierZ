@@ -1,6 +1,7 @@
 ﻿using BezierCurveZ;
 using System;
 using UnityEngine;
+using static OtherCurve;
 
 public struct OtherVertexData
 {
@@ -20,15 +21,21 @@ public struct OtherVertexData
 	public int segmentStartVertInd;
 	public bool isSharp;
 
-	internal static OtherVertexData[] GetVertexData(OtherCurve otherCurve, float maxAngleError, float minSplitDistance, int accuracy, bool useLinearInterpolation = false, bool useSmoothInterpolation = false, bool useCatmullRomInterpolation = true, float crTension = 1f)
+	internal static OtherVertexData[] GetVertexData(OtherCurve otherCurve)
 	{
 		if (otherCurve.PointCount == 0) otherCurve.Reset();
 		var splitdata = CurveInterpolation.SplitCurveByAngleError(
 			otherCurve.Segments,
-			otherCurve.ControlPoints.SelectArray(p=>p.rotation),
-			otherCurve.ControlPoints.SelectArray(p=>!p.IsAutomatic),
+			otherCurve.ControlPoints.SelectArray(p => p.rotation),
+			otherCurve.ControlPoints.SelectArray(p => !p.IsAutomatic),
 			otherCurve.IsClosed,
-			maxAngleError, minSplitDistance, accuracy, useLinearInterpolation, useSmoothInterpolation, useCatmullRomInterpolation, crTension);
+			otherCurve.InterpolationMaxAngleError,
+			otherCurve.InterpolationMinDistance,
+			otherCurve.InterpolationAccuracy,
+			otherCurve.IterpolationOptionsInd == InterpolationMethod.Linear,
+			otherCurve.IterpolationOptionsInd == InterpolationMethod.Smooth,
+			otherCurve.IterpolationOptionsInd == InterpolationMethod.CatmullRomAdditive,
+			otherCurve.InterpolationCapmullRomTension);
 		var vd = new OtherVertexData[splitdata.Count];
 		var segInd = 0;
 		for (int i = 0; i < splitdata.Count; i++)

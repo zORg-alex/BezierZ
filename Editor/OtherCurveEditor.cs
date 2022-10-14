@@ -37,7 +37,7 @@ public partial class OtherCurvePropertyDrawer
 		curve.InterpolationAccuracy = (int)Mathf.Clamp(
 			EditorGUI.IntField(detStack[2], _accuracyLabel, curve.InterpolationAccuracy)
 			, 1, 1000);
-		if (curve.IterpolationOptionsInd == 3)
+		if (curve.IterpolationOptionsInd == OtherCurve.InterpolationMethod.CatmullRomAdditive)
 			curve.InterpolationCapmullRomTension = Mathf.Max(
 				EditorGUI.FloatField(interpStack[1], "tension", curve.InterpolationCapmullRomTension)
 				, 0.01f);
@@ -49,9 +49,9 @@ public partial class OtherCurvePropertyDrawer
 			curve.SetIsClosed(!curve.IsClosed);
 		}
 
-		var ops = EditorGUI.Popup(interpStack[0], curve.IterpolationOptionsInd, interpolationOptions);
-		if (ops != curve.IterpolationOptionsInd)
-			curve.IterpolationOptionsInd = ops;
+		var ops = EditorGUI.Popup(interpStack[0], (int)curve.IterpolationOptionsInd, interpolationOptions);
+		if (ops != (int)curve.IterpolationOptionsInd)
+			curve.IterpolationOptionsInd = (OtherCurve.InterpolationMethod)ops;
 	}
 	/// <summary>
 	/// Transforms position from local space to world space.
@@ -515,6 +515,11 @@ public partial class OtherCurvePropertyDrawer
 				minHDist = dist;
 				//closestHandleIndex = i;
 			}
+		}
+		if (closestIndex == -1)
+		{
+			closestPoint = default;
+
 		}
 		if (curve.IsClosed && closestIndex == curve.LastPointInd) closestIndex = 0;
 		closestPoint = curve.Points[closestIndex];

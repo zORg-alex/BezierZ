@@ -132,6 +132,7 @@ public class OtherCurve : ISerializationCallbackReceiver
 		_interpolationMaxAngleError = 5;
 		_interpolationMinDistance = 0;
 		_interpolationCapmullRomTension = 1f;
+		IterpolationOptionsInd = InterpolationMethod.CatmullRomAdditive;
 	}
 	private static List<OtherPoint> defaultPoints
 	{
@@ -158,8 +159,11 @@ public class OtherCurve : ISerializationCallbackReceiver
 			_points.RemoveAt(LastPointInd);
 			_points.RemoveAt(LastPointInd);
 			_points.RemoveAt(LastPointInd);
-			_points[0] = _points[0].SetMode(_preservedNodeModesWhileClosed[0]);
-			_points[LastPointInd] = _points[LastPointInd].SetMode(_preservedNodeModesWhileClosed[1]);
+			if (_preservedNodeModesWhileClosed.Length == 2)
+			{
+				_points[0] = _points[0].SetMode(_preservedNodeModesWhileClosed[0]);
+				_points[LastPointInd] = _points[LastPointInd].SetMode(_preservedNodeModesWhileClosed[1]);
+			}
 			_bVersion++;
 		}
 		else
@@ -451,7 +455,7 @@ public class OtherCurve : ISerializationCallbackReceiver
 		var timeDist = b.cumulativeTime - a.cumulativeTime;
 		segmentIndex = Mathf.FloorToInt(a.cumulativeTime);
 		float t = a.cumulativeTime + dot * timeDist;
-		segmentIndex = Mathf.FloorToInt(t);
+		segmentIndex = Mathf.Min(SegmentCount - 1, Mathf.FloorToInt(t));
 		return t - segmentIndex;
 	}
 
@@ -633,10 +637,8 @@ public class OtherCurve : ISerializationCallbackReceiver
 		}
 	}
 
-	public int IterpolationOptionsInd = 3;
-	bool useLinearInterpolation => IterpolationOptionsInd == 1;
-	bool useSmoothInterpolation => IterpolationOptionsInd == 2;
-	bool useCatmullRomInterpolation => IterpolationOptionsInd == 3;
+	public enum InterpolationMethod { RotationMinimization = 0, Linear = 1, Smooth = 2, CatmullRomAdditive = 3}
+	public InterpolationMethod IterpolationOptionsInd;
 	[SerializeField]
 	float _interpolationCapmullRomTension;
 	public float InterpolationCapmullRomTension { get => _interpolationCapmullRomTension; set { _interpolationCapmullRomTension = value; _vVersion++; } }
@@ -645,7 +647,7 @@ public class OtherCurve : ISerializationCallbackReceiver
 	{
 		if (_bVersion != _vVersion || force)
 		{
-			_vertexData = OtherVertexData.GetVertexData(this, InterpolationMaxAngleError, InterpolationMinDistance, InterpolationAccuracy, useLinearInterpolation, useSmoothInterpolation, useCatmullRomInterpolation, _interpolationCapmullRomTension);
+			_vertexData = OtherVertexData.GetVertexData(this);
 			_vVersion = _bVersion;
 		}
 	}

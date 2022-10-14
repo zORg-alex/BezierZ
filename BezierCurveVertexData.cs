@@ -50,10 +50,15 @@ namespace BezierCurveZ
 
 		public BezierCurveVertexData(Curve bezierCurve, float minSamplingDistance = .001f, float maxAngleError = .05f, bool _useRotations = false)
 		{
+			var points = new Curve.BezierPoint[bezierCurve.SegmentCount + 1];
+			for (int i = 0; i < points.Length; i++)
+			{
+				points[i] = bezierCurve.Points[(bezierCurve.IsClosed ? 1 : 0) + (i * 3) % bezierCurve.PointCount];
+			}
 			var data = CurveInterpolation.SplitCurveByAngleError(
 				bezierCurve.Segments.ToArray(),
-				bezierCurve.Points.Where(p => p.type == Curve.BezierPoint.Type.Control).Select(p => p.rotation).ToArray(),
-				bezierCurve.Points.Where(p=>p.type == Curve.BezierPoint.Type.Control).Select(p=>p.mode.HasFlag( Curve.BezierPoint.Mode.Automatic)).ToArray(),
+				points.SelectArray(p => p.rotation),
+				points.SelectArray(p => p.mode.HasFlag(Curve.BezierPoint.Mode.Automatic)),
 				bezierCurve.IsClosed, maxAngleError, minSamplingDistance, 10);
 
 			_points = data.points.ToArray();
