@@ -100,11 +100,11 @@ namespace BezierCurveZ
 					nextCPIsAutomatic = prevCPIsAutomatic;
 				}
 
-				if (useCR && segInd < cpRotations.Length - 1)
+				if (useCR)
 				{
 					Quaternion diff = Quaternion.LookRotation(cpRotations[segInd + 1] * Vector3.forward, prevUp).Inverted() * cpRotations[segInd + 1]; //(rotation.Inverted() * cpRotations[segInd + 1]).Inverted();
-					relrotationCR[segInd + 2] = diff;
-					relAnglesCR[segInd + 2] = diff.eulerAngles.z;
+					relrotationCR[(segInd + 2) % relrotationCR.Length] = diff;
+					relAnglesCR[(segInd + 2) % relAnglesCR.Length] = diff.eulerAngles.z;
 				}
 
 				if (useLinear || useSmooth)
@@ -143,8 +143,8 @@ namespace BezierCurveZ
 				relrotationCR[relrotationCR.Length - 1] = IsClosed ? allignedSecondRoation().Inverted() * secondCPRotation() : relrotationCR[relrotationCR.Length - 2];
 				relAnglesCR[0] = (IsClosed ? allignedSecondToLastRotation().Inverted() * secondToLastCPRotation() : Quaternion.identity).eulerAngles.z;
 				relAnglesCR[1] = 0;
-				relAnglesCR[relrotationCR.Length - 1] = (IsClosed ? allignedSecondRoation().Inverted() * secondCPRotation() : relrotationCR[relrotationCR.Length - 2]).eulerAngles.z;
-				for (int i = 0; i < relAnglesCR.Length - 1; i++)
+				relAnglesCR[relrotationCR.Length - 1] = (IsClosed ? secondRotation().normalized.Inverted() * secondCPRotation().normalized : relrotationCR[relrotationCR.Length - 2]).eulerAngles.z;
+				for (int i = 1; i < relAnglesCR.Length - 1; i++)
 				{
 					relAnglesCR[(i + 1) % relAnglesCR.Length] = relAnglesCR[i] + Mathf.DeltaAngle(relAnglesCR[i], relAnglesCR[(i + 1) % relAnglesCR.Length]);
 				}
@@ -153,13 +153,10 @@ namespace BezierCurveZ
 					int i = 0;
 					foreach (var r in data.rotations)
 					{
-						segInd = data.cumulativeTime[i].FloorToInt();
-						if (segInd < cpRotations.Length - 1)
-							rotations[i] = r * Quaternion.Euler(0, 0,
-								CatmullRomCurveUtility.Evaluate(data.cumulativeTime[i] - segInd, crTension,
-								relAnglesCR[segInd], relAnglesCR[segInd + 1], relAnglesCR[segInd + 2], relAnglesCR[segInd + 3]));
-						else
-							rotations[i] = rotations[i - 1];
+						segInd = Mathf.Min(data.cumulativeTime[i].FloorToInt(), segments.Length - 1);
+						rotations[i] = r * Quaternion.Euler(0, 0,
+							CatmullRomCurveUtility.Evaluate(data.cumulativeTime[i] - segInd, crTension,
+							relAnglesCR[segInd], relAnglesCR[segInd + 1], relAnglesCR[segInd + 2], relAnglesCR[segInd + 3]));
 						i++;
 					}
 					data.rotations = new List<Quaternion>(rotations);

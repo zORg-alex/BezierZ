@@ -110,6 +110,7 @@ public partial class OtherCurvePropertyDrawer
 	private float snapDistance = .01f;
 	private bool showPointGUI;
 	private bool mouseCaptured;
+	private bool primaryMouseDragging;
 
 	private void EditorStarted()
 	{
@@ -150,6 +151,10 @@ public partial class OtherCurvePropertyDrawer
 				}
 			}
 		}
+		if (current.type == EventType.MouseDrag && current.button == 0)
+			primaryMouseDragging = true;
+		else if (GetMouseUp(0))
+			primaryMouseDragging = false;
 
 		if (GetKeyUp(KeyCode.Q))
 		{
@@ -167,12 +172,12 @@ public partial class OtherCurvePropertyDrawer
 			selectHandlesOnly = false;
 		}
 
-		if (GetKeyDown(KeyCode.S))
+		if (GetKeyDown(KeyCode.S) && primaryMouseDragging)
 		{
 			snapKeyDown = true;
 			current.Use();
 		}
-		else if (GetKeyUp(KeyCode.S))
+		else if (GetKeyUp(KeyCode.S) && primaryMouseDragging)
 		{
 			snapKeyDown = false;
 			current.Use();
