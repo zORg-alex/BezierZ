@@ -168,9 +168,15 @@ public partial class OtherCurvePropertyDrawer
 		}
 
 		if (GetKeyDown(KeyCode.S))
+		{
 			snapKeyDown = true;
+			current.Use();
+		}
 		else if (GetKeyUp(KeyCode.S))
+		{
 			snapKeyDown = false;
+			current.Use();
+		}
 
 		//Rect selection + Shift/Ctrl click
 		if (selectingMultiple && GUIUtility.hotControl == 0 && current.type == EventType.MouseDrag )
@@ -600,13 +606,15 @@ public partial class OtherCurvePropertyDrawer
 					ProcessSnapping(ref pos);
 			}
 			else
-			 {	var fmh_575_50_637997192434284899 = toolRotation; pos = Handles.FreeMoveHandle(editedPosition, HandleUtility.GetHandleSize(editedPosition) * .16f, Vector3.one * .2f, Handles.RectangleHandleCap); }
+			{
+				pos = Handles.FreeMoveHandle(editedPosition, HandleUtility.GetHandleSize(editedPosition) * .16f, Vector3.one * .2f, Handles.RectangleHandleCap);
+			}
 
 
 
 			if (EditorGUI.EndChangeCheck())
 			{
-					Undo.RecordObject(targetObject, "Point position changed");
+				Undo.RecordObject(targetObject, "Point position changed");
 
 				if (selectedPointIdexes.Count == 0)
 				{
