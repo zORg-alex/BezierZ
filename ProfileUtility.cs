@@ -7,11 +7,11 @@ using System.Linq;
 #endif
 public static class ProfileUtility
 {
+	public enum UVMode { None = 0, UUniform = 1, USegment = 2, ULength = 4, VUniform = 8, VSegment = 16, VLength = 32, Uniform = UUniform | VUniform, Length = ULength | VLength, Segment = USegment | VSegment }
 
-
-	public static Mesh GenerateProfileMesh(OtherCurve curve, OtherCurve profile) => GenerateProfileMesh(curve, profile, new Vector3[] { Vector3.zero }, new Vector3[] { Vector3.one });
-	public static Mesh GenerateProfileMesh(OtherCurve curve, OtherCurve profile, Vector3 offset, Vector3 scale) => GenerateProfileMesh(curve, profile, new Vector3[] { offset }, new Vector3[] { scale });
-	public static Mesh GenerateProfileMesh(OtherCurve curve, OtherCurve profile, Vector3[] offsets, Vector3[] scales)
+	public static Mesh GenerateProfileMesh(OtherCurve curve, OtherCurve profile, UVMode mode = UVMode.Uniform) => GenerateProfileMesh(curve, profile, new Vector3[] { Vector3.zero }, new Vector3[] { Vector3.one }, mode);
+	public static Mesh GenerateProfileMesh(OtherCurve curve, OtherCurve profile, Vector3 offset, Vector3 scale, UVMode mode = UVMode.Uniform) => GenerateProfileMesh(curve, profile, new Vector3[] { offset }, new Vector3[] { scale }, mode);
+	public static Mesh GenerateProfileMesh(OtherCurve curve, OtherCurve profile, Vector3[] offsets, Vector3[] scales, UVMode mode = UVMode.Uniform)
 	{
 		bool usePathNormals = false;
 
@@ -19,6 +19,7 @@ public static class ProfileUtility
 		int profileLen = profile.VertexData.Length;
 		var vertices = new Vector3[profileLen * curveLen * offsets.Length];
 		var normals = new Vector3[profileLen * curveLen * offsets.Length];
+		var uvs = new Vector2[profileLen * curveLen * offsets.Length];
 		var triangles = new List<int>(profileLen * (curveLen + 1) * 3 * offsets.Length);
 
 		for (int o = 0; o < offsets.Length; o++)
@@ -41,6 +42,13 @@ public static class ProfileUtility
 					var profilePointTransformed = vert.Position.Scale_(scales[o] + offsets[o]);
 					vertices[loopFirstVert + j] = point + point.Rotation * profilePointTransformed;
 					normals[loopFirstVert + j] = point.Rotation * vert.Rotation * Vector3.right;
+					uvs[loopFirstVert + j] =
+						Vector2.up * (mode.HasFlag(UVMode.VUniform) ? (point.distance / curve.VertexData.CurveLength()) :
+						mode.HasFlag(UVMode.VLength) ? point.distance :
+						mode.HasFlag(UVMode.VSegment) ? point.cumulativeTime - point.segmentInd : 0) +
+						Vector2.right * (mode.HasFlag(UVMode.UUniform) ? vert.distance / profile.VertexData.CurveLength() :
+						mode.HasFlag(UVMode.ULength) ? vert.distance :
+						mode.HasFlag(UVMode.USegment) ? vert.cumulativeTime - point.segmentInd : 0);
 
 					var next = NextIndex(j, profileLen);
 					var prevVert = PrevIndex(j, profileLen);
@@ -62,6 +70,7 @@ public static class ProfileUtility
 		mesh.vertices = vertices;
 		mesh.triangles = triangles.ToArray();
 		mesh.normals = normals;
+		mesh.uv = uvs;
 		//mesh.RecalculateNormals();
 
 		return mesh;

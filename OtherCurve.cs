@@ -618,9 +618,9 @@ public class OtherCurve : ISerializationCallbackReceiver
 	private float _interpolationMinDistance;	
 	[SerializeField]
 	private int _interpolationAccuracy;
-	public int InterpolationAccuracy { get => _interpolationAccuracy; set { _interpolationAccuracy = value; _vVersion++; } }
-	public float InterpolationMaxAngleError { get => _interpolationMaxAngleError; set { _interpolationMaxAngleError = value; _vVersion++; } }
-	public float InterpolationMinDistance { get => _interpolationMinDistance; set { _interpolationMinDistance = value; _vVersion++; } }
+	public int InterpolationAccuracy { get => _interpolationAccuracy; set { if (_interpolationAccuracy != value) { _interpolationAccuracy = value; _bVersion++; } } }
+	public float InterpolationMaxAngleError { get => _interpolationMaxAngleError; set { if (_interpolationMaxAngleError != value) { _interpolationMaxAngleError = value; _bVersion++; } } }
+	public float InterpolationMinDistance { get => _interpolationMinDistance; set { if (_interpolationMinDistance != value) { _interpolationMinDistance = value; _bVersion++; } } }
 
 	public Vector3[] VertexDataPoints
 	{
@@ -641,13 +641,13 @@ public class OtherCurve : ISerializationCallbackReceiver
 	public InterpolationMethod IterpolationOptionsInd;
 	[SerializeField]
 	float _interpolationCapmullRomTension;
-	public float InterpolationCapmullRomTension { get => _interpolationCapmullRomTension; set { _interpolationCapmullRomTension = value; _vVersion++; } }
+	public float InterpolationCapmullRomTension { get => _interpolationCapmullRomTension; set { if (_interpolationCapmullRomTension != value) { _interpolationCapmullRomTension = value; _vVersion++; } } }
 
 	public void UpdateVertexData(bool force = false)
 	{
 		if (_bVersion != _vVersion || force)
 		{
-			_vertexData = OtherVertexData.GetVertexData(this);
+ 			_vertexData = OtherVertexData.GetVertexData(this);
 			_vVersion = _bVersion;
 		}
 	}

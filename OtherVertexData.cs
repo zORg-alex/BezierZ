@@ -62,4 +62,6 @@ public static class OtherVertexDataExtensions
 {
 	internal static int GetStartIndex(this OtherVertexData[] vertexData, int segmentInd) =>
 		vertexData.BinarySearch(v => v.segmentInd.CompareTo(segmentInd)).segmentStartVertInd;
+
+	public static float CurveLength(this OtherVertexData[] vertexData) => vertexData[vertexData.Length - 1].distance;
 }

@@ -159,7 +159,7 @@ public partial class OtherCurvePropertyDrawer
 		if (GetKeyUp(KeyCode.Q))
 		{
 			showPointGUI = !showPointGUI;
-		} else if (showPointGUI && (GetMouseDown(2) || GetKeyDown(KeyCode.Escape))) {
+		} else if (showPointGUI && (GetMouseDown(2) || GetKeyDown(KeyCode.Escape) || currentInternalTool == Tool.Move || currentInternalTool == Tool.Rotate)) {
 			showPointGUI = false;
 		}
 
