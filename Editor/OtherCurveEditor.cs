@@ -28,30 +28,46 @@ public partial class OtherCurvePropertyDrawer
 			EditorStyles.label.CalcSize(_minDistLabel).x,
 			EditorStyles.label.CalcSize(_accuracyLabel).x
 			);
-		curve.InterpolationMaxAngleError = Mathf.Clamp(
+		EditorGUI.BeginChangeCheck();
+		var maxerr = Mathf.Clamp(
 			EditorGUI.FloatField(detStack[0], _maxAngleErrorLabel, curve.InterpolationMaxAngleError)
 			, 0, 180);
-		curve.InterpolationMinDistance = Mathf.Max(CurveInterpolation.MinSplitDistance,
+		var mindist = Mathf.Max(CurveInterpolation.MinSplitDistance,
 			EditorGUI.FloatField(detStack[1], _minDistLabel, curve.InterpolationMinDistance)
 			);
-		curve.InterpolationAccuracy = (int)Mathf.Clamp(
+		var acc = (int)Mathf.Clamp(
 			EditorGUI.IntField(detStack[2], _accuracyLabel, curve.InterpolationAccuracy)
 			, 1, 1000);
+		var tens = 0f;
 		if (curve.IterpolationOptionsInd == OtherCurve.InterpolationMethod.CatmullRomAdditive)
-			curve.InterpolationCapmullRomTension = Mathf.Max(
+			tens = Mathf.Max(
 				EditorGUI.FloatField(interpStack[1], "tension", curve.InterpolationCapmullRomTension)
 				, 0.01f);
 		EditorGUIUtility.labelWidth = lw;
+		if (EditorGUI.EndChangeCheck())
+		{
+			Undo.RecordObject(targetObject, $"Interpolation options changed on curve");
+			curve.InterpolationMaxAngleError = maxerr;
+			curve.InterpolationMinDistance = mindist;
+			curve.InterpolationAccuracy = acc;
+			curve.InterpolationCapmullRomTension = tens;
+			CallAllSceneViewRepaint();
+		}
 
 		if (GUI.Button(line[0], isOpenClosedTexture))
 		{
-			Undo.RecordObject(targetObject, $"IsClosed changed on {curve}");
+			Undo.RecordObject(targetObject, $"IsClosed changed on curve");
 			curve.SetIsClosed(!curve.IsClosed);
+			CallAllSceneViewRepaint();
 		}
 
 		var ops = EditorGUI.Popup(interpStack[0], (int)curve.IterpolationOptionsInd, interpolationOptions);
 		if (ops != (int)curve.IterpolationOptionsInd)
+		{
+			Undo.RecordObject(targetObject, $"Interpolation options changed on curve");
 			curve.IterpolationOptionsInd = (OtherCurve.InterpolationMethod)ops;
+			CallAllSceneViewRepaint();
+		}
 	}
 	/// <summary>
 	/// Transforms position from local space to world space.
@@ -472,15 +488,15 @@ public partial class OtherCurvePropertyDrawer
 
 		static void DrawVertices(List<Vector3> vertices, bool towardCamera)
 		{
-			Handles.color = towardCamera ? Color.green : Color.red * .6666f + Color.green * .3333f;
-			Handles.DrawAAPolyLine((towardCamera ? 4 : 2), vertices.ToArray());
+			Handles.color = towardCamera ? Color.green : new Color(.6f, .3f, 0);
+			Handles.DrawAAPolyLine((towardCamera ? 2f : 3f), vertices.ToArray());
 		}
 	}
 
 	private void DrawSceneEditor()
 	{
 		controlID = GUIUtility.GetControlID(932795649, FocusType.Passive);
-		current = Event.current;
+		//current = Event.current;
 		if (current.type == EventType.Layout)
 			//Magic thing to stop mouse from selecting other objects
 			HandleUtility.AddDefaultControl(controlID);
