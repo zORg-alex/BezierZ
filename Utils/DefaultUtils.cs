@@ -32,6 +32,16 @@ public static class DefaultUtils {
 		}
 		return r;
 	}
+	[DebuggerStepperBoundary]
+	public static T1[] SelectArray<T1>(this IEnumerable<T1> collection) {
+		var r = new T1[collection.Count()];
+		var ind = 0;
+		foreach (var item in collection)
+		{
+			r[ind++] = item;
+		}
+		return r;
+	}
 
 	public static T[] SetValues<T>(this T[] array, int startIndex, params T[] values) {
 		for (int i = 0; i < values.Length; i++) {

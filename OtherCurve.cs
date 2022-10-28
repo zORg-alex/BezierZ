@@ -13,15 +13,21 @@ using UnityEngine;
 public class OtherCurve : ISerializationCallbackReceiver
 {
 #if UNITY_EDITOR
-	[SerializeField] public bool _previewOn;
+	[NonSerialized]
+	public bool _previewOn;
 	[NonSerialized]
 	public bool _isInEditMode;
-	[NonSerialized]
 	public bool _isMouseOverProperty;
-#endif
+	[NonSerialized]
+	public int _id = new System.Random().Next();
+	public static int _idCounter;
 
-	[SerializeField] internal List<OtherPoint> _points;
-	private int _bVersion = 1;
+	//[SerializeField]
+#endif
+	private int _bVersion = new System.Random().Next();
+
+	[SerializeField]
+	internal List<OtherPoint> _points;
 
 	public void BumpVersion()
 	{
@@ -76,14 +82,13 @@ public class OtherCurve : ISerializationCallbackReceiver
 	public bool IsControlPoint(int index) => _points[index].IsControlPoint;
 
 	private Vector3[][] _segments;
-	[NonSerialized]
 	private int _sVersion;
 	public Vector3[][] Segments
 	{
 		[DebuggerStepThrough]
 		get
 		{
-			if (_sVersion != _bVersion)
+			if (_sVersion != _bVersion || _segments == null)
 			{
 				_segments = getValue();
 				_sVersion = _bVersion;
@@ -100,11 +105,9 @@ public class OtherCurve : ISerializationCallbackReceiver
 		}
 	}
 
-	[NonSerialized]
 	private int _pposVersion;
 	private Vector3[] _pointPositions;
 	public Vector3[] PointPositions { get { if (_pposVersion != _bVersion) _pointPositions = _points.SelectArray(p => p.position); return _pointPositions; } }
-	[NonSerialized]
 	private int _protVersion;
 	private Quaternion[] _pointRotations;
 	public Quaternion[] PointRotations { get { if (_protVersion != _bVersion) _pointRotations = _points.SelectArray(p => p.rotation); return _pointRotations; } }
@@ -118,6 +121,9 @@ public class OtherCurve : ISerializationCallbackReceiver
 	{
 		_points = defaultPoints;
 		_bVersion = 1;
+#if UNITY_EDITOR
+		_id = _idCounter++;
+#endif
 	}
 
 	public void Reset()
@@ -596,7 +602,6 @@ public class OtherCurve : ISerializationCallbackReceiver
 	}
 
 
-	[NonSerialized]
 	private int _vVersion;
 	private OtherVertexData[] _vertexData;
 	public OtherVertexData[] VertexData
@@ -609,7 +614,6 @@ public class OtherCurve : ISerializationCallbackReceiver
 		}
 	}
 
-	[NonSerialized]
 	private int _vDPVersion;
 	private Vector3[] _vertexDataPoints;
 	[SerializeField]
@@ -628,9 +632,9 @@ public class OtherCurve : ISerializationCallbackReceiver
 		get
 		{
 			UpdateVertexData();
-			if (_vDPVersion != _vVersion)
+			if (_vDPVersion != _vVersion || _vertexDataPoints == null)
 			{
-				_vertexDataPoints = _vertexData.SelectArray(v => v.Position);
+				_vertexDataPoints = VertexData.SelectArray(v => v.Position);
 				_vDPVersion = _vVersion;
 			}
 			return _vertexDataPoints;
@@ -645,7 +649,7 @@ public class OtherCurve : ISerializationCallbackReceiver
 
 	public void UpdateVertexData(bool force = false)
 	{
-		if (_bVersion != _vVersion || force)
+		if (_bVersion != _vVersion || _vertexData == null || force)
 		{
  			_vertexData = OtherVertexData.GetVertexData(this);
 			_vVersion = _bVersion;
@@ -671,5 +675,33 @@ public class OtherCurve : ISerializationCallbackReceiver
 		_interpolationMaxAngleError = curve._interpolationMaxAngleError;
 		_interpolationAccuracy = curve._interpolationAccuracy;
 		_bVersion++;
+	}
+
+	public override bool Equals(object obj)
+	{
+		return obj is OtherCurve curve &&
+			   _id == curve._id &&
+			   _bVersion == curve._bVersion &&
+			   EqualityComparer<List<OtherPoint>>.Default.Equals(_points, curve._points) &&
+			   _isClosed == curve._isClosed &&
+			   _interpolationMaxAngleError == curve._interpolationMaxAngleError &&
+			   _interpolationMinDistance == curve._interpolationMinDistance &&
+			   _interpolationAccuracy == curve._interpolationAccuracy &&
+			   _interpolationCapmullRomTension == curve._interpolationCapmullRomTension;
+	}
+
+	public override int GetHashCode()
+	{
+		return HashCode.Combine(_id, _bVersion, _points, _isClosed, _interpolationMaxAngleError, _interpolationMinDistance, _interpolationAccuracy, _interpolationCapmullRomTension);
+	}
+
+	public static bool operator ==(OtherCurve left, OtherCurve right)
+	{
+		return EqualityComparer<OtherCurve>.Default.Equals(left, right);
+	}
+
+	public static bool operator !=(OtherCurve left, OtherCurve right)
+	{
+		return !(left == right);
 	}
 }

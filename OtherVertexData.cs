@@ -22,11 +22,11 @@ public struct OtherVertexData
 	public bool isSharp;
 
 	internal static OtherVertexData[] GetVertexData(OtherCurve otherCurve)
-	{
+	{ 
 		if (otherCurve.PointCount == 0) otherCurve.Reset();
 		var splitdata = CurveInterpolation.SplitCurveByAngleError(
 			otherCurve.Segments,
-			otherCurve.ControlPoints.SelectArray(p => p.rotation),
+			otherCurve.PointRotations,
 			otherCurve.ControlPoints.SelectArray(p => !p.IsAutomatic),
 			otherCurve.IsClosed,
 			otherCurve.InterpolationMaxAngleError,
