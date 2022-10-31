@@ -10,7 +10,7 @@ using System.Runtime.InteropServices;
 using static UnityEngine.GraphicsBuffer;
 using UnityEditor.ShortcutManagement;
 
-public partial class OtherCurvePropertyDrawer
+public partial class OtherCurvePropertyDrawer__
 {
 	private float EditorHeight(OtherCurve curve) => propValue._isInEditMode ? 64 + 2 * 3 : 0;
 

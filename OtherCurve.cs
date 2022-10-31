@@ -8,22 +8,11 @@ using System.Linq;
 using UnityEditor;
 #endif
 using UnityEngine;
-
 [Serializable]
-public class OtherCurve : ISerializationCallbackReceiver
+public class OtherCurve : EditableClass, ISerializationCallbackReceiver
 {
-#if UNITY_EDITOR
-	[NonSerialized]
-	public bool _previewOn;
-	[NonSerialized]
-	public bool _isInEditMode;
-	public bool _isMouseOverProperty;
-	[NonSerialized]
-	public int _id = new System.Random().Next();
-	public static int _idCounter;
 
 	//[SerializeField]
-#endif
 	private int _bVersion = new System.Random().Next();
 
 	[SerializeField]

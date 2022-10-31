@@ -15,6 +15,7 @@ namespace Utility {
 			try
 			{
 				if (property.serializedObject.targetObject == null) return null;
+				if (property.propertyPath == null) return null;
 			}
 			catch
 			{
