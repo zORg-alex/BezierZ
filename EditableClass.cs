@@ -1,5 +1,6 @@
 ﻿using System;
 
+//[Serializable]
 public class EditableClass
 {
 #if UNITY_EDITOR
@@ -7,6 +8,7 @@ public class EditableClass
 	public bool _previewOn;
 	[NonSerialized]
 	public bool _isInEditMode;
+	[NonSerialized]
 	public bool _isMouseOverProperty;
 	[NonSerialized]
 	public int _id = new Random().Next();

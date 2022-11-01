@@ -101,7 +101,7 @@ public partial class OtherCurvePropertyDrawer__
 	private Tool currentInternalTool;
 	private bool selectHandlesOnly;
 	private OtherPoint closestPoint;
-	private OtherPoint closestControlPoint;
+	//private OtherPoint closestControlPoint;
 	private Vector3 editedPosition;
 	private Quaternion editedRotation;
 	private bool drawTools = true;
@@ -117,9 +117,9 @@ public partial class OtherCurvePropertyDrawer__
 	private Vector3 cutPoint;
 	private bool extrudeInitiated;
 	private int extrudedIndex;
-	private OtherCurve _backupCurve;
-	private int _backupClosestIndex;
-	private Vector3 _backupEditedPosition;
+	//private OtherCurve _backupCurve;
+	//private int _backupClosestIndex;
+	//private Vector3 _backupEditedPosition;
 	private GUIContent _maxAngleErrorLabel = new GUIContent("Max Ang");
 	private GUIContent _minDistLabel = new GUIContent("Min Dist");
 	private GUIContent _accuracyLabel = new GUIContent("Acc");
@@ -133,11 +133,11 @@ public partial class OtherCurvePropertyDrawer__
 		Tools.pivotModeChanged += Tools_pivotModeChanged;
 	}
 
-	[UnityEditor.ShortcutManagement.ClutchShortcut("Scene View/SomeShortcut", typeof(SceneView), KeyCode.C, displayName = "_ some shortcut")]
-	private static void someCommand(ShortcutArguments args)
-	{
-		Debug.Log("someCommand");
-	}
+	//[UnityEditor.ShortcutManagement.ClutchShortcut("Scene View/SomeShortcut", typeof(SceneView), KeyCode.C, displayName = "_ some shortcut")]
+	//private static void someCommand(ShortcutArguments args)
+	//{
+	//	Debug.Log("someCommand");
+	//}
 
 	private void Tools_pivotModeChanged()
 	{
@@ -308,19 +308,19 @@ public partial class OtherCurvePropertyDrawer__
 		closestPoint = curve.Points[closestIndex];
 	}
 
-	private void BackupCurve()
-	{
-		_backupCurve = curve.Copy();
-		_backupClosestIndex = closestIndex;
-		_backupEditedPosition = editedPosition;
-	}
-	private void RestoreBackup()
-	{
-		curve.CopyFrom(_backupCurve);
-		closestIndex = _backupClosestIndex;
-		editedPosition = _backupEditedPosition;
-		closestPoint = curve.Points[closestIndex];
-	}
+	//private void BackupCurve()
+	//{
+	//	_backupCurve = curve.Copy();
+	//	_backupClosestIndex = closestIndex;
+	//	_backupEditedPosition = editedPosition;
+	//}
+	//private void RestoreBackup()
+	//{
+	//	curve.CopyFrom(_backupCurve);
+	//	closestIndex = _backupClosestIndex;
+	//	editedPosition = _backupEditedPosition;
+	//	closestPoint = curve.Points[closestIndex];
+	//}
 
 	private void Cut()
 	{
@@ -552,7 +552,7 @@ public partial class OtherCurvePropertyDrawer__
 		closestPoint = curve.Points[closestIndex];
 		var cind = closestIndex + (closestPoint.isRightHandle ? -1 : closestPoint.isLeftHandle ? 1 : 0);
 		closestControlIndex = cind;
-		closestControlPoint = curve.Points[cind];
+		//closestControlPoint = curve.Points[cind];
 		if (closestPoint.mode == OtherPoint.Mode.Linear)
 		{
 			editedPosition = TransformPoint(curve.Points[cind]);
