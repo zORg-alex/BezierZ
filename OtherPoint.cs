@@ -48,6 +48,7 @@ public struct OtherPoint
 
 	public OtherPoint SetPosition(Vector3 position)
 	{
+		if (position.x == float.NaN) return this;
 		_position = position;
 		return this;
 	}

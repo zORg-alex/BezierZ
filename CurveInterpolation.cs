@@ -49,6 +49,7 @@ namespace BezierCurveZ
 				var estimatedSegmentLength = CurveUtils.EstimateSegmentLength(segment);
 				int divisions = (estimatedSegmentLength * accuracy).CeilToInt();
 				float increment = divisions == 1 ? 1f : 1f / divisions;
+				increment = Mathf.Max(increment, 0.0001f);
 				Vector3 _nextEvalPoint = CurveUtils.Evaluate(increment, segment);
 				float _rollAngle = 0f;
 					float _rollIncrement = segInd < cpRotations.Length - 1 ? ((cpRotations[segInd].eulerAngles.z - cpRotations[segInd + 1].eulerAngles.z) / divisions).Abs() : 0f;

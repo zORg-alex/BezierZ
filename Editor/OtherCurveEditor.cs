@@ -136,10 +136,12 @@ public class OtherCurveEditor : SubscribableEditor<OtherCurve>
 		if (GetKeyDown(KeyCode.C))
 		{
 			selectHandlesOnly = true;
+			current.Use();
 		}
 		else if (GetKeyUp(KeyCode.C))
 		{
-			selectHandlesOnly = false;
+			selectHandlesOnly = false; ;
+			current.Use();
 		}
 
 		if (GetKeyDown(KeyCode.S) && primaryMouseDragging)
@@ -204,11 +206,13 @@ public class OtherCurveEditor : SubscribableEditor<OtherCurve>
 			{
 				cutInitiated = true;
 				GUIUtility.hotControl = controlID;
-			}
+			};
+			current.Use();
 		}
 		else if (GetKeyUp(KeyCode.V))
 		{
-			extrudeInitiated = false;
+			extrudeInitiated = false; ;
+			current.Use();
 		}
 		else if (cutInitiated && GetMouseDown(0))
 		{
@@ -499,7 +503,7 @@ public class OtherCurveEditor : SubscribableEditor<OtherCurve>
 			if (point.type == OtherPoint.Type.Control)
 			{
 				GUIUtils.DrawCircle(point, point - camLocalPos, size, isSelected, 1.5f, 24);
-				Handles.Label(point, i.ToString());
+				Handles.Label(point, (i == curve.PointCount - 1 && curve.IsClosed ? "     / " : "  ") + i.ToString());
 			}
 			else
 			{

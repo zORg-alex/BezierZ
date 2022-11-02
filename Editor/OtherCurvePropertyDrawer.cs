@@ -2,7 +2,6 @@
 using UnityEditor;
 using Utility;
 using RectEx;
-using System;
 using UnityEditor.SceneManagement;
 using System.Collections.Generic;
 
@@ -14,7 +13,7 @@ namespace BezierCurveZ
 		private bool initialized;
 		private Event current;
 		private Transform targetTransform;
-		private static Dictionary<OtherCurve, OtherCurvePropertyDrawer__.PreviewCallbacks> _ActivePreviewSubscriptions = new Dictionary<OtherCurve, OtherCurvePropertyDrawer__.PreviewCallbacks>();
+		private static Dictionary<OtherCurve, PreviewCallbacks> _ActivePreviewSubscriptions = new Dictionary<OtherCurve, PreviewCallbacks>();
 
 		GUIContent editButtonText(bool edit) => edit ? new GUIContent("Stop") : new GUIContent("Edit");
 		private static Texture2D isOpenTexture;
@@ -178,7 +177,7 @@ namespace BezierCurveZ
 
 		private void OnPreview(OtherCurve curve)
 		{
-			if (!CheckPropertyIsOK(curve))
+			if (targetTransform == null || !targetTransform || !CheckPropertyIsOK(curve))
 				OnPreviewOff(curve);
 			var c = Handles.color;
 			var m = Handles.matrix;
@@ -208,6 +207,7 @@ namespace BezierCurveZ
 			AssemblyReloadEvents.beforeAssemblyReload -= c.UnsubscribePreview;
 			SceneView.duringSceneGui -= c.OnPreview;
 			_ActivePreviewSubscriptions.Remove(curve);
+			Debug.Log("OnPreviewOff");
 		}
 
 		private void OnPreviewOn(OtherCurve curve, SerializedProperty property)
@@ -217,12 +217,13 @@ namespace BezierCurveZ
 				return;
 			targetTransform = ((Component)property.serializedObject.targetObject).transform;
 			var capturedCurve = curve;
-			c = new OtherCurvePropertyDrawer__.PreviewCallbacks(capturedCurve, OnPreviewOff, OnPreview, property);
+			c = new PreviewCallbacks(capturedCurve, OnPreviewOff, OnPreview, property);
 			Selection.selectionChanged += c.UnsubscribePreviewIfNotOn;
 			EditorSceneManager.sceneClosed += c.UnsubscribePreview;
 			AssemblyReloadEvents.beforeAssemblyReload += c.UnsubscribePreview;
 			SceneView.duringSceneGui += c.OnPreview;
 			_ActivePreviewSubscriptions.Add(capturedCurve, c);
+			Debug.Log("OnPreviewOn");
 		}
 
 		private void RepaintSceneViews()

@@ -246,7 +246,7 @@ public class OtherCurve : EditableClass, ISerializationCallbackReceiver
 						//Proportional
 						var diff = position - controlPoint;
 						//_points[index] = _points[index].SetPosition(position);
-						if (IsClosed || (index > 1 && index < lastPointInd - 1))
+						if (diff.sqrMagnitude != 0 && (IsClosed || (index > 1 && index < lastPointInd - 1)))
 							_points[otherHandleIndex] = otherHandle.SetPosition(controlPoint - diff * ((otherHandle - controlPoint).magnitude / diff.magnitude))
 								.SetRotation(controlPoint.rotation);
 					}
