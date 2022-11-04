@@ -8,11 +8,13 @@ using System.Linq;
 using UnityEditor;
 #endif
 using UnityEngine;
+using Debug = UnityEngine.Debug;
+
 [Serializable]
 public class OtherCurve : EditableClass, ISerializationCallbackReceiver
 {
 
-	//[SerializeField]
+	[SerializeField]
 	private int _bVersion = new System.Random().Next();
 
 	[SerializeField]
@@ -99,7 +101,16 @@ public class OtherCurve : EditableClass, ISerializationCallbackReceiver
 	public Vector3[] PointPositions { get { if (_pposVersion != _bVersion) _pointPositions = _points.SelectArray(p => p.position); return _pointPositions; } }
 	private int _protVersion;
 	private Quaternion[] _pointRotations;
-	public Quaternion[] PointRotations { get { if (_protVersion != _bVersion) _pointRotations = _points.SelectArray(p => p.rotation); return _pointRotations; } }
+	public Quaternion[] PointRotations {
+		get {
+			if (_protVersion != _bVersion)
+			{
+				_pointRotations = _points.SelectArray(p => p.rotation);
+				_protVersion = _bVersion;
+			}
+			return _pointRotations;
+		} 
+	}
 	public int PointCount { [DebuggerStepThrough] get => _points.Count; }
 	private ushort lastPointInd { [DebuggerStepThrough] get => (ushort)(Points.Count - 1); }
 
@@ -109,10 +120,10 @@ public class OtherCurve : EditableClass, ISerializationCallbackReceiver
 	public OtherCurve()
 	{
 		_points = defaultPoints;
-		_bVersion = 1;
-#if UNITY_EDITOR
-		_id = _idCounter++;
-#endif
+//		_bVersion = 1;
+//#if UNITY_EDITOR
+//		_id = _idCounter++;
+//#endif
 	}
 
 	public void Reset()
@@ -590,7 +601,7 @@ public class OtherCurve : EditableClass, ISerializationCallbackReceiver
 		}
 	}
 
-
+	[NonSerialized]
 	private int _vVersion;
 	private OtherVertexData[] _vertexData;
 	public OtherVertexData[] VertexData
@@ -640,6 +651,7 @@ public class OtherCurve : EditableClass, ISerializationCallbackReceiver
 	{
 		if (_bVersion != _vVersion || _vertexData == null || force)
 		{
+			Debug.Log("UpdateVertexData");
  			_vertexData = OtherVertexData.GetVertexData(this);
 			_vVersion = _bVersion;
 		}

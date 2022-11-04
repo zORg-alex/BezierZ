@@ -22,11 +22,13 @@ namespace BezierCurveZ
 		public bool isExisting =>
 			property != default ? curve == property.GetValue<OtherCurve>() : false;
 
-		public void OnPreview(SceneView s) => preview(curve);
-		public void OnPreview() => preview(curve);
+		public void OnPreview(SceneView s) => OnPreview();
+		public void OnPreview()
+		{
+				preview(curve);
+		}
 		public void UnsubscribePreview() => unsubscribe(curve);
 		public void UnsubscribePreview(Scene s) => unsubscribe(curve);
-		public void UnsubscribePreviewIfNotOn() => unsubscribe(curve);
 
 		public override bool Equals(object obj)
 		{

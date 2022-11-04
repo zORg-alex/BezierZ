@@ -177,8 +177,11 @@ namespace BezierCurveZ
 
 		private void OnPreview(OtherCurve curve)
 		{
-			if (targetTransform == null || !targetTransform || !CheckPropertyIsOK(curve))
+			if (targetTransform.IsNullOrDestroyed() || !CheckPropertyIsOK(curve))
+			{
 				OnPreviewOff(curve);
+				return;
+			}
 			var c = Handles.color;
 			var m = Handles.matrix;
 			Handles.color = new Color(.25f, 1f, .25f);
@@ -202,7 +205,7 @@ namespace BezierCurveZ
 			var c = _ActivePreviewSubscriptions.GetValueOrDefault(curve);
 			if (c == null)
 				return;
-			Selection.selectionChanged -= c.UnsubscribePreviewIfNotOn;
+			Selection.selectionChanged -= c.UnsubscribePreview;
 			EditorSceneManager.sceneClosed -= c.UnsubscribePreview;
 			AssemblyReloadEvents.beforeAssemblyReload -= c.UnsubscribePreview;
 			SceneView.duringSceneGui -= c.OnPreview;
@@ -218,7 +221,7 @@ namespace BezierCurveZ
 			targetTransform = ((Component)property.serializedObject.targetObject).transform;
 			var capturedCurve = curve;
 			c = new PreviewCallbacks(capturedCurve, OnPreviewOff, OnPreview, property);
-			Selection.selectionChanged += c.UnsubscribePreviewIfNotOn;
+			Selection.selectionChanged += c.UnsubscribePreview;
 			EditorSceneManager.sceneClosed += c.UnsubscribePreview;
 			AssemblyReloadEvents.beforeAssemblyReload += c.UnsubscribePreview;
 			SceneView.duringSceneGui += c.OnPreview;

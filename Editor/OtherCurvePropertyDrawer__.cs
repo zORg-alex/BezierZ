@@ -183,7 +183,7 @@ public partial class OtherCurvePropertyDrawer__ : PropertyDrawer
 		SceneView.duringSceneGui -= MouseOverPreview;
 		var capturedCurve = propValue;
 		PreviewCallbacks c = new PreviewCallbacks(capturedCurve, _UnsubscribePreview, OnPreview, currentProperty);
-		Selection.selectionChanged += c.UnsubscribePreviewIfNotOn;
+		Selection.selectionChanged += c.UnsubscribePreview;
 		EditorSceneManager.sceneClosed += c.UnsubscribePreview;
 		AssemblyReloadEvents.beforeAssemblyReload += c.UnsubscribePreview;
 		SceneView.duringSceneGui += c.OnPreview;
@@ -195,7 +195,7 @@ public partial class OtherCurvePropertyDrawer__ : PropertyDrawer
 		SceneView.duringSceneGui -= MouseOverPreview;
 		var c = _ActivePreviewSubscriptions.GetValueOrDefault(curve);
 		if (c == null) return;
-		Selection.selectionChanged -= c.UnsubscribePreviewIfNotOn;
+		Selection.selectionChanged -= c.UnsubscribePreview;
 		EditorSceneManager.sceneClosed -= c.UnsubscribePreview;
 		AssemblyReloadEvents.beforeAssemblyReload -= c.UnsubscribePreview;
 		SceneView.duringSceneGui -= c.OnPreview;

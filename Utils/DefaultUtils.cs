@@ -242,6 +242,15 @@ public static class DefaultUtils {
 		Reset(transform);
 		return transform;
 	}
+	public static bool IsNullOrDestroyed(this System.Object obj)
+	{
+
+		if (object.ReferenceEquals(obj, null)) return true;
+
+		if (obj is UnityEngine.Object) return (obj as UnityEngine.Object) == null;
+
+		return false;
+	}
 
 	public static Rect Extend(this Rect rect, float horizontal, float vertical)
 	{
