@@ -3,68 +3,71 @@ using System;
 using Utility;
 using UnityEngine.SceneManagement;
 
-public abstract class SubscribableEditor<T> where T : EditableClass
+namespace BezierCurveZ.Editor
 {
-	protected T field;
-	protected SerializedProperty property;
-
-	public virtual void Start(T curve, SerializedProperty property)
+	public abstract class SubscribableEditor<T> where T : EditableClass
 	{
-		Unsubscribe();
-		if (this.field != null) this.field._isInEditMode = false;
-		this.field = curve;
-		this.property = property;
-		SceneView.duringSceneGui += EditorOnSceneGUI;
-		Selection.selectionChanged += Stop;
-		SceneManager.sceneUnloaded += Stop;
-		AssemblyReloadEvents.beforeAssemblyReload += Stop;
-	}
+		protected T field;
+		protected SerializedProperty property;
 
-	public void Stop(Scene sc) => Stop();
-	public virtual void Stop()
-	{
-		field._isInEditMode = false;
-		field = null;
-		Unsubscribe();
-	}
-
-	private void Unsubscribe()
-	{
-		SceneView.duringSceneGui -= EditorOnSceneGUI;
-		Selection.selectionChanged -= Stop;
-		SceneManager.sceneUnloaded -= Stop;
-		AssemblyReloadEvents.beforeAssemblyReload -= Stop;
-	}
-
-	private void EditorOnSceneGUI(SceneView sv)
-	{
-		if (!CheckPropertyIsOK())
-			Stop();
-		else
-			OnSceneGUI();
-	}
-
-	private bool CheckPropertyIsOK()
-	{
-		OtherCurve c = null;
-		bool ok = false;
-		try
+		public virtual void Start(T curve, SerializedProperty property)
 		{
-			c = property.GetValue<OtherCurve>();
-			ok = c != null && field._id == c._id;
-			if (!ok)
+			Unsubscribe();
+			if (this.field != null) this.field._isInEditMode = false;
+			this.field = curve;
+			this.property = property;
+			SceneView.duringSceneGui += EditorOnSceneGUI;
+			Selection.selectionChanged += Stop;
+			SceneManager.sceneUnloaded += Stop;
+			AssemblyReloadEvents.beforeAssemblyReload += Stop;
+		}
+
+		public void Stop(Scene sc) => Stop();
+		public virtual void Stop()
+		{
+			field._isInEditMode = false;
+			field = null;
+			Unsubscribe();
+		}
+
+		private void Unsubscribe()
+		{
+			SceneView.duringSceneGui -= EditorOnSceneGUI;
+			Selection.selectionChanged -= Stop;
+			SceneManager.sceneUnloaded -= Stop;
+			AssemblyReloadEvents.beforeAssemblyReload -= Stop;
+		}
+
+		private void EditorOnSceneGUI(SceneView sv)
+		{
+			if (!CheckPropertyIsOK())
+				Stop();
+			else
+				OnSceneGUI();
+		}
+
+		private bool CheckPropertyIsOK()
+		{
+			OtherCurve c = null;
+			bool ok = false;
+			try
 			{
-				//TODO Is this necessary?
-				if (c != null) c._isInEditMode = false;
-				field._isInEditMode = false;
+				c = property.GetValue<OtherCurve>();
+				ok = c != null && field._id == c._id;
+				if (!ok)
+				{
+					//TODO Is this necessary?
+					if (c != null) c._isInEditMode = false;
+					field._isInEditMode = false;
+				}
 			}
-		}
-		catch (Exception)
-		{
+			catch (Exception)
+			{
 
+			}
+			return ok;
 		}
-		return ok;
+
+		public abstract void OnSceneGUI();
 	}
-
-	public abstract void OnSceneGUI();
 }

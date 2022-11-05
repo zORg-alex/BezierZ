@@ -3,7 +3,7 @@ using Utility;
 using System;
 using UnityEngine.SceneManagement;
 
-namespace BezierCurveZ
+namespace BezierCurveZ.Editor
 {
 	internal class PreviewCallbacks
 	{

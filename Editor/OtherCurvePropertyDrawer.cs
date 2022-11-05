@@ -5,7 +5,7 @@ using RectEx;
 using UnityEditor.SceneManagement;
 using System.Collections.Generic;
 
-namespace BezierCurveZ
+namespace BezierCurveZ.Editor
 {
 	[CustomPropertyDrawer(typeof(OtherCurve))]
 	public class OtherCurvePropertyDrawer : PropertyDrawer
@@ -210,7 +210,7 @@ namespace BezierCurveZ
 			AssemblyReloadEvents.beforeAssemblyReload -= c.UnsubscribePreview;
 			SceneView.duringSceneGui -= c.OnPreview;
 			_ActivePreviewSubscriptions.Remove(curve);
-			Debug.Log("OnPreviewOff");
+			//Debug.Log("OnPreviewOff");
 		}
 
 		private void OnPreviewOn(OtherCurve curve, SerializedProperty property)
@@ -226,7 +226,7 @@ namespace BezierCurveZ
 			AssemblyReloadEvents.beforeAssemblyReload += c.UnsubscribePreview;
 			SceneView.duringSceneGui += c.OnPreview;
 			_ActivePreviewSubscriptions.Add(capturedCurve, c);
-			Debug.Log("OnPreviewOn");
+			//Debug.Log("OnPreviewOn");
 		}
 
 		private void RepaintSceneViews()
