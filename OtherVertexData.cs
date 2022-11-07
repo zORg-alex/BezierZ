@@ -1,6 +1,6 @@
 ﻿using System;
 using UnityEngine;
-using static BezierCurveZ.OtherCurve;
+using static BezierCurveZ.Curve;
 
 namespace BezierCurveZ
 {
@@ -23,7 +23,7 @@ namespace BezierCurveZ
 		public int segmentStartVertInd;
 		public bool isSharp;
 
-		internal static OtherVertexData[] GetVertexData(OtherCurve otherCurve)
+		internal static OtherVertexData[] GetVertexData(Curve otherCurve)
 		{
 			if (otherCurve.PointCount == 0) otherCurve.Reset();
 			var splitdata = CurveInterpolation.SplitCurveByAngleError(

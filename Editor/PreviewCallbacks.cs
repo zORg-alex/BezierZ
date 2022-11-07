@@ -7,20 +7,20 @@ namespace BezierCurveZ.Editor
 {
 	internal class PreviewCallbacks
 	{
-		public PreviewCallbacks(OtherCurve curve, Action<OtherCurve> unsubscribe, Action<OtherCurve> preview, SerializedProperty property)
+		public PreviewCallbacks(Curve curve, Action<Curve> unsubscribe, Action<Curve> preview, SerializedProperty property)
 		{
 			this.curve = curve;
 			this.unsubscribe = unsubscribe;
 			this.preview = preview;
 			this.property = property;
 		}
-		public OtherCurve curve;
-		public Action<OtherCurve> unsubscribe;
-		private readonly Action<OtherCurve> preview;
+		public Curve curve;
+		public Action<Curve> unsubscribe;
+		private readonly Action<Curve> preview;
 		private SerializedProperty property;
 
 		public bool isExisting =>
-			property != default ? curve == property.GetValue<OtherCurve>() : false;
+			property != default ? curve == property.GetValue<Curve>() : false;
 
 		public void OnPreview(SceneView s) => OnPreview();
 		public void OnPreview()

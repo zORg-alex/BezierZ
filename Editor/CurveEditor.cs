@@ -11,20 +11,20 @@ using Utility.Editor;
 
 namespace BezierCurveZ.Editor
 {
-	public class OtherCurveEditor : SubscribableEditor<OtherCurve>
+	public class CurveEditor : SubscribableEditor<Curve>
 	{
-		private static OtherCurveEditor instance;
-		public static OtherCurveEditor Instance
+		private static CurveEditor instance;
+		public static CurveEditor Instance
 		{
 			[DebuggerStepperBoundary]
 			get
 			{
-				if (instance == null) instance = new OtherCurveEditor();
+				if (instance == null) instance = new CurveEditor();
 				return instance;
 			}
 		}
 		//TODO remove
-		OtherCurve curve => field;
+		Curve curve => field;
 
 		private Transform targetTransform;
 		private bool targetIsGameObject;
@@ -36,7 +36,7 @@ namespace BezierCurveZ.Editor
 		private int closestControlIndex;
 		private Tool currentInternalTool;
 		private bool selectHandlesOnly;
-		private OtherPoint closestPoint;
+		private Point closestPoint;
 
 		private Color CurveColor = new Color(.3f, 1f, .3f);
 		private Color NormalColor = new Color(1f, .5f, .5f);
@@ -64,7 +64,7 @@ namespace BezierCurveZ.Editor
 		private Quaternion editedRotation;
 		private float snapDistance = .01f;
 
-		public override void Start(OtherCurve curve, SerializedProperty property)
+		public override void Start(Curve curve, SerializedProperty property)
 		{
 			base.Start(curve, property);
 			instance = this;
@@ -401,11 +401,11 @@ namespace BezierCurveZ.Editor
 				GUI.Label(line.MoveLeftFor(30), "mode");
 				GUI.enabled = curve.IsControlPoint(closestIndex);
 				EditorGUI.BeginChangeCheck();
-				var modeId = EditorGUI.Popup(line, OtherPoint.AllModes.IndexOf(closestPoint.mode), OtherPoint.AllModes.SelectArray(m => m.ToString()));
+				var modeId = EditorGUI.Popup(line, Point.AllModes.IndexOf(closestPoint.mode), Point.AllModes.SelectArray(m => m.ToString()));
 				if (EditorGUI.EndChangeCheck())
 				{
 					Undo.RecordObject(targetObject, "Set mode");
-					curve.SetPointMode(closestIndex, OtherPoint.AllModes[modeId]);
+					curve.SetPointMode(closestIndex, Point.AllModes[modeId]);
 					closestPoint = curve.Points[closestIndex];
 				}
 				GUI.enabled = true;
@@ -436,7 +436,7 @@ namespace BezierCurveZ.Editor
 			}
 			foreach (int i in curve.ControlPointIndexes)
 			{
-				OtherPoint point = curve.Points[i];
+				Point point = curve.Points[i];
 				GUIUtils.DrawAxes(point, point.rotation, .1f, 3);
 			}
 			DrawCurveFromVertexData(curve.VertexData.Select(v => (v.Position, v.up)));
@@ -502,7 +502,7 @@ namespace BezierCurveZ.Editor
 				float size = HandleUtility.GetHandleSize(point) * .2f;
 				bool isSelected = selectedPointIdexes.Contains(i);
 				Handles.color = HandleColor * (isSelected ? 1 : .5f);
-				if (point.type == OtherPoint.Type.Control)
+				if (point.type == Point.Type.Control)
 				{
 					GUIUtils.DrawCircle(point, point - camLocalPos, size, isSelected, 1.5f, 24);
 					Handles.Label(point, (i == curve.PointCount - 1 && curve.IsClosed ? "     / " : "  ") + i.ToString());
@@ -515,7 +515,7 @@ namespace BezierCurveZ.Editor
 			Handles.color = c;
 			Handles.matrix = m;
 
-			Vector3[] GetHandleShapePoints(OtherPoint point, Vector3 normal, float size)
+			Vector3[] GetHandleShapePoints(Point point, Vector3 normal, float size)
 			{
 				var cross = normal.normalized.Cross(point.forward).normalized;
 				Vector3 d1 = (cross + point.forward) * size;
@@ -563,7 +563,7 @@ namespace BezierCurveZ.Editor
 			var cind = closestIndex + (closestPoint.isRightHandle ? -1 : closestPoint.isLeftHandle ? 1 : 0);
 			closestControlIndex = cind;
 			//closestControlPoint = curve.Points[cind];
-			if (closestPoint.mode == OtherPoint.Mode.Linear)
+			if (closestPoint.mode == Point.Mode.Linear)
 			{
 				editedPosition = TransformPoint(curve.Points[cind]);
 			}
@@ -616,7 +616,7 @@ namespace BezierCurveZ.Editor
 		private void ContextMenuOpen(Event current)
 		{
 			var contextMenu = new GenericMenu();
-			foreach (var mode in OtherPoint.AllModes)
+			foreach (var mode in Point.AllModes)
 			{
 				var capturedMode = mode;
 				contextMenu.AddItem(new GUIContent(mode.ToString()), curve.Points[closestIndex].mode == capturedMode, () =>

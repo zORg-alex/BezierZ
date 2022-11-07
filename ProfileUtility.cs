@@ -9,9 +9,9 @@ public static class ProfileUtility
 {
 	public enum UVMode { None = 0, UUniform = 1, USegment = 2, ULength = 4, VUniform = 8, VSegment = 16, VLength = 32, Uniform = UUniform | VUniform, Length = ULength | VLength, Segment = USegment | VSegment }
 
-	public static Mesh GenerateProfileMesh(OtherCurve curve, OtherCurve profile, UVMode mode = UVMode.Uniform) => GenerateProfileMesh(curve, profile, new Vector3[] { Vector3.zero }, new Vector3[] { Vector3.one }, mode);
-	public static Mesh GenerateProfileMesh(OtherCurve curve, OtherCurve profile, Vector3 offset, Vector3 scale, UVMode mode = UVMode.Uniform) => GenerateProfileMesh(curve, profile, new Vector3[] { offset }, new Vector3[] { scale }, mode);
-	public static Mesh GenerateProfileMesh(OtherCurve curve, OtherCurve profile, Vector3[] offsets, Vector3[] scales, UVMode mode = UVMode.Uniform)
+	public static Mesh GenerateProfileMesh(Curve curve, Curve profile, UVMode mode = UVMode.Uniform) => GenerateProfileMesh(curve, profile, new Vector3[] { Vector3.zero }, new Vector3[] { Vector3.one }, mode);
+	public static Mesh GenerateProfileMesh(Curve curve, Curve profile, Vector3 offset, Vector3 scale, UVMode mode = UVMode.Uniform) => GenerateProfileMesh(curve, profile, new Vector3[] { offset }, new Vector3[] { scale }, mode);
+	public static Mesh GenerateProfileMesh(Curve curve, Curve profile, Vector3[] offsets, Vector3[] scales, UVMode mode = UVMode.Uniform)
 	{
 		bool usePathNormals = false;
 
@@ -83,8 +83,8 @@ public static class ProfileUtility
 
 
 
-	public static Mesh GenerateProfileMesh(OtherCurve curve, MeshGeneration.MeshProfile profile) => GenerateProfileMesh(curve, profile, Vector3.zero, Vector3.one);
-	public static Mesh GenerateProfileMesh(OtherCurve curve, MeshGeneration.MeshProfile profile, Vector3 offset, Vector3 scale) =>
+	public static Mesh GenerateProfileMesh(Curve curve, MeshGeneration.MeshProfile profile) => GenerateProfileMesh(curve, profile, Vector3.zero, Vector3.one);
+	public static Mesh GenerateProfileMesh(Curve curve, MeshGeneration.MeshProfile profile, Vector3 offset, Vector3 scale) =>
 		GenerateProfileMesh(curve, profile, new Vector3[] { offset }, new Vector3[] { scale });
 	/// <summary>
 	/// For multiple profiles
@@ -94,7 +94,7 @@ public static class ProfileUtility
 	/// <param name="offsets"></param>
 	/// <param name="scales"></param>
 	/// <returns></returns>
-	public static Mesh GenerateProfileMesh(OtherCurve curve, MeshGeneration.MeshProfile profile, Vector3[] offsets, Vector3[] scales)
+	public static Mesh GenerateProfileMesh(Curve curve, MeshGeneration.MeshProfile profile, Vector3[] offsets, Vector3[] scales)
 	{
 		bool usePathNormals = false;
 

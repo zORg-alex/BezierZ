@@ -48,11 +48,11 @@ namespace BezierCurveZ.Editor
 
 		private bool CheckPropertyIsOK()
 		{
-			OtherCurve c = null;
+			Curve c = null;
 			bool ok = false;
 			try
 			{
-				c = property.GetValue<OtherCurve>();
+				c = property.GetValue<Curve>();
 				ok = c != null && field._id == c._id;
 				if (!ok)
 				{

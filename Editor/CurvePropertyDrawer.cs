@@ -7,13 +7,13 @@ using System.Collections.Generic;
 
 namespace BezierCurveZ.Editor
 {
-	[CustomPropertyDrawer(typeof(OtherCurve))]
-	public class OtherCurvePropertyDrawer : PropertyDrawer
+	[CustomPropertyDrawer(typeof(Curve))]
+	public class CurvePropertyDrawer : PropertyDrawer
 	{
 		private bool initialized;
 		private Event current;
 		private Transform targetTransform;
-		private static Dictionary<OtherCurve, PreviewCallbacks> _ActivePreviewSubscriptions = new Dictionary<OtherCurve, PreviewCallbacks>();
+		private static Dictionary<Curve, PreviewCallbacks> _ActivePreviewSubscriptions = new Dictionary<Curve, PreviewCallbacks>();
 
 		GUIContent editButtonText(bool edit) => edit ? new GUIContent("Stop") : new GUIContent("Edit");
 		private static Texture2D isOpenTexture;
@@ -54,7 +54,7 @@ namespace BezierCurveZ.Editor
 			if (!initialized) Initialize();
 			var c = GUI.color;
 			current = Event.current;
-			var curve = property.GetValue<OtherCurve>();
+			var curve = property.GetValue<Curve>();
 
 			if (curve == null)
 			{
@@ -77,12 +77,12 @@ namespace BezierCurveZ.Editor
 				if (edited)
 				{
 					//OnPreviewOff(curve);
-					OtherCurveEditor.Instance.Start(curve, property);
+					CurveEditor.Instance.Start(curve, property);
 				}
 				else
 				{
 					//OnPreviewOn(curve, property);
-					OtherCurveEditor.Instance.Stop();
+					CurveEditor.Instance.Stop();
 				}
 			}
 			GUI.color = c;
@@ -115,13 +115,13 @@ namespace BezierCurveZ.Editor
 
 		public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
 		{
-			var curve = property.GetValue<OtherCurve>();
+			var curve = property.GetValue<Curve>();
 			return EditorGUIUtility.singleLineHeight + EditorHeight(curve);
 		}
 
-		private float EditorHeight(OtherCurve curve) => curve._isInEditMode ? 64 + 2 * 3 : 0;
+		private float EditorHeight(Curve curve) => curve._isInEditMode ? 64 + 2 * 3 : 0;
 
-		private void EditorGUI(Rect position, OtherCurve curve, UnityEngine.Object targetObject)
+		private void EditorGUI(Rect position, Curve curve, UnityEngine.Object targetObject)
 		{
 			var line = position.Row(new float[] { 0, 1, 1 }, new float[] { 64, 0, 0 }, 4);
 			var detStack = line[1].Column(3);
@@ -144,7 +144,7 @@ namespace BezierCurveZ.Editor
 				UnityEditor.EditorGUI.IntField(detStack[2], _accuracyLabel, curve.InterpolationAccuracy)
 				, 1, 1000);
 			var tens = 0f;
-			if (curve.IterpolationOptionsInd == OtherCurve.InterpolationMethod.CatmullRomAdditive)
+			if (curve.IterpolationOptionsInd == Curve.InterpolationMethod.CatmullRomAdditive)
 				tens = Mathf.Max(
 					UnityEditor.EditorGUI.FloatField(interpStack[1], "tension", curve.InterpolationCapmullRomTension)
 					, 0.01f);
@@ -170,12 +170,12 @@ namespace BezierCurveZ.Editor
 			if (ops != (int)curve.IterpolationOptionsInd)
 			{
 				Undo.RecordObject(targetObject, $"Interpolation options changed on curve");
-				curve.IterpolationOptionsInd = (OtherCurve.InterpolationMethod)ops;
+				curve.IterpolationOptionsInd = (Curve.InterpolationMethod)ops;
 				RepaintSceneViews();
 			}
 		}
 
-		private void OnPreview(OtherCurve curve)
+		private void OnPreview(Curve curve)
 		{
 			if (targetTransform.IsNullOrDestroyed() || !CheckPropertyIsOK(curve))
 			{
@@ -193,14 +193,14 @@ namespace BezierCurveZ.Editor
 			Handles.color = c;
 		}
 
-		private bool CheckPropertyIsOK(OtherCurve curve)
+		private bool CheckPropertyIsOK(Curve curve)
 		{
 			var ok = _ActivePreviewSubscriptions.TryGetValue(curve, out var sub);
 			if (ok) ok = sub.isExisting;
 			return ok;
 		}
 
-		private void OnPreviewOff(OtherCurve curve)
+		private void OnPreviewOff(Curve curve)
 		{
 			var c = _ActivePreviewSubscriptions.GetValueOrDefault(curve);
 			if (c == null)
@@ -213,7 +213,7 @@ namespace BezierCurveZ.Editor
 			//Debug.Log("OnPreviewOff");
 		}
 
-		private void OnPreviewOn(OtherCurve curve, SerializedProperty property)
+		private void OnPreviewOn(Curve curve, SerializedProperty property)
 		{
 			var c = _ActivePreviewSubscriptions.GetValueOrDefault(curve);
 			if (c != null)

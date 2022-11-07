@@ -11,14 +11,14 @@ using Debug = UnityEngine.Debug;
 namespace BezierCurveZ
 {
 	[Serializable]
-	public class OtherCurve : EditableClass, ISerializationCallbackReceiver
+	public class Curve : EditableClass, ISerializationCallbackReceiver
 	{
 
 		[SerializeField]
 		private int _bVersion = new System.Random().Next();
 
 		[SerializeField]
-		internal List<OtherPoint> _points;
+		internal List<Point> _points;
 
 		public void BumpVersion()
 		{
@@ -30,8 +30,8 @@ namespace BezierCurveZ
 		/// Points and segments in open curve: {Control, Right, Left}, {Control}
 		/// Points and segment in closed curve: {Control, Right, Left},{Control, Right, Left}
 		/// </summary>
-		public List<OtherPoint> Points { [DebuggerStepThrough] get => _points; }
-		public IEnumerable<OtherPoint> ControlPoints
+		public List<Point> Points { [DebuggerStepThrough] get => _points; }
+		public IEnumerable<Point> ControlPoints
 		{
 			[DebuggerStepThrough]
 			get
@@ -119,7 +119,7 @@ namespace BezierCurveZ
 		[SerializeField] internal bool _isClosed;
 		public bool IsClosed { [DebuggerStepThrough] get => _isClosed; [DebuggerStepThrough] set { if (value != _isClosed) SetIsClosed(value); } }
 
-		public OtherCurve()
+		public Curve()
 		{
 			_points = defaultPoints;
 			//		_bVersion = 1;
@@ -142,22 +142,22 @@ namespace BezierCurveZ
 			_interpolationCapmullRomTension = .5f;
 			IterpolationOptionsInd = InterpolationMethod.CatmullRomAdditive;
 		}
-		private static List<OtherPoint> defaultPoints
+		private static List<Point> defaultPoints
 		{
 			get
 			{
 				var rot = Quaternion.LookRotation(Vector3.right);
-				return new List<OtherPoint> {
-				new OtherPoint(Vector3.zero, rot, OtherPoint.Type.Control, OtherPoint.Mode.Automatic),
-				new OtherPoint(Vector3.right * .33333f, rot, OtherPoint.Type.Right, OtherPoint.Mode.Automatic),
-				new OtherPoint(Vector3.right * .66666f, rot, OtherPoint.Type.Left, OtherPoint.Mode.Automatic),
-				new OtherPoint(Vector3.right, rot, OtherPoint.Type.Control, OtherPoint.Mode.Automatic),
+				return new List<Point> {
+				new Point(Vector3.zero, rot, Point.Type.Control, Point.Mode.Automatic),
+				new Point(Vector3.right * .33333f, rot, Point.Type.Right, Point.Mode.Automatic),
+				new Point(Vector3.right * .66666f, rot, Point.Type.Left, Point.Mode.Automatic),
+				new Point(Vector3.right, rot, Point.Type.Control, Point.Mode.Automatic),
 			};
 			}
 		}
 
 		[SerializeField]
-		private OtherPoint.Mode[] _preservedNodeModesWhileClosed = new OtherPoint.Mode[2];
+		private Point.Mode[] _preservedNodeModesWhileClosed = new Point.Mode[2];
 
 		public void SetIsClosed(bool value)
 		{
@@ -176,9 +176,9 @@ namespace BezierCurveZ
 			}
 			else
 			{
-				_points.Add(new OtherPoint(getHandlePosition(LastPointInd, LastPointInd - 1), OtherPoint.Type.Right, _points[LastPointInd].mode));
-				_points.Add(new OtherPoint(getHandlePosition(0, 1), OtherPoint.Type.Left, _points[0].mode));
-				_points.Add(new OtherPoint(Points[0]));
+				_points.Add(new Point(getHandlePosition(LastPointInd, LastPointInd - 1), Point.Type.Right, _points[LastPointInd].mode));
+				_points.Add(new Point(getHandlePosition(0, 1), Point.Type.Left, _points[0].mode));
+				_points.Add(new Point(Points[0]));
 				_bVersion++;
 
 				Vector3 getHandlePosition(int ind, int otherind)
@@ -209,7 +209,7 @@ namespace BezierCurveZ
 				var rightIsLinear = false;
 				var leftIsAuto = false;
 				var rightIsAuto = false;
-				OtherPoint leftPoint = default(OtherPoint); OtherPoint rightPoint = default(OtherPoint);
+				Point leftPoint = default(Point); Point rightPoint = default(Point);
 				if (index > 0 || IsClosed)
 				{
 					var i = GetLeftIndex(index);
@@ -291,7 +291,7 @@ namespace BezierCurveZ
 			}
 			_bVersion++;
 
-			OtherPoint GetLinearHandle(int index)
+			Point GetLinearHandle(int index)
 			{
 				int segmentIndex = GetSegmentIndex(index);
 				int aind = GetPointIndex(segmentIndex);
@@ -312,7 +312,7 @@ namespace BezierCurveZ
 				var diff = a - b;
 				var tang = isRight ? otherPoint - a : otherPoint - b;
 				var pos = (isRight ? a : b) + tang.normalized * diff.magnitude * .1f;
-				return new OtherPoint(pos, Quaternion.LookRotation(tang), isRight ? OtherPoint.Type.Right : OtherPoint.Type.Left, OtherPoint.Mode.Linear);
+				return new Point(pos, Quaternion.LookRotation(tang), isRight ? Point.Type.Right : Point.Type.Left, Point.Mode.Linear);
 			}
 		}
 
@@ -363,10 +363,10 @@ namespace BezierCurveZ
 			}
 		}
 
-		public void SetPointMode(int index, OtherPoint.Mode mode) => SetPointMode((ushort)index, mode);
-		public void SetPointMode(ushort index, OtherPoint.Mode mode)
+		public void SetPointMode(int index, Point.Mode mode) => SetPointMode((ushort)index, mode);
+		public void SetPointMode(ushort index, Point.Mode mode)
 		{
-			OtherPoint thisPoint = _points[index];
+			Point thisPoint = _points[index];
 			_points[index] = thisPoint.SetMode(mode);
 			if (_points[index].IsControlPoint)
 			{
@@ -390,7 +390,7 @@ namespace BezierCurveZ
 		public void OnAfterDeserialize() => UpdateVertexData(true);
 
 		//========================
-		public OtherPoint SplitCurveAt(Vector3 point)
+		public Point SplitCurveAt(Vector3 point)
 		{
 			var t = GetClosestPointTimeSegment(point, out var segmentIndex);
 
@@ -519,8 +519,8 @@ namespace BezierCurveZ
 		{
 			if (newSegments.Length % 3 != 1) return;
 
-			var newPoints = new OtherPoint[newSegments.Length];
-			var types = OtherPoint.AllTypes;
+			var newPoints = new Point[newSegments.Length];
+			var types = Point.AllTypes;
 			var typeInd = 0;
 			for (int i = 0; i < newSegments.Length; i++)
 			{
@@ -532,7 +532,7 @@ namespace BezierCurveZ
 					var min = _vertexData.Select(v => v.Position).Skip(firstVInd).Min((v) => newSegments[i].DistanceTo(v), out var ind);
 					rot = _vertexData[firstVInd + ind].Rotation;
 				}
-				newPoints[i] = new OtherPoint(newSegments[i], rot, types[typeInd], OtherPoint.Mode.Proportional);
+				newPoints[i] = new Point(newSegments[i], rot, types[typeInd], Point.Mode.Proportional);
 				typeInd++;
 				typeInd %= 3;
 			}
@@ -659,9 +659,9 @@ namespace BezierCurveZ
 			}
 		}
 
-		public OtherCurve Copy()
+		public Curve Copy()
 		{
-			var c = new OtherCurve();
+			var c = new Curve();
 			c._points = _points;
 			c._isClosed = _isClosed;
 			c._interpolationMaxAngleError = _interpolationMaxAngleError;
@@ -670,7 +670,7 @@ namespace BezierCurveZ
 			return c;
 		}
 
-		public void CopyFrom(OtherCurve curve)
+		public void CopyFrom(Curve curve)
 		{
 			_points = curve._points;
 			_isClosed = curve._isClosed;
@@ -682,10 +682,10 @@ namespace BezierCurveZ
 
 		public override bool Equals(object obj)
 		{
-			return obj is OtherCurve curve &&
+			return obj is Curve curve &&
 				   _id == curve._id &&
 				   _bVersion == curve._bVersion &&
-				   EqualityComparer<List<OtherPoint>>.Default.Equals(_points, curve._points) &&
+				   EqualityComparer<List<Point>>.Default.Equals(_points, curve._points) &&
 				   _isClosed == curve._isClosed &&
 				   _interpolationMaxAngleError == curve._interpolationMaxAngleError &&
 				   _interpolationMinDistance == curve._interpolationMinDistance &&
@@ -698,12 +698,12 @@ namespace BezierCurveZ
 			return HashCode.Combine(_id, _bVersion, _points, _isClosed, _interpolationMaxAngleError, _interpolationMinDistance, _interpolationAccuracy, _interpolationCapmullRomTension);
 		}
 
-		public static bool operator ==(OtherCurve left, OtherCurve right)
+		public static bool operator ==(Curve left, Curve right)
 		{
-			return EqualityComparer<OtherCurve>.Default.Equals(left, right);
+			return EqualityComparer<Curve>.Default.Equals(left, right);
 		}
 
-		public static bool operator !=(OtherCurve left, OtherCurve right)
+		public static bool operator !=(Curve left, Curve right)
 		{
 			return !(left == right);
 		}
