@@ -151,7 +151,7 @@ namespace BezierCurveZ.Editor
 				snapKeyDown = true;
 				current.Use();
 			}
-			else if (GetKeyUp(KeyCode.S) && primaryMouseDragging)
+			else if (GetKeyUp(KeyCode.S) && snapKeyDown)
 			{
 				snapKeyDown = false;
 				current.Use();
