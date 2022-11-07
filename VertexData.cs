@@ -1,11 +1,12 @@
-﻿using System;
+﻿using Codice.CM.Common;
+using System;
 using UnityEngine;
 using static BezierCurveZ.Curve;
 
 namespace BezierCurveZ
 {
 
-	public struct OtherVertexData
+	public struct VertexData
 	{
 		public Vector3 Position;
 		public Quaternion Rotation;
@@ -15,7 +16,7 @@ namespace BezierCurveZ
 		public Vector3 forward => Rotation * Vector3.forward;
 		public Vector3 tangent => Rotation * Vector3.forward;
 
-		public static implicit operator Vector3(OtherVertexData v) => v.Position;
+		public static implicit operator Vector3(VertexData v) => v.Position;
 
 		public float cumulativeTime;
 		public float distance;
@@ -23,7 +24,7 @@ namespace BezierCurveZ
 		public int segmentStartVertInd;
 		public bool isSharp;
 
-		internal static OtherVertexData[] GetVertexData(Curve otherCurve)
+		internal static VertexData[] GetVertexData(Curve otherCurve)
 		{
 			if (otherCurve.PointCount == 0) otherCurve.Reset();
 			var splitdata = CurveInterpolation.SplitCurveByAngleError(
@@ -38,13 +39,13 @@ namespace BezierCurveZ
 				otherCurve.IterpolationOptionsInd == InterpolationMethod.Smooth,
 				otherCurve.IterpolationOptionsInd == InterpolationMethod.CatmullRomAdditive,
 				otherCurve.InterpolationCapmullRomTension);
-			var vd = new OtherVertexData[splitdata.Count];
+			var vd = new VertexData[splitdata.Count];
 			var segInd = 0;
 			for (int i = 0; i < splitdata.Count; i++)
 			{
 				if (segInd + 1 < splitdata.segmentIndices.Count && splitdata.segmentIndices[segInd + 1] == i)
 					segInd++;
-				vd[i] = new OtherVertexData()
+				vd[i] = new VertexData()
 				{
 					Position = splitdata.points[i],
 					Rotation = splitdata.rotations[i],
@@ -58,13 +59,16 @@ namespace BezierCurveZ
 
 			return vd;
 		}
+
+		public override string ToString() =>
+			$"VertexData {{Pos = {Position}, Eulers = {Rotation.eulerAngles}, {(isSharp ? "Shapr" : "Smooth")}, dist = {distance}, time = {cumulativeTime}, segmentInd = {segmentInd}}}";
 	}
 
 	public static class OtherVertexDataExtensions
 	{
-		internal static int GetStartIndex(this OtherVertexData[] vertexData, int segmentInd) =>
+		internal static int GetStartIndex(this VertexData[] vertexData, int segmentInd) =>
 			vertexData.BinarySearch(v => v.segmentInd.CompareTo(segmentInd)).segmentStartVertInd;
 
-		public static float CurveLength(this OtherVertexData[] vertexData) => vertexData[vertexData.Length - 1].distance;
+		public static float CurveLength(this VertexData[] vertexData) => vertexData[vertexData.Length - 1].distance;
 	} 
 }

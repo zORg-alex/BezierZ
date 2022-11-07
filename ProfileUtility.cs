@@ -9,80 +9,6 @@ public static class ProfileUtility
 {
 	public enum UVMode { None = 0, UUniform = 1, USegment = 2, ULength = 4, VUniform = 8, VSegment = 16, VLength = 32, Uniform = UUniform | VUniform, Length = ULength | VLength, Segment = USegment | VSegment }
 
-	public static Mesh GenerateProfileMesh(Curve curve, Curve profile, UVMode mode = UVMode.Uniform) => GenerateProfileMesh(curve, profile, new Vector3[] { Vector3.zero }, new Vector3[] { Vector3.one }, mode);
-	public static Mesh GenerateProfileMesh(Curve curve, Curve profile, Vector3 offset, Vector3 scale, UVMode mode = UVMode.Uniform) => GenerateProfileMesh(curve, profile, new Vector3[] { offset }, new Vector3[] { scale }, mode);
-	public static Mesh GenerateProfileMesh(Curve curve, Curve profile, Vector3[] offsets, Vector3[] scales, UVMode mode = UVMode.Uniform)
-	{
-		bool usePathNormals = false;
-
-		int curveLen = curve.VertexData.Length;
-		int profileLen = profile.VertexData.Length;
-		var vertices = new Vector3[profileLen * curveLen * offsets.Length];
-		var normals = new Vector3[profileLen * curveLen * offsets.Length];
-		var uvs = new Vector2[profileLen * curveLen * offsets.Length];
-		var triangles = new List<int>(profileLen * (curveLen + 1) * 3 * offsets.Length);
-
-		for (int o = 0; o < offsets.Length; o++)
-		{
-			var i = 0;
-			foreach (var point in curve.VertexData)
-			{
-				var tangent = point.tangent;
-				var normal = point.normal;
-				var localUp = (usePathNormals) ? Vector3.Cross(tangent, normal) : point.up;
-				var localRight = (usePathNormals) ? normal : Vector3.Cross(localUp, tangent);
-
-				var loopFirstVert = (i + o * curveLen) * profileLen;
-				var previousLoopFirstVert = (PrevIndex(i, curveLen) + o * curveLen) * profileLen;
-
-				var prevSharp = !curve.IsClosed;
-				var j = 0;
-				foreach (var vert in profile.VertexData)
-				{
-					var profilePointTransformed = vert.Position.Scale_(scales[o] + offsets[o]);
-					vertices[loopFirstVert + j] = point + point.Rotation * profilePointTransformed;
-					normals[loopFirstVert + j] = point.Rotation * vert.Rotation * Vector3.right;
-					uvs[loopFirstVert + j] =
-						Vector2.up * (mode.HasFlag(UVMode.VUniform) ? (point.distance / curve.VertexData.CurveLength()) :
-						mode.HasFlag(UVMode.VLength) ? point.distance :
-						mode.HasFlag(UVMode.VSegment) ? point.cumulativeTime - point.segmentInd : 0) +
-						Vector2.right * (mode.HasFlag(UVMode.UUniform) ? vert.distance / profile.VertexData.CurveLength() :
-						mode.HasFlag(UVMode.ULength) ? vert.distance :
-						mode.HasFlag(UVMode.USegment) ? vert.cumulativeTime - point.segmentInd : 0);
-
-					var next = NextIndex(j, profileLen);
-					var prevVert = PrevIndex(j, profileLen);
-
-					if (/*!(prevSharp && vert.isSharp) && */(!(curve.IsClosed && i == 0) || i > 0) && (!(profile.IsClosed && j == 0) || j > 0))
-					{
-						triangles.AddRange_(previousLoopFirstVert + j, loopFirstVert + next, loopFirstVert + j);
-						triangles.AddRange_(previousLoopFirstVert + j, previousLoopFirstVert + next, loopFirstVert + next);
-					}
-
-					prevSharp = vert.isSharp;
-					j++;
-				}
-				i++;
-			}
-		}
-
-		var mesh = new Mesh();
-		mesh.vertices = vertices;
-		mesh.triangles = triangles.ToArray();
-		mesh.normals = normals;
-		mesh.uv = uvs;
-		//mesh.RecalculateNormals();
-
-		return mesh;
-
-
-		int PrevIndex(int curind, int length) => curind > 0 ? curind - 1 : length - 1;
-		int NextIndex(int curind, int length) => (curind + 1 == length) ? 0 : curind + 1;
-	}
-
-
-
-
 	public static Mesh GenerateProfileMesh(Curve curve, MeshGeneration.MeshProfile profile) => GenerateProfileMesh(curve, profile, Vector3.zero, Vector3.one);
 	public static Mesh GenerateProfileMesh(Curve curve, MeshGeneration.MeshProfile profile, Vector3 offset, Vector3 scale) =>
 		GenerateProfileMesh(curve, profile, new Vector3[] { offset }, new Vector3[] { scale });
@@ -147,177 +73,123 @@ public static class ProfileUtility
 		int NextIndex(int curind, int length) => (curind + 1 == length) ? 0 : curind + 1;
 	}
 
-	//public static Mesh GenerateProfileMesh(Curve curve, Curve profile) => GenerateProfileMesh(curve, profile, Vector3.zero, Vector3.one);
-	//public static Mesh GenerateProfileMesh(Curve curve, Curve profile, Vector3 offset, Vector3 scale) =>
-	//	GenerateProfileMesh(curve, profile, new Vector3[] { offset }, new Vector3[] { scale });
-	//public static Mesh GenerateProfileMesh(Curve curve, Curve profile, Vector3[] offsets, Vector3[] scales)
-	//{
-	//	bool usePathNormals = false;
+	/// <summary>
+	/// 
+	/// </summary>
+	/// <param name="curve"></param>
+	/// <param name="profile"></param>
+	/// <param name="offset">profile offset</param>
+	/// <param name="scale">profile scale</param>
+	/// <param name="autoNormals">Use GenerateNormals or leave calculated by curve rotations</param>
+	/// <param name="mode">UV coordinate generation, Uniform [0..1] from curve start to end,
+	/// Segment [0..1] for each segment, Length coordinate equals to point distance from start</param>
+	/// <returns></returns>
+	public static Mesh GenerateProfileMesh(Curve curve, Curve profile, Vector3 offset, Vector3 scale, bool autoNormals = true, UVMode mode = UVMode.Uniform, string name = null)
+	{
+		var curveStrips = GetVertexDataStrips(curve.VertexData, curve.IsClosed);
+		var profileStrips = GetVertexDataStrips(profile.VertexData, profile.IsClosed);
 
-	//	int curveLen = curve.Vertices.Length;
-	//	int profileLen = profile.Vertices.Length;
-	//	var vertices = new Vector3[profileLen * curveLen * offsets.Length];
-	//	var normals = new Vector3[profileLen * curveLen * offsets.Length];
-	//	var triangles = new List<int>(profileLen * (curveLen + 1) * 3 * offsets.Length);
+		int curveLen = curveStrips.Sum(l => l.Length);
+		int profileLen = profileStrips.Sum(l => l.Length);
+		var len = curveLen * profileLen;
+		var vertices = new Vector3[len];
+		var normals = new Vector3[len];
+		var uvs = new Vector2[len];
+		var triangles = new List<int>(len / 3 * 2);
 
-	//	for (int o = 0; o < offsets.Length; o++)
-	//	{
-	//		var i = 0;
-	//		foreach (var point in curve.VertexData)
-	//		{
-	//			var tangent = point.tangent;
-	//			var normal = point.normal;
-	//			var localUp = (usePathNormals) ? Vector3.Cross(tangent, normal) : point.up;
-	//			var localRight = (usePathNormals) ? normal : Vector3.Cross(localUp, tangent);
+		var curveInd = 0;
+		var prevCurveInd = (curveLen - 1) * profileLen;
+		//Curve flowing segments separated by sharp control points
+		foreach (var cStrip in curveStrips)
+		{
+			//Each curve point in strips
+			foreach (var cp in cStrip)
+			{
+				var profInd = 0;
+				var prevProfileInd = profileLen - 1;
+				//Profile flowing segmentws
+				foreach (var pStrip in profileStrips)
+				{
+					var right = cp.Rotation * Vector3.right;
+					var up = cp.Rotation * Vector3.up;
+					//Each profile point in strips
+					foreach (var pp in pStrip)
+					{
+						//Transform point
+						var rot = cp.Rotation * pp.Rotation;
+						var scaledprofpoint = (offset + Vector3.Scale(pp.Position, scale));
+						var pos = cp.Position + right * scaledprofpoint.x + up * scaledprofpoint.y;
+						//var pos = cp.point + rot * scaledprofpoint;
 
-	//			var loopFirstVert = (i + o * curveLen) * profileLen;
-	//			var previousLoopFirstVert = (PrevIndex(i, curveLen) + o * curveLen) * profileLen;
+						vertices[curveInd + profInd] = pos;
+						normals[curveInd + profInd] = rot * Vector3.right;
+						//uvs[curveInd + profInd] = new Vector2(pp.distance / profile.VertexData.CurveLength(), unifiedVCoofdinate ? cp.distance / curve.VertexData.CurveLength() : cp.distance);
 
-	//			var prevSharp = !curve.IsClosed;
-	//			var j = 0;
-	//			foreach (var vert in profile.VertexData)
-	//			{
-	//				var profilePointTransformed = vert.point.Scale_(scales[o] + offsets[o]);
-	//				vertices[loopFirstVert + j] = point.point + point.rotation * profilePointTransformed;
-	//				normals[loopFirstVert + j] = point.rotation * vert.rotation * Vector3.right;
+						uvs[curveInd + profInd] =
+							Vector2.up * (mode.HasFlag(UVMode.VUniform) ? (cp.distance / curve.VertexData.CurveLength()) :
+							mode.HasFlag(UVMode.VLength) ? cp.distance :
+							mode.HasFlag(UVMode.VSegment) ? cp.cumulativeTime - cp.segmentInd : 0) +
+							Vector2.right * (mode.HasFlag(UVMode.UUniform) ? pp.distance / profile.VertexData.CurveLength() :
+							mode.HasFlag(UVMode.ULength) ? pp.distance :
+							mode.HasFlag(UVMode.USegment) ? pp.cumulativeTime - cp.segmentInd : 0);
 
-	//				var next = NextIndex(j, profileLen);
-	//				var prevVert = PrevIndex(j, profileLen);
+						if ((profInd < profileLen - 1 || profile.IsClosed) && (curveInd > 0 || curve.IsClosed))
+						{
+							var nextProfInd = (profInd + 1) % profileLen;
+							triangles.AddRange_(prevCurveInd + profInd, prevCurveInd + nextProfInd, curveInd + nextProfInd);
+							triangles.AddRange_(prevCurveInd + profInd, curveInd + nextProfInd, curveInd + profInd);
+						}
 
-	//				if (!(prevSharp && vert.isSharp) || ((curve.IsClosed && i == 0) || i > 0) && ((profile.IsClosed && j == 0) || j > 0))
-	//				{
-	//					triangles.AddRange_(previousLoopFirstVert + j, loopFirstVert + next, loopFirstVert + j);
-	//					triangles.AddRange_(previousLoopFirstVert + j, previousLoopFirstVert + next, loopFirstVert + next);
-	//				}
+						prevProfileInd = profInd;
+						profInd++;
+						profInd %= profileLen;
+					}
+				}
 
-	//				prevSharp = vert.isSharp;
-	//				j++;
-	//			}
-	//			i++;
-	//		}
-	//	}
+				prevCurveInd = curveInd;
+				curveInd += profileLen;
+				curveInd %= len;
+			}
+		}
 
-	//	var mesh = new Mesh();
-	//	mesh.vertices = vertices;
-	//	mesh.triangles = triangles.ToArray();
-	//	mesh.normals = normals;
-	//	//mesh.RecalculateNormals();
+		var m = new Mesh() { name = name ?? "generated profile mesh" };
+		m.vertices = vertices;
+		m.normals = normals;
+		m.uv = uvs;
+		m.triangles = triangles.ToArray();
+		if (autoNormals)
+			m.RecalculateNormals();
 
-	//	return mesh;
+		return m;
+	}
 
+	public static VertexData[][] GetVertexDataStrips(IEnumerable<VertexData> collection, bool IsClosed)
+	{
+		var list = new List<VertexData[]>();
+		var strip = collection.Take(1).ToList();
+		var prevV = collection.FirstOrDefault();
+		IEnumerable<VertexData> modifiedCollection = collection.Skip(1);
+		if (IsClosed)
+			modifiedCollection = collection.Skip(1).SkipLast(1);
+		var i = 0;
+		foreach (var v in modifiedCollection)
+		{
+			if (v.isSharp && prevV.isSharp && v.Position.Equals(prevV.Position))
+			{
+				list.Add(strip.ToArray());
+				strip.Clear();
+			}
+			strip.Add(v);
 
-	//	int PrevIndex(int curind, int length) => curind > 0 ? curind - 1 : length - 1;
-	//	int NextIndex(int curind, int length) => (curind + 1 == length) ? 0 : curind + 1;
-	//}
+			prevV = v;
+			i++;
+		}
+		if (strip.Count > 0)
+		{
+			list.Add(strip.ToArray());
+			strip.Clear();
+		}
 
-	///// <summary>
-	///// 
-	///// </summary>
-	///// <param name="curve"></param>
-	///// <param name="profile"></param>
-	///// <param name="offset">profile offset</param>
-	///// <param name="scale">profile scale</param>
-	///// <param name="autoNormals">Use GenerateNormals or leave calculated by curve rotations</param>
-	///// <param name="unifiedVCoofdinate">Should UV's be 0..1 along curve or repeat by every unit of length if false</param>
-	///// <returns></returns>
-	//public static Mesh GenerateProfileMesh(Curve curve, Curve profile, Vector3 offset, Vector3 scale, bool autoNormals = true, bool unifiedVCoofdinate = true, string name = null)
-	//{
-	//	var curveStrips = GetVertexDataStrips(curve.VertexData, curve.IsClosed);
-	//	var profileStrips = GetVertexDataStrips(profile.VertexData, profile.IsClosed);
-
-	//	int curveLen = curveStrips.Sum(l => l.Length);
-	//	int profileLen = profileStrips.Sum(l => l.Length);
-	//	var len = curveLen * profileLen;
-	//	var vertices = new Vector3[len];
-	//	var normals = new Vector3[len];
-	//	var uvs = new Vector2[len];
-	//	var triangles = new List<int>(len / 3 * 2);
-
-	//	var curveInd = 0;
-	//	var prevCurveInd = (curveLen - 1) * profileLen;
-	//	//Curve flowing segments separated by sharp control points
-	//	foreach (var cStrip in curveStrips)
-	//	{
-	//		//Each curve point in strips
-	//		foreach (var cp in cStrip)
-	//		{
-	//			var profInd = 0;
-	//			var prevProfileInd = profileLen - 1;
-	//			//Profile flowing segmentws
-	//			foreach (var pStrip in profileStrips)
-	//			{
-	//				var right = cp.rotation * Vector3.right;
-	//				var up = cp.rotation * Vector3.up;
-	//				//Each profile point in strips
-	//				foreach (var pp in pStrip)
-	//				{
-	//					//Transform point
-	//					var rot = cp.rotation * pp.rotation;
-	//					var scaledprofpoint = (offset + Vector3.Scale(pp.point, scale));
-	//					var pos = cp.point + right * scaledprofpoint.x + up * scaledprofpoint.y;
-	//					//var pos = cp.point + rot * scaledprofpoint;
-
-	//					vertices[curveInd + profInd] = pos;
-	//					normals[curveInd + profInd] = rot * Vector3.right;
-	//					uvs[curveInd + profInd] = new Vector2(pp.length / profile.VertexDataLength, unifiedVCoofdinate ? cp.length / curve.VertexDataLength : cp.length);
-
-	//					if ((profInd < profileLen - 1 || profile.IsClosed) && (curveInd > 0 || curve.IsClosed))
-	//					{
-	//						var nextProfInd = (profInd + 1) % profileLen;
-	//						triangles.AddRange_(prevCurveInd + profInd, prevCurveInd + nextProfInd, curveInd + nextProfInd);
-	//						triangles.AddRange_(prevCurveInd + profInd, curveInd + nextProfInd, curveInd + profInd);
-	//					}
-
-	//					prevProfileInd = profInd;
-	//					profInd++;
-	//					profInd %= profileLen;
-	//				}
-	//			}
-
-	//			prevCurveInd = curveInd;
-	//			curveInd+=profileLen;
-	//			curveInd %= len;
-	//		}
-	//	}
-
-	//	var m = new Mesh() { name = name ?? "generated profile mesh" };
-	//	m.vertices = vertices;
-	//	m.normals = normals;
-	//	m.uv = uvs;
-	//	m.triangles = triangles.ToArray();
-	//	if (autoNormals)
-	//		m.RecalculateNormals();
-
-	//	return m;
-	//}
-
-	//public static BezierCurveVertexData.VertexData[][] GetVertexDataStrips(IEnumerable<BezierCurveVertexData.VertexData> collection, bool IsClosed)
-	//{
-	//	var list = new List<BezierCurveVertexData.VertexData[]>();
-	//	var strip = collection.Take(1).ToList();
-	//	var prevV = collection.FirstOrDefault();
-	//	IEnumerable<BezierCurveVertexData.VertexData> shiftedCollection = collection.Skip(1);
-	//	if (IsClosed)
-	//		shiftedCollection = shiftedCollection.Union(collection.Take(1));
-	//	var i = 0;
-	//	foreach (var v in shiftedCollection)
-	//	{
-	//		if (v.isSharp && prevV.isSharp && v.point.Equals(prevV.point))
-	//		{
-	//			list.Add(strip.ToArray());
-	//			strip.Clear();
-	//		}
-	//		strip.Add(v);
-
-	//		prevV = v;
-	//		i++;
-	//	}
-	//	if (!IsClosed)
-	//	{
-	//		list.Add(strip.ToArray());
-	//		strip.Clear();
-	//	}
-
-	//	return list.ToArray();
-	//}
+		return list.ToArray();
+	}
 }

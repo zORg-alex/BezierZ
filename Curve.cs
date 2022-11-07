@@ -605,8 +605,8 @@ namespace BezierCurveZ
 
 		[NonSerialized]
 		private int _vVersion;
-		private OtherVertexData[] _vertexData;
-		public OtherVertexData[] VertexData
+		private VertexData[] _vertexData;
+		public VertexData[] VertexData
 		{
 			[DebuggerStepThrough]
 			get
@@ -654,7 +654,7 @@ namespace BezierCurveZ
 			if (_bVersion != _vVersion || _vertexData == null || force)
 			{
 				//Debug.Log("UpdateVertexData");
-				_vertexData = OtherVertexData.GetVertexData(this);
+				_vertexData = BezierCurveZ.VertexData.GetVertexData(this);
 				_vVersion = _bVersion;
 			}
 		}
