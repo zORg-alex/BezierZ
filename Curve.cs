@@ -619,11 +619,11 @@ namespace BezierCurveZ
 		private int _vDPVersion;
 		private Vector3[] _vertexDataPoints;
 		[SerializeField]
-		private float _interpolationMaxAngleError;
+		private float _interpolationMaxAngleError = 5;
 		[SerializeField]
 		private float _interpolationMinDistance;
 		[SerializeField]
-		private int _interpolationAccuracy;
+		private int _interpolationAccuracy = 10;
 		public int InterpolationAccuracy { get => _interpolationAccuracy; set { if (_interpolationAccuracy != value) { _interpolationAccuracy = value; _bVersion++; } } }
 		public float InterpolationMaxAngleError { get => _interpolationMaxAngleError; set { if (_interpolationMaxAngleError != value) { _interpolationMaxAngleError = value; _bVersion++; } } }
 		public float InterpolationMinDistance { get => _interpolationMinDistance; set { if (_interpolationMinDistance != value) { _interpolationMinDistance = value; _bVersion++; } } }
@@ -644,9 +644,9 @@ namespace BezierCurveZ
 		}
 
 		public enum InterpolationMethod { RotationMinimization = 0, Linear = 1, Smooth = 2, CatmullRomAdditive = 3 }
-		public InterpolationMethod IterpolationOptionsInd;
+		public InterpolationMethod IterpolationOptionsInd = InterpolationMethod.CatmullRomAdditive;
 		[SerializeField]
-		float _interpolationCapmullRomTension;
+		float _interpolationCapmullRomTension = .5f;
 		public float InterpolationCapmullRomTension { get => _interpolationCapmullRomTension; set { if (_interpolationCapmullRomTension != value) { _interpolationCapmullRomTension = value; _vVersion++; } } }
 
 		public void UpdateVertexData(bool force = false)

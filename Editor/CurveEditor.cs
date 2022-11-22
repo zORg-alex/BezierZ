@@ -8,6 +8,7 @@ using static Codice.CM.Common.CmCallContext;
 using RectEx;
 using System.Linq;
 using Utility.Editor;
+using Debug = UnityEngine.Debug;
 
 namespace BezierCurveZ.Editor
 {
@@ -440,6 +441,7 @@ namespace BezierCurveZ.Editor
 				GUIUtils.DrawAxes(point, point.rotation, .1f, 3);
 			}
 			DrawCurveFromVertexData(curve.VertexData.Select(v => (v.Position, v.up)));
+
 			Handles.color = c;
 			Handles.matrix = m;
 		}

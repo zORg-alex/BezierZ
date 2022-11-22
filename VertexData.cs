@@ -1,5 +1,4 @@
-﻿using Codice.CM.Common;
-using System;
+﻿using System.Runtime.CompilerServices;
 using UnityEngine;
 using static BezierCurveZ.Curve;
 
@@ -60,6 +59,23 @@ namespace BezierCurveZ
 			return vd;
 		}
 
+		public VertexData LerpTo(VertexData b, float t) => Lerp(this, b, t);
+		public static VertexData Lerp(VertexData a, VertexData b, float t)
+		{
+			float lerpT = Mathf.Lerp(a.cumulativeTime, b.cumulativeTime, t);
+			int segInd = Mathf.FloorToInt(lerpT);
+			var firstSeg = a.segmentInd == segInd;
+			return new VertexData()
+			{
+				cumulativeTime = lerpT,
+				Position = Vector3.Lerp(a, b, t),
+				Rotation = Quaternion.Lerp(a.Rotation, b.Rotation, t),
+				distance = Mathf.Lerp(a.distance, b.distance, t),
+				segmentInd = segInd,
+				segmentStartVertInd = firstSeg ? a.segmentStartVertInd : b.segmentStartVertInd
+			};
+		}
+
 		public override string ToString() =>
 			$"VertexData {{Pos = {Position}, Eulers = {Rotation.eulerAngles}, {(isSharp ? "Shapr" : "Smooth")}, dist = {distance}, time = {cumulativeTime}, segmentInd = {segmentInd}}}";
 	}
@@ -70,5 +86,16 @@ namespace BezierCurveZ
 			vertexData.BinarySearch(v => v.segmentInd.CompareTo(segmentInd)).segmentStartVertInd;
 
 		public static float CurveLength(this VertexData[] vertexData) => vertexData[vertexData.Length - 1].distance;
+
+		public static VertexData GetPointFromTime(this VertexData[] vertexData, float t)
+		{
+			if (t < 0) return vertexData[0];
+			if (t > vertexData[vertexData.Length - 1].cumulativeTime) return vertexData[vertexData.Length - 1];
+			var ind = vertexData.BinarySearchIndex(v => t - v.cumulativeTime);
+			var a = vertexData[ind];
+			var b = vertexData[ind + 1];
+			var relT = (t - a.cumulativeTime) / (b.cumulativeTime - a.cumulativeTime);
+			return a.LerpTo(b, relT);
+		}
 	} 
 }
