@@ -9,7 +9,7 @@ namespace BezierCurveZ
 	public static class CurveInterpolation
 	{
 		public static float MinSplitDistance = 0.000001f;
-		public static SplitData SplitCurveByAngleError(Vector3[][] segments, Quaternion[] cpRotations, bool[] cpIsSharp, bool IsClosed, float maxAngleError, float minSplitDistance, int accuracy = 10, bool useLinear = false, bool useSmooth = false, bool useCR = true, float crTension = 1f)
+		public static SplitData SplitCurveByAngleError(Vector3[][] segments, Quaternion[] epRotations, bool[] epIsSharp, bool IsClosed, float maxAngleError, float minSplitDistance, int accuracy = 10, bool useLinear = false, bool useSmooth = false, bool useCR = true, float crTension = 1f)
 		{
 			if (segments.Length == 0) return null;
 
@@ -21,30 +21,30 @@ namespace BezierCurveZ
 			var _lastAddedPoint = _currentPoint - firstTangent;
 			var _previousAngle = 0f;
 
-			var rotationsCR = new Quaternion[cpRotations.Length + 2];
-			var relrotationCR = new Quaternion[cpRotations.Length + 2];
-			var relAnglesCR = new float[cpRotations.Length + 2];
+			var rotationsCR = new Quaternion[epRotations.Length + 2];
+			var relrotationCR = new Quaternion[epRotations.Length + 2];
+			var relAnglesCR = new float[epRotations.Length + 2];
 			if (useCR)
 			{
-				rotationsCR[0] = IsClosed ? cpRotations[cpRotations.Length - 2] : cpRotations[0];
-				rotationsCR[rotationsCR.Length - 1] = IsClosed ? cpRotations[1] : cpRotations[cpRotations.Length - 1];
-				for (int i = 0; i < cpRotations.Length; i++)
+				rotationsCR[0] = IsClosed ? epRotations[epRotations.Length - 2] : epRotations[0];
+				rotationsCR[rotationsCR.Length - 1] = IsClosed ? epRotations[1] : epRotations[epRotations.Length - 1];
+				for (int i = 0; i < epRotations.Length; i++)
 				{
-					rotationsCR[i + 1] = cpRotations[i];
+					rotationsCR[i + 1] = epRotations[i];
 				}
 			}
 
 			//Should correct for previous point estimation
 			var _dist = -1f;
 			var length = -1f;
-			bool nextCPIsAutomatic = cpIsSharp[0];
+			bool nextEPIsAutomatic = epIsSharp[0];
 			var segInd = 0;
-			var prevUp = cpRotations[segInd] * Vector3.up;
+			var prevUp = epRotations[segInd] * Vector3.up;
 			foreach (var segment in segments)
 			{
 				if (useLinear || useSmooth)
-					prevUp = cpRotations[segInd] * Vector3.up;
-				var prevTang = cpRotations[segInd] * Vector3.forward;
+					prevUp = epRotations[segInd] * Vector3.up;
+				var prevTang = epRotations[segInd] * Vector3.forward;
 				var firstIndex = data.points.Count;
 				var estimatedSegmentLength = CurveUtils.EstimateSegmentLength(segment);
 				int divisions = (estimatedSegmentLength * accuracy).CeilToInt();
@@ -52,20 +52,20 @@ namespace BezierCurveZ
 				increment = Mathf.Max(increment, 0.0001f);
 				Vector3 _nextEvalPoint = CurveUtils.Evaluate(increment, segment);
 				float _rollAngle = 0f;
-				float _rollIncrement = segInd < cpRotations.Length - 1 ? ((cpRotations[segInd].eulerAngles.z - cpRotations[segInd + 1].eulerAngles.z) / divisions).Abs() : 0f;
-				bool prevCPIsAutomatic = cpIsSharp[segInd];
+				float _rollIncrement = segInd < epRotations.Length - 1 ? ((epRotations[segInd].eulerAngles.z - epRotations[segInd + 1].eulerAngles.z) / divisions).Abs() : 0f;
+				bool prevEPIsAutomatic = epIsSharp[segInd];
 
 				float t = 0f;
 				while (true)
 				{
 					var _edgePoint = (t == 0) || (t >= 1 && segInd == segments.Length - 1);
-					var _isSharp = (t == 0 && !prevCPIsAutomatic) || (t >= 1 && !nextCPIsAutomatic);
+					var _isSharp = (t == 0 && !prevEPIsAutomatic) || (t >= 1 && !nextEPIsAutomatic);
 
 					Vector3 _toLastPoint = _lastAddedPoint - _currentPoint;
 					var _toLastPointMag = _toLastPoint.magnitude;
 					float _angle = 180 - Vector3.Angle(_toLastPoint, _nextEvalPoint - _currentPoint);
 					float _angleError = _angle.Max(_previousAngle);
-					if (segInd < cpRotations.Length - 1)
+					if (segInd < epRotations.Length - 1)
 						_rollAngle += _rollIncrement;
 
 					if (_isSharp || (_edgePoint && _lastAddedPoint != _currentPoint)
@@ -98,12 +98,12 @@ namespace BezierCurveZ
 					_currentPoint = _nextEvalPoint;
 					_nextEvalPoint = CurveUtils.Evaluate(t + increment, segment);
 					_previousAngle = _angle;
-					nextCPIsAutomatic = prevCPIsAutomatic;
+					nextEPIsAutomatic = prevEPIsAutomatic;
 				}
 
 				if (useCR)
 				{
-					Quaternion diff = Quaternion.LookRotation(cpRotations[segInd + 1] * Vector3.forward, prevUp).Inverted() * cpRotations[segInd + 1]; //(rotation.Inverted() * cpRotations[segInd + 1]).Inverted();
+					Quaternion diff = Quaternion.LookRotation(epRotations[segInd + 1] * Vector3.forward, prevUp).Inverted() * epRotations[segInd + 1]; //(rotation.Inverted() * epRotations[segInd + 1]).Inverted();
 					relrotationCR[(segInd + 2) % relrotationCR.Length] = diff;
 					relAnglesCR[(segInd + 2) % relAnglesCR.Length] = diff.eulerAngles.z;
 				}
@@ -112,7 +112,7 @@ namespace BezierCurveZ
 				{
 					var i = data.rotations.Count - 1;
 
-					var right = cpRotations[(segInd + 1) % cpRotations.Length];
+					var right = epRotations[(segInd + 1) % epRotations.Length];
 					var rmLast = data.rotations[data.rotations.Count - 1];
 					var correction = (rmLast.Inverted() * right).normalized;
 					while (i > firstIndex)
@@ -131,20 +131,20 @@ namespace BezierCurveZ
 			}
 
 			Quaternion secondToLastRotation() => data.rotations[data.segmentIndices[data.segmentIndices.Count - 2]];
-			Quaternion secondToLastCPRotation() => cpRotations[cpRotations.Length - 2];
+			Quaternion secondToLastEPRotation() => epRotations[epRotations.Length - 2];
 			Quaternion secondRotation() => data.rotations[data.segmentIndices[1]];
-			Quaternion secondCPRotation() => cpRotations[1];
-			Quaternion allignedSecondToLastRotation() => Quaternion.LookRotation(secondToLastCPRotation() * Vector3.forward, secondToLastRotation() * Vector3.up);
-			Quaternion allignedSecondRoation() => Quaternion.LookRotation(secondCPRotation() * Vector3.forward, secondRotation() * Vector3.up);
+			Quaternion secondEPRotation() => epRotations[1];
+			Quaternion allignedSecondToLastRotation() => Quaternion.LookRotation(secondToLastEPRotation() * Vector3.forward, secondToLastRotation() * Vector3.up);
+			Quaternion allignedSecondRoation() => Quaternion.LookRotation(secondEPRotation() * Vector3.forward, secondRotation() * Vector3.up);
 
 			if (useCR)
 			{
-				relrotationCR[0] = IsClosed ? allignedSecondToLastRotation().Inverted() * secondToLastCPRotation() : Quaternion.identity;
+				relrotationCR[0] = IsClosed ? allignedSecondToLastRotation().Inverted() * secondToLastEPRotation() : Quaternion.identity;
 				relrotationCR[1] = Quaternion.identity;
-				relrotationCR[relrotationCR.Length - 1] = IsClosed ? allignedSecondRoation().Inverted() * secondCPRotation() : relrotationCR[relrotationCR.Length - 2];
-				relAnglesCR[0] = (IsClosed ? allignedSecondToLastRotation().Inverted() * secondToLastCPRotation() : Quaternion.identity).eulerAngles.z;
+				relrotationCR[relrotationCR.Length - 1] = IsClosed ? allignedSecondRoation().Inverted() * secondEPRotation() : relrotationCR[relrotationCR.Length - 2];
+				relAnglesCR[0] = (IsClosed ? allignedSecondToLastRotation().Inverted() * secondToLastEPRotation() : Quaternion.identity).eulerAngles.z;
 				relAnglesCR[1] = 0;
-				relAnglesCR[relrotationCR.Length - 1] = (IsClosed ? secondRotation().normalized.Inverted() * secondCPRotation().normalized : relrotationCR[relrotationCR.Length - 2]).eulerAngles.z;
+				relAnglesCR[relrotationCR.Length - 1] = (IsClosed ? secondRotation().normalized.Inverted() * secondEPRotation().normalized : relrotationCR[relrotationCR.Length - 2]).eulerAngles.z;
 				for (int i = 1; i < relAnglesCR.Length - 1; i++)
 				{
 					relAnglesCR[(i + 1) % relAnglesCR.Length] = relAnglesCR[i] + Mathf.DeltaAngle(relAnglesCR[i], relAnglesCR[(i + 1) % relAnglesCR.Length]);

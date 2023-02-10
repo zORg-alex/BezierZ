@@ -55,8 +55,6 @@ namespace BezierCurveZ.Editor
 		private int controlID;
 		private bool openContext;
 		private bool cutInitiated;
-		private bool extrudeInitiated;
-		private int extrudedIndex;
 		private Vector3 cutPoint;
 		private Vector2 mouseDownPosition;
 		private Vector2 rightMouseDownPosition;
@@ -114,7 +112,7 @@ namespace BezierCurveZ.Editor
 				{
 					Undo.RecordObject(targetObject, "Delete Points");
 					if (selectedPointIdexes.Count == 0)
-						curve.DissolveCP(curve.GetSegmentIndex(closestControlIndex));
+						curve.DissolveEP(curve.GetSegmentIndex(closestControlIndex));
 					else
 					{
 						curve.RemoveMany(selectedPointIdexes);
@@ -201,8 +199,6 @@ namespace BezierCurveZ.Editor
 			{
 				if (PositionHandleIds_copy.@default.Has(GUIUtility.hotControl))
 				{
-					extrudeInitiated = true;
-					extrudedIndex = closestIndex;
 					StartExtruding();
 				}
 				else
@@ -214,7 +210,6 @@ namespace BezierCurveZ.Editor
 			}
 			else if (GetKeyUp(KeyCode.V))
 			{
-				extrudeInitiated = false; ;
 				current.Use();
 			}
 			else if (cutInitiated && GetMouseDown(0))
@@ -359,7 +354,7 @@ namespace BezierCurveZ.Editor
 					{
 						var ind = closestControlIndex;
 
-						curve.AddCPRotation(segmentIndex, pointDelta);
+						curve.AddEPRotation(segmentIndex, pointDelta);
 					}
 					else
 					{
@@ -368,7 +363,7 @@ namespace BezierCurveZ.Editor
 						{
 							var pos = pointDelta * (curve.Points[ind] - localEditedPosition) + localEditedPosition;
 							curve.SetPointPosition(ind, pos);
-							curve.AddCPRotation(curve.GetSegmentIndex(ind), pointDelta);
+							curve.AddEPRotation(curve.GetSegmentIndex(ind), pointDelta);
 						}
 					}
 				}
@@ -399,13 +394,13 @@ namespace BezierCurveZ.Editor
 				if (EditorGUI.EndChangeCheck())
 				{
 					Undo.RecordObject(targetObject, "Set rotation");
-					curve.SetCPRotation(curve.GetSegmentIndex(closestIndex), Quaternion.Euler(rot));
+					curve.SetEPRotation(curve.GetSegmentIndex(closestIndex), Quaternion.Euler(rot));
 					closestPoint = curve.Points[closestIndex];
 				}
 				//Draw Modes dropdown
 				line = line.MoveDown();
 				GUI.Label(line.MoveLeftFor(30), "mode");
-				GUI.enabled = curve.IsControlPoint(closestIndex);
+				GUI.enabled = curve.IsEndPoint(closestIndex);
 				EditorGUI.BeginChangeCheck();
 				var modeId = EditorGUI.Popup(line, Point.AllModes.IndexOf(closestPoint.mode), Point.AllModes.SelectArray(m => m.ToString()));
 				if (EditorGUI.EndChangeCheck())
@@ -440,7 +435,7 @@ namespace BezierCurveZ.Editor
 				Handles.DrawAAPolyLine(vert, vert + vert.normal * .2f);
 				//Handles.Label(vert.point, $"{vert.length}, {vert.time}");
 			}
-			foreach (int i in curve.ControlPointIndexes)
+			foreach (int i in curve.EndPointIndexes)
 			{
 				Point point = curve.Points[i];
 				GUIUtils.DrawAxes(point, point.rotation, .1f, 3);
@@ -543,7 +538,7 @@ namespace BezierCurveZ.Editor
 			for (int i = 0; i < curve.PointCount; i++)
 			{
 				bool selectControlsOnly = currentInternalTool == Tool.Rotate;
-				bool isContolPoint = curve.IsControlPoint(i);
+				bool isContolPoint = curve.IsEndPoint(i);
 				if ((selectHandlesOnly && isContolPoint) || selectControlsOnly && !isContolPoint)
 					continue;
 
@@ -569,7 +564,7 @@ namespace BezierCurveZ.Editor
 			closestPoint = curve.Points[closestIndex];
 			var cind = closestIndex + (closestPoint.isRightHandle ? -1 : closestPoint.isLeftHandle ? 1 : 0);
 			closestControlIndex = cind;
-			//closestControlPoint = curve.Points[cind];
+			//closestEndPoint = curve.Points[cind];
 			if (closestPoint.mode == Point.Mode.Linear)
 			{
 				editedPosition = TransformPoint(curve.Points[cind]);
@@ -600,7 +595,7 @@ namespace BezierCurveZ.Editor
 			for (int i = 0; i < curve.Points.Count; i++)
 			{
 				var point = curve.Points[i];
-				if (!point.IsControlPoint || (curve.IsClosed && i == curve.LastPointInd)) continue;
+				if (!point.IsEndPoint || (curve.IsClosed && i == curve.LastPointInd)) continue;
 
 				if (rect.Contains(HandleUtility.WorldToGUIPoint(TransformPoint(point))))
 				{
@@ -650,7 +645,7 @@ namespace BezierCurveZ.Editor
 			int segmentIndex = curve.GetSegmentIndex(closestIndex);
 			//BackupCurve();
 			curve.SetPointPosition(closestIndex, closestPoint);
-			if (curve.GetCPTangentFromPoints(segmentIndex).Dot(TransformPoint(closestPoint) - editedPosition) < 0)
+			if (curve.GetEPTangentFromPoints(segmentIndex).Dot(TransformPoint(closestPoint) - editedPosition) < 0)
 			{
 				if (curve.IsClosed) segmentIndex %= curve.SegmentCount;
 				if (segmentIndex == curve.SegmentCount)

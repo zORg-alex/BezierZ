@@ -103,35 +103,35 @@ namespace BezierCurveZ
 			foreach (var cStrip in curveStrips)
 			{
 				//Each curve point in strips
-				foreach (var cp in cStrip)
+				foreach (var ep in cStrip)
 				{
 					var profInd = 0;
 					var prevProfileInd = profileLen - 1;
 					//Profile flowing segmentws
 					foreach (var pStrip in profileStrips)
 					{
-						var right = cp.Rotation * Vector3.right;
-						var up = cp.Rotation * Vector3.up;
+						var right = ep.Rotation * Vector3.right;
+						var up = ep.Rotation * Vector3.up;
 						//Each profile point in strips
 						foreach (var pp in pStrip)
 						{
 							//Transform point
-							var rot = cp.Rotation * pp.Rotation;
+							var rot = ep.Rotation * pp.Rotation;
 							var scaledprofpoint = (offset + Vector3.Scale(pp.Position, scale));
-							var pos = cp.Position + right * scaledprofpoint.x + up * scaledprofpoint.y;
-							//var pos = cp.point + rot * scaledprofpoint;
+							var pos = ep.Position + right * scaledprofpoint.x + up * scaledprofpoint.y;
+							//var pos = ep.point + rot * scaledprofpoint;
 
 							vertices[curveInd + profInd] = pos;
 							normals[curveInd + profInd] = rot * Vector3.right;
-							//uvs[curveInd + profInd] = new Vector2(pp.distance / profile.VertexData.CurveLength(), unifiedVCoofdinate ? cp.distance / curve.VertexData.CurveLength() : cp.distance);
+							//uvs[curveInd + profInd] = new Vector2(pp.distance / profile.VertexData.CurveLength(), unifiedVCoofdinate ? ep.distance / curve.VertexData.CurveLength() : ep.distance);
 
 							uvs[curveInd + profInd] =
-								Vector2.up * (mode.HasFlag(UVMode.VUniform) ? (cp.distance / curve.VertexData.CurveLength()) :
-								mode.HasFlag(UVMode.VLength) ? cp.distance :
-								mode.HasFlag(UVMode.VSegment) ? cp.cumulativeTime - cp.segmentInd : 0) +
+								Vector2.up * (mode.HasFlag(UVMode.VUniform) ? (ep.distance / curve.VertexData.CurveLength()) :
+								mode.HasFlag(UVMode.VLength) ? ep.distance :
+								mode.HasFlag(UVMode.VSegment) ? ep.cumulativeTime - ep.segmentInd : 0) +
 								Vector2.right * (mode.HasFlag(UVMode.UUniform) ? pp.distance / profile.VertexData.CurveLength() :
 								mode.HasFlag(UVMode.ULength) ? pp.distance :
-								mode.HasFlag(UVMode.USegment) ? pp.cumulativeTime - cp.segmentInd : 0);
+								mode.HasFlag(UVMode.USegment) ? pp.cumulativeTime - ep.segmentInd : 0);
 
 							if ((profInd < profileLen - 1 || profile.IsClosed) && (curveInd > 0 || curve.IsClosed))
 							{
