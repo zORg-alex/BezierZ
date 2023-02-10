@@ -4,6 +4,9 @@ using Utility;
 using RectEx;
 using UnityEditor.SceneManagement;
 using System.Collections.Generic;
+using System.Reflection;
+using System.IO;
+using System.Linq;
 
 namespace BezierCurveZ.Editor
 {
@@ -32,21 +35,22 @@ namespace BezierCurveZ.Editor
 
 		private void Initialize()
 		{
-			if (EditorGUIUtility.isProSkin)
-			{
-				isOpenTexture = Resources.Load<Texture2D>("Bezier.IsOpen_d");
-				isClosedTexture = Resources.Load<Texture2D>("Bezier.IsClosed_d");
-				EyeOpenTexture = Resources.Load<Texture2D>("Bezier.EyeOpen_d");
-				EyeClosedTexture = Resources.Load<Texture2D>("Bezier.EyeClosed_d");
-			}
-			else
-			{
-				isOpenTexture = Resources.Load<Texture2D>("Bezier.IsOpen");
-				isClosedTexture = Resources.Load<Texture2D>("Bezier.IsClosed");
-				EyeOpenTexture = Resources.Load<Texture2D>("Bezier.EyeOpen");
-				EyeClosedTexture = Resources.Load<Texture2D>("Bezier.EyeClosed");
-			}
+			LoadTextures();
 			initialized = true;
+		}
+
+		private void LoadTextures()
+		{
+			var path = AssetDatabase.GetAssetPath(Textures.instance.textures);
+			var textures = TextureObfuscator.UnpackTextures(path);
+
+
+			var suff = string.Empty;
+			if (EditorGUIUtility.isProSkin) suff = "_d";
+			isOpenTexture = textures.FirstOrDefault(t=>t.name == "Bezier.IsOpen" + suff);
+			isClosedTexture = textures.FirstOrDefault(t => t.name == "Bezier.IsClosed" + suff);
+			EyeOpenTexture = textures.FirstOrDefault(t => t.name == "Bezier.EyeOpen" + suff);
+			EyeClosedTexture = textures.FirstOrDefault(t => t.name == "Bezier.EyeClosed" + suff);
 		}
 
 		public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
