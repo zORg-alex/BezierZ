@@ -6,15 +6,12 @@ namespace BezierCurveZ
 	public class EditableClass
 	{
 #if UNITY_EDITOR
-		[NonSerialized]
-		public bool _previewOn;
-		[NonSerialized]
-		public bool _isInEditMode;
-		[NonSerialized]
-		public bool _isMouseOverProperty;
-		[NonSerialized]
-		public int _id = new Random().Next();
-		public static int _idCounter;
+		public bool PreviewOn { get; set; }
+		public bool IsInEditMode { get; set; }
+		public bool IsMouseOverProperty { get; set; }
+		public int _id { get; } = random.Next();
+
+		private static Random random = new Random();
 #endif
 	}
 

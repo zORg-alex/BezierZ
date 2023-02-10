@@ -69,11 +69,11 @@ namespace BezierCurveZ.Editor
 
 			UnityEditor.EditorGUI.LabelField(firstLineButtonRects[0], label);
 
-			if (curve._isInEditMode) GUI.color = new Color(1, .3f, .3f);
-			var edited = GUI.Toggle(firstLineButtonRects[1], curve._isInEditMode, new GUIContent(editButtonText(curve._isInEditMode)), "Button");
-			if (edited != curve._isInEditMode)
+			if (curve.IsInEditMode) GUI.color = new Color(1, .3f, .3f);
+			var edited = GUI.Toggle(firstLineButtonRects[1], curve.IsInEditMode, new GUIContent(editButtonText(curve.IsInEditMode)), "Button");
+			if (edited != curve.IsInEditMode)
 			{
-				curve._isInEditMode = edited;
+				curve.IsInEditMode = edited;
 				if (edited)
 				{
 					//OnPreviewOff(curve);
@@ -88,23 +88,23 @@ namespace BezierCurveZ.Editor
 			GUI.color = c;
 
 			//Restore preview
-			if (curve._previewOn && !_ActivePreviewSubscriptions.ContainsKey(curve))
+			if (curve.PreviewOn && !_ActivePreviewSubscriptions.ContainsKey(curve))
 				OnPreviewOn(curve, property);
 			//Hover preview
 			if (current.type == EventType.Repaint)
 			{
 				var mouseOverProperty = position.Contains(current.mousePosition);
-				if (curve._isMouseOverProperty && !mouseOverProperty && !curve._previewOn && !curve._isInEditMode)
+				if (curve.IsMouseOverProperty && !mouseOverProperty && !curve.PreviewOn && !curve.IsInEditMode)
 					OnPreviewOff(curve);
-				if (!curve._isMouseOverProperty && mouseOverProperty && !curve._previewOn)
+				if (!curve.IsMouseOverProperty && mouseOverProperty && !curve.PreviewOn)
 					OnPreviewOn(curve, property);
 				RepaintSceneViews();
-				curve._isMouseOverProperty = mouseOverProperty;
+				curve.IsMouseOverProperty = mouseOverProperty;
 			}
 			//Thanks to hover preview it will always be on when clicking
-			curve._previewOn = GUI.Toggle(firstLineButtonRects[2], curve._previewOn, PreviewTexture(curve._previewOn), "Button");
+			curve.PreviewOn = GUI.Toggle(firstLineButtonRects[2], curve.PreviewOn, PreviewTexture(curve.PreviewOn), "Button");
 
-			if (curve._isInEditMode)
+			if (curve.IsInEditMode)
 			{
 				EditorGUI(posDivided[1], curve, property.serializedObject.targetObject);
 			}
@@ -119,7 +119,7 @@ namespace BezierCurveZ.Editor
 			return EditorGUIUtility.singleLineHeight + EditorHeight(curve);
 		}
 
-		private float EditorHeight(Curve curve) => curve._isInEditMode ? 64 + 2 * 3 : 0;
+		private float EditorHeight(Curve curve) => curve.IsInEditMode ? 64 + 2 * 3 : 0;
 
 		private void EditorGUI(Rect position, Curve curve, UnityEngine.Object targetObject)
 		{
@@ -187,7 +187,7 @@ namespace BezierCurveZ.Editor
 			Handles.color = new Color(.25f, 1f, .25f);
 			Handles.matrix = targetTransform.localToWorldMatrix;
 
-			Handles.DrawAAPolyLine((curve._isInEditMode || curve._isMouseOverProperty) ? 2 : 1, curve.VertexDataPoints);
+			Handles.DrawAAPolyLine((curve.IsInEditMode || curve.IsMouseOverProperty) ? 2 : 1, curve.VertexDataPoints);
 
 			Handles.matrix = m;
 			Handles.color = c;

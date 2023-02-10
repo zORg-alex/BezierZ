@@ -20,7 +20,7 @@ namespace BezierCurveZ
 
 		[SerializeField] internal Type _type;
 		public Type type { [DebuggerStepThrough] get => _type; }
-		public bool IsControlPoint { [DebuggerStepThrough] get => type == Type.Control; }
+		public bool IsEndPoint { [DebuggerStepThrough] get => type == Type.Control; }
 
 		public bool isRightHandle { [DebuggerStepThrough] get => type == Type.Right; }
 
@@ -85,7 +85,7 @@ namespace BezierCurveZ
 		public static Vector3 operator *(Point a, float f) => a.position * f;
 
 		[DebuggerStepThrough]
-		public static Point ControlPoint(Vector3 position, Quaternion rotation = default, Mode mode = Mode.Automatic) => new Point(position, rotation, Type.Control, mode);
+		public static Point EndPoint(Vector3 position, Quaternion rotation = default, Mode mode = Mode.Automatic) => new Point(position, rotation, Type.Control, mode);
 
 		[DebuggerStepThrough]
 		public static Point RightHandle(Vector3 position, Quaternion rotation = default, Mode mode = Mode.Automatic) => new Point(position, rotation, Type.Right, mode);

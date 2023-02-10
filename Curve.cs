@@ -31,7 +31,7 @@ namespace BezierCurveZ
 		/// Points and segment in closed curve: {Control, Right, Left},{Control, Right, Left}
 		/// </summary>
 		public List<Point> Points { [DebuggerStepThrough] get => _points; }
-		public IEnumerable<Point> ControlPoints
+		public IEnumerable<Point> EndPoints
 		{
 			[DebuggerStepThrough]
 			get
@@ -41,8 +41,8 @@ namespace BezierCurveZ
 			}
 		}
 		public int LastPointInd { [DebuggerStepThrough] get => _points.Count - 1; }
-		public int ControlPointCount { [DebuggerStepThrough] get => (_points.Count / 3f).CeilToInt(); }
-		public IEnumerable<int> ControlPointIndexes
+		public int EndPointCount { [DebuggerStepThrough] get => (_points.Count / 3f).CeilToInt(); }
+		public IEnumerable<int> EndPointIndexes
 		{
 			[DebuggerStepThrough]
 			get
@@ -55,7 +55,7 @@ namespace BezierCurveZ
 		public int SegmentCount { [DebuggerStepThrough] get => (_points.Count / 3f).FloorToInt(); }
 
 		[DebuggerStepThrough]
-		public int GetSegmentIndex(ushort index) => (index / 3) % ControlPointCount;
+		public int GetSegmentIndex(ushort index) => (index / 3) % EndPointCount;
 		[DebuggerStepThrough]
 		public int GetSegmentIndex(int index) => GetSegmentIndex((ushort)index);
 		[DebuggerStepThrough]
@@ -70,7 +70,7 @@ namespace BezierCurveZ
 		public bool IsAutomaticHandle(int index) => _points[index].IsAutomatic;
 
 		[DebuggerStepThrough]
-		public bool IsControlPoint(int index) => _points[index].IsControlPoint;
+		public bool IsEndPoint(int index) => _points[index].IsEndPoint;
 
 		private Vector3[][] _segments;
 		private int _sVersion;
@@ -122,10 +122,6 @@ namespace BezierCurveZ
 		public Curve()
 		{
 			_points = defaultPoints;
-			//		_bVersion = 1;
-			//#if UNITY_EDITOR
-			//		_id = _idCounter++;
-			//#endif
 		}
 
 		public void Reset()
@@ -195,7 +191,7 @@ namespace BezierCurveZ
 		public void SetPointPosition(ushort index, Vector3 position, bool recursive = true)
 		{
 			var thisPoint = _points[index];
-			if (thisPoint.IsControlPoint)
+			if (thisPoint.IsEndPoint)
 			{
 				var diff = position - thisPoint;
 
@@ -240,9 +236,9 @@ namespace BezierCurveZ
 			else
 			{
 				var controlIndex = thisPoint.isRightHandle ? index - 1 : index + 1;
-				var controlPoint = _points[controlIndex];
+				var endPoint = _points[controlIndex];
 
-				_points[controlIndex] = controlPoint.SetRotation(Quaternion.LookRotation((position - controlPoint) * (thisPoint.isRightHandle ? 1 : -1), controlPoint.up).normalized);
+				_points[controlIndex] = endPoint.SetRotation(Quaternion.LookRotation((position - endPoint) * (thisPoint.isRightHandle ? 1 : -1), endPoint.up).normalized);
 
 				var otherHandleIndex = thisPoint.isRightHandle ? index - 2 : index + 2;
 				bool outOfBounds = (otherHandleIndex < 0 || otherHandleIndex >= PointCount);
@@ -257,19 +253,19 @@ namespace BezierCurveZ
 						if (thisPoint.IsManual || otherHandle.IsManual)
 						{
 							//Proportional
-							var diff = position - controlPoint;
+							var diff = position - endPoint;
 							//_points[index] = _points[index].SetPosition(position);
 							if (diff.sqrMagnitude != 0 && (IsClosed || (index > 1 && index < lastPointInd - 1)))
-								_points[otherHandleIndex] = otherHandle.SetPosition(controlPoint - diff * ((otherHandle - controlPoint).magnitude / diff.magnitude))
-									.SetRotation(controlPoint.rotation);
+								_points[otherHandleIndex] = otherHandle.SetPosition(endPoint - diff * ((otherHandle - endPoint).magnitude / diff.magnitude))
+									.SetRotation(endPoint.rotation);
 						}
 						else
 						{
 							//Automatic, edit both handles mirrored
 							//_points[index] = thisPoint.SetPosition(position);
 							if (IsClosed || (index > 1 && index < lastPointInd - 1))
-								_points[otherHandleIndex] = otherHandle.SetPosition(controlPoint + controlPoint - position)
-									.SetRotation(controlPoint.rotation);
+								_points[otherHandleIndex] = otherHandle.SetPosition(endPoint + endPoint - position)
+									.SetRotation(endPoint.rotation);
 						}
 					}
 				}
@@ -278,10 +274,10 @@ namespace BezierCurveZ
 				{
 					otherHandle = GetLinearHandle(otherHandleIndex);
 					_points[otherHandleIndex] = otherHandle;
-					_points[index] = thisPoint.SetPosition(-(otherHandle - controlPoint).normalized * (position - controlPoint).magnitude);
+					_points[index] = thisPoint.SetPosition(-(otherHandle - endPoint).normalized * (position - endPoint).magnitude);
 				}
 				else if (!thisPoint.IsLinear)
-					_points[index] = thisPoint.SetPosition(position).SetRotation(Quaternion.LookRotation(thisPoint - controlPoint));
+					_points[index] = thisPoint.SetPosition(position).SetRotation(Quaternion.LookRotation(thisPoint - endPoint));
 
 				var nextHandleIndex = thisPoint.isRightHandle ? index + 1 : index - 1;
 				var nextHandle = _points[nextHandleIndex];
@@ -368,7 +364,7 @@ namespace BezierCurveZ
 		{
 			Point thisPoint = _points[index];
 			_points[index] = thisPoint.SetMode(mode);
-			if (_points[index].IsControlPoint)
+			if (_points[index].IsEndPoint)
 			{
 				if (index > 0 || IsClosed)
 				{
@@ -488,7 +484,7 @@ namespace BezierCurveZ
 
 		public void RemoveMany(IEnumerable<int> indexes)
 		{
-			foreach (var index in indexes.Where(i => IsControlPoint(i)).OrderByDescending(i => i))
+			foreach (var index in indexes.Where(i => IsEndPoint(i)).OrderByDescending(i => i))
 			{
 				if (PointCount <= (IsClosed ? 7 : 4))
 				{
@@ -505,7 +501,7 @@ namespace BezierCurveZ
 				else
 				{
 					//Cancel if not a control point
-					if (!IsControlPoint(index)) return;
+					if (!IsEndPoint(index)) return;
 					//First just remove that point
 					_points.RemoveRange(index - 1, 3);
 

@@ -10,11 +10,11 @@ namespace BezierCurveZ.Editor
 		protected T field;
 		protected SerializedProperty property;
 
-		public virtual void Start(T curve, SerializedProperty property)
+		public virtual void Start(T editable, SerializedProperty property)
 		{
 			Unsubscribe();
-			if (this.field != null) this.field._isInEditMode = false;
-			this.field = curve;
+			if (this.field != null) this.field.IsInEditMode = false;
+			this.field = editable;
 			this.property = property;
 			SceneView.duringSceneGui += EditorOnSceneGUI;
 			Selection.selectionChanged += Stop;
@@ -25,7 +25,7 @@ namespace BezierCurveZ.Editor
 		public void Stop(Scene sc) => Stop();
 		public virtual void Stop()
 		{
-			field._isInEditMode = false;
+			field.IsInEditMode = false;
 			field = null;
 			Unsubscribe();
 		}
@@ -57,8 +57,8 @@ namespace BezierCurveZ.Editor
 				if (!ok)
 				{
 					//TODO Is this necessary?
-					if (c != null) c._isInEditMode = false;
-					field._isInEditMode = false;
+					if (c != null) c.IsInEditMode = false;
+					field.IsInEditMode = false;
 				}
 			}
 			catch (Exception)
