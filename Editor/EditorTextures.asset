@@ -12,3 +12,4 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a6997518e594b5e4393145b2bb2e0782, type: 3}
   m_Name: EditorTextures
   m_EditorClassIdentifier: 
+  textures: {fileID: 4900000, guid: bac331267b685154f908605ccc83fbd3, type: 3}

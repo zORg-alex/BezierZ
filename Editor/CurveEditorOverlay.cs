@@ -5,48 +5,48 @@ using UnityEditor.Toolbars;
 
 namespace BezierCurveZ
 {
-	/// <summary>
-	/// https://docs.unity3d.com/2021.2/Documentation/Manual/overlays-custom.html#panel-overlays
-	/// </summary>
-	[Overlay(typeof(SceneView), "CurveEditor")]
-	[Icon("../Resources/Beziericon.png")]
-	public class CurveEditorOverlay : ToolbarOverlay
-	{
-		public const string toolbarId = "CurveEditorOverlay";
-		private static CurveEditorOverlay instance;
+	///// <summary>
+	///// https://docs.unity3d.com/2021.2/Documentation/Manual/overlays-custom.html#panel-overlays
+	///// </summary>
+	//[Overlay(typeof(SceneView), "CurveEditor")]
+	//[Icon("../Resources/Beziericon.png")]
+	//public class CurveEditorOverlay : ToolbarOverlay
+	//{
+	//	public const string toolbarId = "CurveEditorOverlay";
+	//	private static CurveEditorOverlay instance;
 
-		//public CurveEditorOverlay() : base(CurveEditorTransformOrientation.id) => instance = this;
+	//	//public CurveEditorOverlay() : base(CurveEditorTransformOrientation.id) => instance = this;
 
-		public static void Hide()
-		{
-			if (instance != null)
-				instance.displayed = false;
-		}
+	//	public static void Hide()
+	//	{
+	//		if (instance != null)
+	//			instance.displayed = false;
+	//	}
 
-		public static void Show()
-		{
-			if (instance != null)
-				instance.displayed = true;
-		}
-	}
+	//	public static void Show()
+	//	{
+	//		if (instance != null)
+	//			instance.displayed = true;
+	//	}
+	//}
 
-	[EditorToolbarElement(id, typeof(SceneView))]
-	public class zzz : EditorToolbarButton
-	{
-		public const string id = CurveEditorOverlay.toolbarId + "/zzz";
+	//[EditorToolbarElement(id, typeof(SceneView))]
+	//public class zzz : EditorToolbarButton
+	//{
+	//	public const string id = CurveEditorOverlay.toolbarId + "/zzz";
 
-		public zzz()
-		{
-			text = "zzz";
-			tooltip = "zzz tooltip";
-			icon = EditorGUIUtility.isProSkin ? Resources.Load<Texture2D>("Beziericon_d") : Resources.Load<Texture2D>("Beziericon");
-			clicked += () => {
-				Debug.Log("Clicked zzz" + Time.time);
+	//	public zzz()
+	//	{
+	//		text = "zzz";
+	//		tooltip = "zzz tooltip";
+	//		icon = EditorGUIUtility.isProSkin ? Resources.Load<Texture2D>("Beziericon_d") : Resources.Load<Texture2D>("Beziericon");
+	//		clicked += () => {
+	//			Debug.Log("Clicked zzz" + Time.time);
 
-				//Undo.RegisterCreatedObjectUndo(newObj.gameObject, "Create Cube");
-			};
-		}
-	}
+	//			//Undo.RegisterCreatedObjectUndo(newObj.gameObject, "Create Cube");
+	//		};
+	//	}
+	//}
 
 	//[EditorToolbarElement(id, typeof(SceneView))]
 	//public class CurveEditorTransformOrientation : EditorToolbarDropdown

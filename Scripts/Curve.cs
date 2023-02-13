@@ -679,19 +679,25 @@ namespace BezierCurveZ
 		public override bool Equals(object obj)
 		{
 			return obj is Curve curve &&
-				   _id == curve._id &&
-				   _bVersion == curve._bVersion &&
-				   EqualityComparer<List<Point>>.Default.Equals(_points, curve._points) &&
-				   _isClosed == curve._isClosed &&
-				   _interpolationMaxAngleError == curve._interpolationMaxAngleError &&
-				   _interpolationMinDistance == curve._interpolationMinDistance &&
-				   _interpolationAccuracy == curve._interpolationAccuracy &&
-				   _interpolationCapmullRomTension == curve._interpolationCapmullRomTension;
+#if UNITY_EDITOR
+					_id == curve._id &&
+#endif
+					_bVersion == curve._bVersion &&
+					EqualityComparer<List<Point>>.Default.Equals(_points, curve._points) &&
+					_isClosed == curve._isClosed &&
+					_interpolationMaxAngleError == curve._interpolationMaxAngleError &&
+					_interpolationMinDistance == curve._interpolationMinDistance &&
+					_interpolationAccuracy == curve._interpolationAccuracy &&
+					_interpolationCapmullRomTension == curve._interpolationCapmullRomTension;
 		}
 
 		public override int GetHashCode()
 		{
-			return HashCode.Combine(_id, _bVersion, _points, _isClosed, _interpolationMaxAngleError, _interpolationMinDistance, _interpolationAccuracy, _interpolationCapmullRomTension);
+			return HashCode.Combine(
+#if UNITY_EDITOR
+				_id, 
+# endif
+				_bVersion, _points, _isClosed, _interpolationMaxAngleError, _interpolationMinDistance, _interpolationAccuracy, _interpolationCapmullRomTension);
 		}
 
 		public static bool operator ==(Curve left, Curve right)
