@@ -9,6 +9,7 @@ namespace BezierCurveZ
 	{
 		public Vector3 Position;
 		public Quaternion Rotation;
+		public Vector3 Scale;
 		public Vector3 up => Rotation * Vector3.up;
 		public Vector3 right => Rotation * Vector3.right;
 		public Vector3 normal => Rotation * Vector3.right;
@@ -29,14 +30,13 @@ namespace BezierCurveZ
 			var splitdata = CurveInterpolation.SplitCurveByAngleError(
 				otherCurve.Segments,
 				otherCurve.EndPoints.SelectArray(p=>p.rotation),
+				otherCurve.EndPoints.SelectArray(p=>p.scale),
 				otherCurve.EndPoints.SelectArray(p => !p.IsAutomatic),
 				otherCurve.IsClosed,
 				otherCurve.InterpolationMaxAngleError,
 				otherCurve.InterpolationMinDistance,
 				otherCurve.InterpolationAccuracy,
-				otherCurve.IterpolationOptionsInd == InterpolationMethod.Linear,
-				otherCurve.IterpolationOptionsInd == InterpolationMethod.Smooth,
-				otherCurve.IterpolationOptionsInd == InterpolationMethod.CatmullRomAdditive,
+				otherCurve.IterpolationOptionsInd,
 				otherCurve.InterpolationCapmullRomTension);
 			var vd = new VertexData[splitdata.Count];
 			var segInd = 0;
@@ -48,6 +48,7 @@ namespace BezierCurveZ
 				{
 					Position = splitdata.points[i],
 					Rotation = splitdata.rotations[i],
+					Scale = splitdata.scales[i],
 					distance = splitdata.cumulativeLength[i],
 					cumulativeTime = splitdata.cumulativeTime[i],
 					isSharp = splitdata.isSharp[i],
@@ -70,6 +71,7 @@ namespace BezierCurveZ
 				cumulativeTime = lerpT,
 				Position = Vector3.Lerp(a, b, t),
 				Rotation = Quaternion.Lerp(a.Rotation, b.Rotation, t),
+				Scale = Vector3.Lerp(a.Scale, b.Scale, t),
 				distance = Mathf.Lerp(a.distance, b.distance, t),
 				segmentInd = segInd,
 				segmentStartVertInd = firstSeg ? a.segmentStartVertInd : b.segmentStartVertInd

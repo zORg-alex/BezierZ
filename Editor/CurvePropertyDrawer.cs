@@ -148,7 +148,7 @@ namespace BezierCurveZ.Editor
 				UnityEditor.EditorGUI.IntField(detStack[2], _accuracyLabel, curve.InterpolationAccuracy)
 				, 1, 1000);
 			var tens = 0f;
-			if (curve.IterpolationOptionsInd == Curve.InterpolationMethod.CatmullRomAdditive)
+			if (curve.IterpolationOptionsInd == InterpolationMethod.CatmullRomAdditive)
 				tens = Mathf.Max(
 					UnityEditor.EditorGUI.FloatField(interpStack[1], "tension", curve.InterpolationCapmullRomTension)
 					, 0.01f);
@@ -174,7 +174,7 @@ namespace BezierCurveZ.Editor
 			if (ops != (int)curve.IterpolationOptionsInd)
 			{
 				Undo.RecordObject(targetObject, $"Interpolation options changed on curve");
-				curve.IterpolationOptionsInd = (Curve.InterpolationMethod)ops;
+				curve.IterpolationOptionsInd = (InterpolationMethod)ops;
 				RepaintSceneViews();
 			}
 		}

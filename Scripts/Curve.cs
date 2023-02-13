@@ -113,6 +113,21 @@ namespace BezierCurveZ
 				return _pointRotations;
 			}
 		}
+
+		private int _pscaleVersion;
+		private Vector3[] _pointScales;
+		public Vector3[] PointScales
+		{
+			get
+			{
+				if (_pscaleVersion != _bVersion)
+				{
+					_pointScales = _points.SelectArray(p => p.scale);
+					_pscaleVersion = _bVersion;
+				}
+				return _pointScales;
+			}
+		}
 		public int PointCount { [DebuggerStepThrough] get => _points.Count; }
 		private ushort lastPointInd { [DebuggerStepThrough] get => (ushort)(Points.Count - 1); }
 
@@ -144,10 +159,10 @@ namespace BezierCurveZ
 			{
 				var rot = Quaternion.LookRotation(Vector3.right);
 				return new List<Point> {
-				new Point(Vector3.zero, rot, Point.Type.Control, Point.Mode.Automatic),
-				new Point(Vector3.right * .33333f, rot, Point.Type.Right, Point.Mode.Automatic),
-				new Point(Vector3.right * .66666f, rot, Point.Type.Left, Point.Mode.Automatic),
-				new Point(Vector3.right, rot, Point.Type.Control, Point.Mode.Automatic),
+				new Point(Vector3.zero, rot, default, Point.Type.Control, Point.Mode.Automatic),
+				new Point(Vector3.right * .33333f, rot, default, Point.Type.Right, Point.Mode.Automatic),
+				new Point(Vector3.right * .66666f, rot, default, Point.Type.Left, Point.Mode.Automatic),
+				new Point(Vector3.right, rot, default, Point.Type.Control, Point.Mode.Automatic),
 			};
 			}
 		}
@@ -308,7 +323,7 @@ namespace BezierCurveZ
 				var diff = a - b;
 				var tang = isRight ? otherPoint - a : otherPoint - b;
 				var pos = (isRight ? a : b) + tang.normalized * diff.magnitude * .1f;
-				return new Point(pos, Quaternion.LookRotation(tang), isRight ? Point.Type.Right : Point.Type.Left, Point.Mode.Linear);
+				return new Point(pos, Quaternion.LookRotation(tang), default, isRight ? Point.Type.Right : Point.Type.Left, Point.Mode.Linear);
 			}
 		}
 
@@ -335,6 +350,16 @@ namespace BezierCurveZ
 				_points[index == 0 ? LastPointInd : 0] = _points[index];
 
 			RotateHandles(index, _points[index], delta, _points[index].rotation);
+			_bVersion++;
+		}
+		public void SetEPScale(int segmentIndex, Vector3 scale) => SetEPScale((ushort)segmentIndex, scale);
+		public void SetEPScale(ushort segmentIndex, Vector3 scale)
+		{
+			var index = GetPointIndex(segmentIndex);
+			_points[index] = _points[index].SetScale(scale);
+			if (IsClosed && (index == 0 || index == LastPointInd))
+				_points[index == 0 ? LastPointInd : 0] = _points[index];
+
 			_bVersion++;
 		}
 
@@ -528,7 +553,7 @@ namespace BezierCurveZ
 					var min = _vertexData.Select(v => v.Position).Skip(firstVInd).Min((v) => newSegments[i].DistanceTo(v), out var ind);
 					rot = _vertexData[firstVInd + ind].Rotation;
 				}
-				newPoints[i] = new Point(newSegments[i], rot, types[typeInd], Point.Mode.Proportional);
+				newPoints[i] = new Point(newSegments[i], rot, default, types[typeInd], Point.Mode.Proportional);
 				typeInd++;
 				typeInd %= 3;
 			}
@@ -639,7 +664,6 @@ namespace BezierCurveZ
 			}
 		}
 
-		public enum InterpolationMethod { RotationMinimization = 0, Linear = 1, Smooth = 2, CatmullRomAdditive = 3 }
 		public InterpolationMethod IterpolationOptionsInd = InterpolationMethod.CatmullRomAdditive;
 		[SerializeField]
 		float _interpolationCapmullRomTension = .5f;

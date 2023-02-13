@@ -6,12 +6,16 @@ using UnityEngine;
 
 namespace BezierCurveZ
 {
+	public enum InterpolationMethod { RotationMinimization = 0, Linear = 1, Smooth = 2, CatmullRomAdditive = 3 }
 	public static class CurveInterpolation
 	{
 		public static float MinSplitDistance = 0.000001f;
-		public static SplitData SplitCurveByAngleError(Vector3[][] segments, Quaternion[] epRotations, bool[] epIsSharp, bool IsClosed, float maxAngleError, float minSplitDistance, int accuracy = 10, bool useLinear = false, bool useSmooth = false, bool useCR = true, float crTension = 1f)
+		public static SplitData SplitCurveByAngleError(
+			Vector3[][] segments, Quaternion[] endPointRotations, Vector3[] endPointScales, bool[] endPointIsSharp,
+			bool IsClosed, float maxAngleError, float minSplitDistance, int accuracy = 10,
+			InterpolationMethod interpolation = InterpolationMethod.CatmullRomAdditive, float catmullRomTension = 1f)
 		{
-			if (segments.Length == 0) return null;
+			if (segments.Length == 0) return new SplitData();
 
 			var data = new SplitData();
 
@@ -21,39 +25,43 @@ namespace BezierCurveZ
 			var _lastAddedPoint = _currentPoint - firstTangent;
 			var _previousAngle = 0f;
 
-			var rotationsCR = new Quaternion[epRotations.Length + 2];
-			var relrotationCR = new Quaternion[epRotations.Length + 2];
-			var relAnglesCR = new float[epRotations.Length + 2];
-			if (useCR)
+			var rotationsCR = new Quaternion[endPointRotations.Length + 2];
+			var relrotationCR = new Quaternion[endPointRotations.Length + 2];
+			var relAnglesCR = new float[endPointRotations.Length + 2];
+
+			var scalesCR = new Vector3[endPointScales.Length + 2];
+			if (interpolation == InterpolationMethod.CatmullRomAdditive)
 			{
-				rotationsCR[0] = IsClosed ? epRotations[epRotations.Length - 2] : epRotations[0];
-				rotationsCR[rotationsCR.Length - 1] = IsClosed ? epRotations[1] : epRotations[epRotations.Length - 1];
-				for (int i = 0; i < epRotations.Length; i++)
+				rotationsCR[0] = IsClosed ? endPointRotations[endPointRotations.Length - 2] : endPointRotations[0];
+				rotationsCR[rotationsCR.Length - 1] = IsClosed ? endPointRotations[1] : endPointRotations[endPointRotations.Length - 1];
+				scalesCR[0] = IsClosed ? endPointScales[endPointScales.Length - 2] : endPointScales[0];
+				scalesCR[scalesCR.Length - 1] = IsClosed ? endPointScales[1] : endPointScales[endPointScales.Length - 1];
+				for (int i = 0; i < endPointRotations.Length; i++)
 				{
-					rotationsCR[i + 1] = epRotations[i];
+					rotationsCR[i + 1] = endPointRotations[i];
+					scalesCR[i + 1] = endPointScales[i];
 				}
 			}
 
 			//Should correct for previous point estimation
 			var _dist = -1f;
 			var length = -1f;
-			bool nextEPIsAutomatic = epIsSharp[0];
+			bool nextEPIsAutomatic = endPointIsSharp[0];
 			var segInd = 0;
-			var prevUp = epRotations[segInd] * Vector3.up;
+			var prevUp = endPointRotations[segInd] * Vector3.up;
 			foreach (var segment in segments)
 			{
-				if (useLinear || useSmooth)
-					prevUp = epRotations[segInd] * Vector3.up;
-				var prevTang = epRotations[segInd] * Vector3.forward;
+				if (InterpolationIsLinearOrSmooth())
+					prevUp = endPointRotations[segInd] * Vector3.up;
+				var prevTang = endPointRotations[segInd] * Vector3.forward;
 				var firstIndex = data.points.Count;
 				var estimatedSegmentLength = CurveUtils.EstimateSegmentLength(segment);
 				int divisions = (estimatedSegmentLength * accuracy).CeilToInt();
-				float increment = divisions == 1 ? 1f : 1f / divisions;
-				increment = Mathf.Max(increment, 0.0001f);
+				float increment = Mathf.Max(divisions > 0.00000001f ? 1f / divisions : float.MaxValue, 0.00001f);
 				Vector3 _nextEvalPoint = CurveUtils.Evaluate(increment, segment);
 				float _rollAngle = 0f;
-				float _rollIncrement = segInd < epRotations.Length - 1 ? ((epRotations[segInd].eulerAngles.z - epRotations[segInd + 1].eulerAngles.z) / divisions).Abs() : 0f;
-				bool prevEPIsAutomatic = epIsSharp[segInd];
+				float _rollIncrement = segInd < endPointRotations.Length - 1 ? ((endPointRotations[segInd].eulerAngles.z - endPointRotations[segInd + 1].eulerAngles.z) / divisions).Abs() : 0f;
+				bool prevEPIsAutomatic = endPointIsSharp[segInd];
 
 				float t = 0f;
 				while (true)
@@ -65,7 +73,7 @@ namespace BezierCurveZ
 					var _toLastPointMag = _toLastPoint.magnitude;
 					float _angle = 180 - Vector3.Angle(_toLastPoint, _nextEvalPoint - _currentPoint);
 					float _angleError = _angle.Max(_previousAngle);
-					if (segInd < epRotations.Length - 1)
+					if (segInd < endPointRotations.Length - 1)
 						_rollAngle += _rollIncrement;
 
 					if (_isSharp || (_edgePoint && _lastAddedPoint != _currentPoint)
@@ -86,6 +94,7 @@ namespace BezierCurveZ
 						if (data.segmentIndices.Count == segInd)
 							data.segmentIndices.Add(data.points.Count - 1);
 						data.rotations.Add(rotation);
+						data.scales.Add(GetScale(segInd, t));
 						data.isSharp.Add(_isSharp || (segInd == 0 && t == 0) || (segInd == segments.Length - 1 && t == 1));
 						_dist = 0;
 						_lastAddedPoint = _currentPoint;
@@ -101,26 +110,26 @@ namespace BezierCurveZ
 					nextEPIsAutomatic = prevEPIsAutomatic;
 				}
 
-				if (useCR)
+				if (interpolation == InterpolationMethod.CatmullRomAdditive)
 				{
-					Quaternion diff = Quaternion.LookRotation(epRotations[segInd + 1] * Vector3.forward, prevUp).Inverted() * epRotations[segInd + 1]; //(rotation.Inverted() * epRotations[segInd + 1]).Inverted();
-					relrotationCR[(segInd + 2) % relrotationCR.Length] = diff;
-					relAnglesCR[(segInd + 2) % relAnglesCR.Length] = diff.eulerAngles.z;
+					Quaternion rotDiff = Quaternion.LookRotation(endPointRotations[segInd + 1] * Vector3.forward, prevUp).Inverted() * endPointRotations[segInd + 1]; //(rotation.Inverted() * epRotations[segInd + 1]).Inverted();
+					relrotationCR[(segInd + 2) % relrotationCR.Length] = rotDiff;
+					relAnglesCR[(segInd + 2) % relAnglesCR.Length] = rotDiff.eulerAngles.z;
 				}
 
-				if (useLinear || useSmooth)
+				if (InterpolationIsLinearOrSmooth())
 				{
 					var i = data.rotations.Count - 1;
 
-					var right = epRotations[(segInd + 1) % epRotations.Length];
+					var right = endPointRotations[(segInd + 1) % endPointRotations.Length];
 					var rmLast = data.rotations[data.rotations.Count - 1];
 					var correction = (rmLast.Inverted() * right).normalized;
 					while (i > firstIndex)
 					{
 						t = data.cumulativeTime[i] - segInd;
-						if (useSmooth)
+						if (interpolation is InterpolationMethod.Smooth)
 							data.rotations[i] = data.rotations[i] * Quaternion.Slerp(Quaternion.identity, correction, t.SmoothStep());
-						if (useLinear)
+						if (interpolation is InterpolationMethod.Linear)
 							data.rotations[i] = data.rotations[i] * Quaternion.Slerp(Quaternion.identity, correction, t);
 
 						i--;
@@ -131,13 +140,13 @@ namespace BezierCurveZ
 			}
 
 			Quaternion secondToLastRotation() => data.rotations[data.segmentIndices[data.segmentIndices.Count - 2]];
-			Quaternion secondToLastEPRotation() => epRotations[epRotations.Length - 2];
+			Quaternion secondToLastEPRotation() => endPointRotations[endPointRotations.Length - 2];
 			Quaternion secondRotation() => data.rotations[data.segmentIndices[1]];
-			Quaternion secondEPRotation() => epRotations[1];
+			Quaternion secondEPRotation() => endPointRotations[1];
 			Quaternion allignedSecondToLastRotation() => Quaternion.LookRotation(secondToLastEPRotation() * Vector3.forward, secondToLastRotation() * Vector3.up);
 			Quaternion allignedSecondRoation() => Quaternion.LookRotation(secondEPRotation() * Vector3.forward, secondRotation() * Vector3.up);
 
-			if (useCR)
+			if (interpolation == InterpolationMethod.CatmullRomAdditive)
 			{
 				relrotationCR[0] = IsClosed ? allignedSecondToLastRotation().Inverted() * secondToLastEPRotation() : Quaternion.identity;
 				relrotationCR[1] = Quaternion.identity;
@@ -156,7 +165,7 @@ namespace BezierCurveZ
 					{
 						segInd = Mathf.Min(data.cumulativeTime[i].FloorToInt(), segments.Length - 1);
 						rotations[i] = r * Quaternion.Euler(0, 0,
-							CatmullRomCurveUtility.Evaluate(data.cumulativeTime[i] - segInd, crTension,
+							CatmullRomCurveUtility.Evaluate(data.cumulativeTime[i] - segInd, catmullRomTension,
 							relAnglesCR[segInd], relAnglesCR[segInd + 1], relAnglesCR[segInd + 2], relAnglesCR[segInd + 3]));
 						i++;
 					}
@@ -165,7 +174,27 @@ namespace BezierCurveZ
 			}
 
 			return data;
+
+			bool InterpolationIsLinearOrSmooth() =>
+				interpolation is InterpolationMethod.Linear or InterpolationMethod.Smooth;
+			Vector3 GetScale(int segInd, float t)
+			{
+				if (interpolation is InterpolationMethod.CatmullRomAdditive)
+				{
+					return CatmullRomCurveUtility.Evaluate(t, catmullRomTension,
+							scalesCR[segInd], scalesCR[segInd + 1], scalesCR[segInd + 2], scalesCR[segInd + 3]);
+				}
+				else if (interpolation is InterpolationMethod.Linear)
+				{
+					return Vector3.Lerp(endPointScales[segInd], endPointScales[segInd + 1], t);
+				}
+				else
+				{
+					return Vector3.Lerp(endPointScales[segInd], endPointScales[segInd + 1], t.SmoothStep());
+				}
+			}
 		}
+
 
 		private static Quaternion GetRotation(Vector3 tangent, Vector3 firstTangent, Vector3 lastTangent, Quaternion[] rotations)
 		{
@@ -178,13 +207,15 @@ namespace BezierCurveZ
 			public List<Vector3> points = new List<Vector3>();
 			public List<Vector3> tangents = new List<Vector3>();
 			/// <summary>
-			/// contains splitdata first indexes for each segment. It is shorter than rest.
+			/// contains splitdata first indexes for each segment. It is shorter than rest. It's length is same as EndPoint Count
 			/// </summary>
 			public List<int> segmentIndices = new List<int>();
 			public List<float> cumulativeLength = new List<float>();
 			public List<float> cumulativeTime = new List<float>();
 			public List<Quaternion> rotations = new List<Quaternion>();
+			public List<Vector3> scales = new List<Vector3>();
 			internal List<bool> isSharp = new List<bool>();
+
 			public int Count => points.Count;
 		}
 	}

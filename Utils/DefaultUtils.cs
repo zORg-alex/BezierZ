@@ -203,6 +203,17 @@ public static class DefaultUtils {
 	}
 
 	[DebuggerStepThrough]
+	public static Vector3 Sum<T>(this IEnumerable<T> collection, Func<T,Vector3> getter)
+	{
+		var sum = Vector3.zero;
+		foreach (var item in collection)
+		{
+			sum += getter(item);
+		}
+		return sum;
+	}
+
+	[DebuggerStepThrough]
 	public static T Min<T>(this IEnumerable<T> collection, Func<T, float> predicate, out int indexOf)
 	{
 		T min = collection.FirstOrDefault();
