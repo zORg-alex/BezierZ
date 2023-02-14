@@ -436,7 +436,8 @@ namespace BezierCurveZ.Editor
 				//			Q Menu			//
 				//////////////////////////////
 				Handles.BeginGUI();
-				var guiRect = new Rect(HandleUtility.WorldToGUIPoint(editedPosition), new Vector3(300, EditorGUIUtility.singleLineHeight * 4 + 8));
+				var linesCount = closestIndex == closestControlIndex ? 4 : 1;
+				var guiRect = new Rect(HandleUtility.WorldToGUIPoint(editedPosition), new Vector3(300, EditorGUIUtility.singleLineHeight * linesCount + 8));
 				mouseCaptured = guiRect.Contains(current.mousePosition);
 				GUI.Box(guiRect, GUIContent.none);
 
@@ -452,44 +453,45 @@ namespace BezierCurveZ.Editor
 					closestPoint = curve.Points[closestIndex];
 				}
 
-				//Draw Eulers Angles line
-				line = line.MoveDown();
-				GUI.Label(line.MoveLeftFor(30), "rot");
-				EditorGUI.BeginChangeCheck();
-				var rot = EditorGUI.Vector3Field(line, GUIContent.none, closestPoint.rotation.eulerAngles);
-				if (EditorGUI.EndChangeCheck())
+				if (closestIndex == closestControlIndex)
 				{
-					Undo.RecordObject(targetObject, "Set rotation");
-					curve.SetEPRotation(curve.GetSegmentIndex(closestIndex), Quaternion.Euler(rot));
-					closestPoint = curve.Points[closestIndex];
-				}
+					//Draw Eulers Angles line
+					line = line.MoveDown();
+					GUI.Label(line.MoveLeftFor(30), "rot");
+					EditorGUI.BeginChangeCheck();
+					var rot = EditorGUI.Vector3Field(line, GUIContent.none, closestPoint.rotation.eulerAngles);
+					if (EditorGUI.EndChangeCheck())
+					{
+						Undo.RecordObject(targetObject, "Set rotation");
+						curve.SetEPRotation(curve.GetSegmentIndex(closestIndex), Quaternion.Euler(rot));
+						closestPoint = curve.Points[closestIndex];
+					}
 
-				//Draw scale 
-				line = line.MoveDown();
-				GUI.Label(line.MoveLeftFor(30), "sca");
-				EditorGUI.BeginChangeCheck();
-				var sca = EditorGUI.Vector3Field(line, GUIContent.none, closestPoint.scale);
-				if (EditorGUI.EndChangeCheck())
-				{
-					Undo.RecordObject(targetObject, "Set scale");
-					curve.SetEPScale(curve.GetSegmentIndex(closestIndex), sca);
-					closestPoint = curve.Points[closestIndex];
-				}
+					//Draw scale 
+					line = line.MoveDown();
+					GUI.Label(line.MoveLeftFor(30), "sca");
+					EditorGUI.BeginChangeCheck();
+					var sca = EditorGUI.Vector3Field(line, GUIContent.none, closestPoint.scale);
+					if (EditorGUI.EndChangeCheck())
+					{
+						Undo.RecordObject(targetObject, "Set scale");
+						curve.SetEPScale(curve.GetSegmentIndex(closestIndex), sca);
+						closestPoint = curve.Points[closestIndex];
+					}
 
-				//Draw Modes dropdown
-				line = line.MoveDown();
-				GUI.Label(line.MoveLeftFor(30), "mode");
-				GUI.enabled = curve.IsEndPoint(closestIndex);
-				EditorGUI.BeginChangeCheck();
-				var modeId = EditorGUI.Popup(line, Point.AllModes.IndexOf(closestPoint.mode), Point.AllModes.SelectArray(m => m.ToString()));
-				if (EditorGUI.EndChangeCheck())
-				{
-					Undo.RecordObject(targetObject, "Set mode");
-					curve.SetPointMode(closestIndex, Point.AllModes[modeId]);
-					closestPoint = curve.Points[closestIndex];
+					//Draw Modes dropdown
+					line = line.MoveDown();
+					GUI.Label(line.MoveLeftFor(30), "mode");
+					EditorGUI.BeginChangeCheck();
+					var modeId = EditorGUI.Popup(line, Point.AllModes.IndexOf(closestPoint.mode), Point.AllModes.SelectArray(m => m.ToString()));
+					if (EditorGUI.EndChangeCheck())
+					{
+						Undo.RecordObject(targetObject, "Set mode");
+						curve.SetPointMode(closestIndex, Point.AllModes[modeId]);
+						closestPoint = curve.Points[closestIndex];
+					}
+					Handles.EndGUI();
 				}
-				GUI.enabled = true;
-				Handles.EndGUI();
 
 				Quaternion r = Camera.current.transform.rotation;
 				float h = HandleUtility.GetHandleSize(editedPosition) * .2f;

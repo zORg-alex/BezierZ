@@ -41,16 +41,15 @@ namespace BezierCurveZ.Editor
 
 		private void LoadTextures()
 		{
- 			var path = AssetDatabase.GetAssetPath(Textures.instance.textures);
+			var path = AssetDatabase.GetAssetPath(Textures.instance.textures);
 			var textures = TextureObfuscator.UnpackTextures(path);
+			var suffix = string.Empty;
+			if (EditorGUIUtility.isProSkin) suffix = "_d";
 
-
-			var suff = string.Empty;
-			if (EditorGUIUtility.isProSkin) suff = "_d";
-			isOpenTexture = textures.FirstOrDefault(t=>t.name == "Bezier.IsOpen" + suff);
-			isClosedTexture = textures.FirstOrDefault(t => t.name == "Bezier.IsClosed" + suff);
-			EyeOpenTexture = textures.FirstOrDefault(t => t.name == "Bezier.EyeOpen" + suff);
-			EyeClosedTexture = textures.FirstOrDefault(t => t.name == "Bezier.EyeClosed" + suff);
+			isOpenTexture = textures.FirstOrDefault(t=>t.name == "Bezier.IsOpen" + suffix);
+			isClosedTexture = textures.FirstOrDefault(t => t.name == "Bezier.IsClosed" + suffix);
+			EyeOpenTexture = textures.FirstOrDefault(t => t.name == "Bezier.EyeOpen" + suffix);
+			EyeClosedTexture = textures.FirstOrDefault(t => t.name == "Bezier.EyeClosed" + suffix);
 		}
 
 		public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
