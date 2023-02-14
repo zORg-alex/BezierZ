@@ -41,7 +41,7 @@ namespace BezierCurveZ.Editor
 
 		private void LoadTextures()
 		{
-			var path = AssetDatabase.GetAssetPath(Textures.instance.textures);
+ 			var path = AssetDatabase.GetAssetPath(Textures.instance.textures);
 			var textures = TextureObfuscator.UnpackTextures(path);
 
 

@@ -159,10 +159,10 @@ namespace BezierCurveZ
 			{
 				var rot = Quaternion.LookRotation(Vector3.right);
 				return new List<Point> {
-				new Point(Vector3.zero, rot, default, Point.Type.Control, Point.Mode.Automatic),
-				new Point(Vector3.right * .33333f, rot, default, Point.Type.Right, Point.Mode.Automatic),
-				new Point(Vector3.right * .66666f, rot, default, Point.Type.Left, Point.Mode.Automatic),
-				new Point(Vector3.right, rot, default, Point.Type.Control, Point.Mode.Automatic),
+				new Point(Vector3.zero, rot, Vector3.one, Point.Type.Control, Point.Mode.Automatic),
+				new Point(Vector3.right * .33333f, rot, Vector3.one, Point.Type.Right, Point.Mode.Automatic),
+				new Point(Vector3.right * .66666f, rot, Vector3.one, Point.Type.Left, Point.Mode.Automatic),
+				new Point(Vector3.right, rot, Vector3.one, Point.Type.Control, Point.Mode.Automatic),
 			};
 			}
 		}
@@ -323,7 +323,7 @@ namespace BezierCurveZ
 				var diff = a - b;
 				var tang = isRight ? otherPoint - a : otherPoint - b;
 				var pos = (isRight ? a : b) + tang.normalized * diff.magnitude * .1f;
-				return new Point(pos, Quaternion.LookRotation(tang), default, isRight ? Point.Type.Right : Point.Type.Left, Point.Mode.Linear);
+				return new Point(pos, Quaternion.LookRotation(tang), Vector3.one, isRight ? Point.Type.Right : Point.Type.Left, Point.Mode.Linear);
 			}
 		}
 
@@ -553,7 +553,7 @@ namespace BezierCurveZ
 					var min = _vertexData.Select(v => v.Position).Skip(firstVInd).Min((v) => newSegments[i].DistanceTo(v), out var ind);
 					rot = _vertexData[firstVInd + ind].Rotation;
 				}
-				newPoints[i] = new Point(newSegments[i], rot, default, types[typeInd], Point.Mode.Proportional);
+				newPoints[i] = new Point(newSegments[i], rot, Vector3.one, types[typeInd], Point.Mode.Automatic);
 				typeInd++;
 				typeInd %= 3;
 			}

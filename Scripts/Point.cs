@@ -40,13 +40,14 @@ namespace BezierCurveZ
 
 		public static Mode[] AllModes { [DebuggerStepThrough] get => new Mode[] { Mode.Automatic, Mode.Proportional, Mode.Manual, Mode.Linear }; }
 
-		public Point(Point point) : this(point.position, point.rotation, default, point.type, point.mode) { }
+		public Point(Point point) : this(point.position, point.rotation, Vector3.one, point.type, point.mode) { }
 		public Point(Vector3 position) : this(position, Quaternion.identity) { }
-		public Point(Vector3 position, Type type = Type.Control) : this(position, Quaternion.identity, default, type) { }
-		public Point(Vector3 position, Mode mode = Mode.Automatic) : this(position, Quaternion.identity, default, mode: mode) { }
-		public Point(Vector3 position, Type type = Type.Control, Mode mode = Mode.Automatic) : this(position, Quaternion.identity, default, type, mode) { }
+		public Point(Vector3 position, Type type = Type.Control) : this(position, Quaternion.identity, Vector3.one, type) { }
+		public Point(Vector3 position, Mode mode = Mode.Automatic) : this(position, Quaternion.identity, Vector3.one, mode: mode) { }
+		public Point(Vector3 position, Type type = Type.Control, Mode mode = Mode.Automatic) : this(position, Quaternion.identity, Vector3.one, type, mode) { }
 		public Point(Vector3 position, Quaternion rotation = default, Vector3 scale = default, Type type = Type.Control, Mode mode = Mode.Automatic)
 		{
+			if (scale == default) scale = Vector3.one;
 			_position = position;
 			_rotation = rotation;
 			_scale = scale;
@@ -97,13 +98,13 @@ namespace BezierCurveZ
 		public static Vector3 operator *(Point a, float f) => a.position * f;
 
 		[DebuggerStepThrough]
-		public static Point EndPoint(Vector3 position, Quaternion rotation = default, Mode mode = Mode.Automatic) => new Point(position, rotation, default, Type.Control, mode);
+		public static Point EndPoint(Vector3 position, Quaternion rotation = default, Mode mode = Mode.Automatic) => new Point(position, rotation, Vector3.one, Type.Control, mode);
 
 		[DebuggerStepThrough]
-		public static Point RightHandle(Vector3 position, Quaternion rotation = default, Mode mode = Mode.Automatic) => new Point(position, rotation, default, Type.Right, mode);
+		public static Point RightHandle(Vector3 position, Quaternion rotation = default, Mode mode = Mode.Automatic) => new Point(position, rotation, Vector3.one, Type.Right, mode);
 
 		[DebuggerStepThrough]
-		public static Point LeftHandle(Vector3 position, Quaternion rotation = default, Mode mode = Mode.Automatic) => new Point(position, rotation, default, Type.Left, mode);
+		public static Point LeftHandle(Vector3 position, Quaternion rotation = default, Mode mode = Mode.Automatic) => new Point(position, rotation, Vector3.one, Type.Left, mode);
 
 		public enum Mode { None = 0, Automatic = 1, Manual = 2, Linear = 4, Proportional = Automatic | Manual }
 		public enum Type { Control, Right, Left }
