@@ -595,7 +595,7 @@ namespace BezierCurveZ.Editor
 				float size = HandleUtility.GetHandleSize(point) * .2f;
 				bool isSelected = selectedPointIdexes.Contains(i);
 				Handles.color = HandleColor * (isSelected ? 1 : .5f);
-				if (point.type == Point.Type.Control)
+				if (point.type == Point.Type.EndPoint)
 				{
 					GUIUtils.DrawCircle(point, point - camLocalPos, size, isSelected, 1.5f, 24);
 					Handles.Label(point, (i == curve.PointCount - 1 && curve.IsClosed ? "     / " : "  ") + i.ToString());

@@ -303,4 +303,14 @@ public static class DefaultUtils {
 			height: rect.height + top + bottom
 		);
 	}
+	public static T[] CheckCachedValueVersion<T,SourceT>(this SourceT @this, ref T[] cacheField, Func<SourceT, T[]> selector, ref int cacheVersion, int mainVersion)
+	{
+		if (cacheVersion != mainVersion)
+		{
+			cacheField = selector(@this);
+			cacheVersion = mainVersion;
+		}
+		return cacheField;
+	}
+
 }
