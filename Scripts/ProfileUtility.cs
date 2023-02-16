@@ -45,7 +45,7 @@ namespace BezierCurveZ
 					var previousLoopFirstVert = (PrevIndex(i, pVerticesCount) + o * pVerticesCount) * profileLen;
 					for (int j = 0; j < profileLen; j++)
 					{
-						var p = ((Vector3)profile[j]).Scale_(scales[o]) + offsets[o];
+						var p = ((Vector3)profile[j]).MultiplyComponentwise(scales[o]) + offsets[o];
 						vertices[loopFirstVert + j] = pos + p.x * localRight + p.y * localUp;
 
 						var next = NextIndex(j, profileLen);

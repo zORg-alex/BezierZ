@@ -23,22 +23,13 @@ public static class DefaultUtils {
         var tp = Mathf.Pow(t, p);
         return tp / (tp + Mathf.Pow(1 - t, p));
     }
+
     [DebuggerStepperBoundary]
 	public static T2[] SelectArray<T1,T2>( this IEnumerable<T1> collection, Func<T1,T2> selector) {
 		var r = new T2[collection.Count()];
 		var ind = 0;
 		foreach (var item in collection) {
 			r[ind++] = selector(item);
-		}
-		return r;
-	}
-	[DebuggerStepperBoundary]
-	public static T1[] SelectArray<T1>(this IEnumerable<T1> collection) {
-		var r = new T1[collection.Count()];
-		var ind = 0;
-		foreach (var item in collection)
-		{
-			r[ind++] = item;
 		}
 		return r;
 	}
@@ -138,8 +129,7 @@ public static class DefaultUtils {
 				return Vector3.one;
 		}
 	}
-	public enum Axis { X, Y, Z }
-	public static Vector3 Invert(this Vector3 v, Axis axis) => new Vector3((axis == Axis.X ? -1 : 1) * v.x, (axis == Axis.Y ? -1 : 1) * v.y, (axis == Axis.Z ? -1 : 1) * v.z);
+
 	/// <summary>
 	/// Returns new vector with y = 0
 	/// </summary>
@@ -203,17 +193,6 @@ public static class DefaultUtils {
 	}
 
 	[DebuggerStepThrough]
-	public static Vector3 Sum<T>(this IEnumerable<T> collection, Func<T,Vector3> getter)
-	{
-		var sum = Vector3.zero;
-		foreach (var item in collection)
-		{
-			sum += getter(item);
-		}
-		return sum;
-	}
-
-	[DebuggerStepThrough]
 	public static T Min<T>(this IEnumerable<T> collection, Func<T, float> predicate, out int indexOf)
 	{
 		T min = collection.FirstOrDefault();
@@ -234,7 +213,7 @@ public static class DefaultUtils {
 		return min;
 	}
 
-	public static Vector3 Scale_(this Vector3 v1, Vector3 v2) => new Vector3(v1.x * v2.x, v1.y * v2.y, v1.z * v2.z);
+	public static Vector3 MultiplyComponentwise(this Vector3 v1, Vector3 v2) => new Vector3(v1.x * v2.x, v1.y * v2.y, v1.z * v2.z);
 
 	public static Vector3 Sum(this IEnumerable<Vector3> vector3s) {
 		var result = Vector3.zero;
@@ -242,6 +221,17 @@ public static class DefaultUtils {
 			result += v;
 		}
 		return result;
+	}
+
+	[DebuggerStepThrough]
+	public static Vector3 Sum<T>(this IEnumerable<T> collection, Func<T, Vector3> getter)
+	{
+		var sum = Vector3.zero;
+		foreach (var item in collection)
+		{
+			sum += getter(item);
+		}
+		return sum;
 	}
 
 	public static int IndexOf<T>(this T[] array, Func<T, bool> predicate)
