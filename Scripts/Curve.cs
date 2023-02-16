@@ -55,13 +55,13 @@ namespace BezierCurveZ
 		public int SegmentCount { [DebuggerStepThrough] get => (_points.Count / 3f).FloorToInt(); }
 
 		[DebuggerStepThrough]
-		public int GetSegmentIndex(ushort index) => (index / 3) % EndPointCount;
-		[DebuggerStepThrough]
 		public int GetSegmentIndex(int index) => GetSegmentIndex((ushort)index);
 		[DebuggerStepThrough]
-		public int GetPointIndex(ushort segmentIndex) => segmentIndex * 3 % _points.Count;
+		public int GetSegmentIndex(ushort index) => (index / 3) % EndPointCount;
 		[DebuggerStepThrough]
 		public int GetPointIndex(int segmentIndex) => GetPointIndex((ushort)segmentIndex);
+		[DebuggerStepThrough]
+		public int GetPointIndex(ushort segmentIndex) => segmentIndex * 3 % _points.Count;
 
 		[DebuggerStepThrough]
 		public Vector3 GetPointPosition(int index) => _points[index].position;
@@ -96,38 +96,25 @@ namespace BezierCurveZ
 			}
 		}
 
+		// Cached arrays
+
 		private int _pposVersion;
 		private Vector3[] _pointPositions;
-		public Vector3[] PointPositions { get { if (_pposVersion != _bVersion) _pointPositions = _points.SelectArray(p => p.position); return _pointPositions; } }
+		public Vector3[] PointPositions =>
+			this.CheckCachedValueVersion(ref _pointPositions, t => t._points.SelectArray(p => p.position), ref _pposVersion, _bVersion);
+			// { get { if (_pposVersion != _bVersion) _pointPositions = _points.SelectArray(p => p.position); return _pointPositions; } }
+		
 		private int _protVersion;
 		private Quaternion[] _pointRotations;
-		public Quaternion[] PointRotations
-		{
-			get
-			{
-				if (_protVersion != _bVersion)
-				{
-					_pointRotations = _points.SelectArray(p => p.rotation);
-					_protVersion = _bVersion;
-				}
-				return _pointRotations;
-			}
-		}
+		public Quaternion[] PointRotations =>
+			this.CheckCachedValueVersion(ref _pointRotations, t => t._points.SelectArray(p => p.rotation), ref _protVersion, _bVersion);
 
 		private int _pscaleVersion;
 		private Vector3[] _pointScales;
-		public Vector3[] PointScales
-		{
-			get
-			{
-				if (_pscaleVersion != _bVersion)
-				{
-					_pointScales = _points.SelectArray(p => p.scale);
-					_pscaleVersion = _bVersion;
-				}
-				return _pointScales;
-			}
-		}
+		public Vector3[] PointScales =>
+			this.CheckCachedValueVersion(ref _pointScales, t => t._points.SelectArray(p => p.scale), ref _pscaleVersion, _bVersion);
+
+
 		public int PointCount { [DebuggerStepThrough] get => _points.Count; }
 		private ushort lastPointInd { [DebuggerStepThrough] get => (ushort)(Points.Count - 1); }
 
@@ -159,10 +146,10 @@ namespace BezierCurveZ
 			{
 				var rot = Quaternion.LookRotation(Vector3.right);
 				return new List<Point> {
-				new Point(Vector3.zero, rot, Vector3.one, Point.Type.Control, Point.Mode.Automatic),
+				new Point(Vector3.zero, rot, Vector3.one, Point.Type.EndPoint, Point.Mode.Automatic),
 				new Point(Vector3.right * .33333f, rot, Vector3.one, Point.Type.Right, Point.Mode.Automatic),
 				new Point(Vector3.right * .66666f, rot, Vector3.one, Point.Type.Left, Point.Mode.Automatic),
-				new Point(Vector3.right, rot, Vector3.one, Point.Type.Control, Point.Mode.Automatic),
+				new Point(Vector3.right, rot, Vector3.one, Point.Type.EndPoint, Point.Mode.Automatic),
 			};
 			}
 		}
@@ -250,10 +237,15 @@ namespace BezierCurveZ
 			}
 			else
 			{
-				var controlIndex = thisPoint.isRightHandle ? index - 1 : index + 1;
-				var endPoint = _points[controlIndex];
+				var endpointIndex = thisPoint.isRightHandle ? index - 1 : index + 1;
+				var endPoint = _points[endpointIndex];
 
-				_points[controlIndex] = endPoint.SetRotation(Quaternion.LookRotation((position - endPoint) * (thisPoint.isRightHandle ? 1 : -1), endPoint.up).normalized);
+				int handleDirection = thisPoint.isRightHandle ? 1 : -1;
+				var rotationForward = (position - endPoint) * handleDirection;
+				//Fix for handles positioned at endpoint position
+				if (rotationForward != Vector3.zero)
+					rotationForward = (_points[index + handleDirection] - endPoint) * handleDirection;
+				_points[endpointIndex] = endPoint.SetRotation(Quaternion.LookRotation(rotationForward, endPoint.up).normalized);
 
 				var otherHandleIndex = thisPoint.isRightHandle ? index - 2 : index + 2;
 				bool outOfBounds = (otherHandleIndex < 0 || otherHandleIndex >= PointCount);
@@ -580,7 +572,7 @@ namespace BezierCurveZ
 		}
 
 		/// <summary>
-		/// Calculates tangent of set point. Pass either segmentIndex or point index
+		/// Calculates tangent of set point. Pass either segmentIndex or point index.
 		/// </summary>
 		/// <param name="segmentIndex">if index is set, it's optional</param>
 		/// <param name="index"></param>
