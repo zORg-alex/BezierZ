@@ -117,7 +117,7 @@ namespace BezierCurveZ
 						{
 							//Transform point
 							var rot = ep.Rotation * pp.Rotation;
-							var scaledprofpoint = (offset + Vector3.Scale(pp.Position, scale));
+							var scaledprofpoint = offset + pp.Position.MultiplyComponentwise(ep.Scale).MultiplyComponentwise(scale);
 							var pos = ep.Position + right * scaledprofpoint.x + up * scaledprofpoint.y;
 							//var pos = ep.point + rot * scaledprofpoint;
 

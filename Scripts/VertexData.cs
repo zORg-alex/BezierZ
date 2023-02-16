@@ -4,7 +4,6 @@ using static BezierCurveZ.Curve;
 
 namespace BezierCurveZ
 {
-
 	public struct VertexData
 	{
 		public Vector3 Position;

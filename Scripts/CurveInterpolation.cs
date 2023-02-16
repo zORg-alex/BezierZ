@@ -139,13 +139,6 @@ namespace BezierCurveZ
 				segInd++;
 			}
 
-			Quaternion secondToLastRotation() => data.rotations[data.segmentIndices[data.segmentIndices.Count - 2]];
-			Quaternion secondToLastEPRotation() => endPointRotations[endPointRotations.Length - 2];
-			Quaternion secondRotation() => data.rotations[data.segmentIndices[1]];
-			Quaternion secondEPRotation() => endPointRotations[1];
-			Quaternion allignedSecondToLastRotation() => Quaternion.LookRotation(secondToLastEPRotation() * Vector3.forward, secondToLastRotation() * Vector3.up);
-			Quaternion allignedSecondRoation() => Quaternion.LookRotation(secondEPRotation() * Vector3.forward, secondRotation() * Vector3.up);
-
 			if (interpolation == InterpolationMethod.CatmullRomAdditive)
 			{
 				relrotationCR[0] = IsClosed ? allignedSecondToLastRotation().Inverted() * secondToLastEPRotation() : Quaternion.identity;
@@ -175,8 +168,18 @@ namespace BezierCurveZ
 
 			return data;
 
+			//Local methods
+
+			Quaternion secondToLastRotation() => data.rotations[data.segmentIndices[data.segmentIndices.Count - 2]];
+			Quaternion secondToLastEPRotation() => endPointRotations[endPointRotations.Length - 2];
+			Quaternion secondRotation() => data.rotations[data.segmentIndices[1]];
+			Quaternion secondEPRotation() => endPointRotations[1];
+			Quaternion allignedSecondToLastRotation() => Quaternion.LookRotation(secondToLastEPRotation() * Vector3.forward, secondToLastRotation() * Vector3.up);
+			Quaternion allignedSecondRoation() => Quaternion.LookRotation(secondEPRotation() * Vector3.forward, secondRotation() * Vector3.up);
+
 			bool InterpolationIsLinearOrSmooth() =>
 				interpolation is InterpolationMethod.Linear or InterpolationMethod.Smooth;
+
 			Vector3 GetScale(int segInd, float t)
 			{
 				if (interpolation is InterpolationMethod.CatmullRomAdditive)

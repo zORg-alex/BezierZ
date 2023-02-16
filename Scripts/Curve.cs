@@ -10,6 +10,22 @@ using Debug = UnityEngine.Debug;
 
 namespace BezierCurveZ
 {
+	/// <summary>
+	/// Curve consists of control points grouped in segments. Each Point has local position, rotation and scale. <para/>
+	/// 
+	/// <see cref="Points"/> contains all control points of a Bezier curve, they are organized in
+	/// ep, rh, lh, ep, rh, lh, ep fashion (ep - EndPoint, rh - RightHandle, lh - LeftHandle).
+	/// In case of Closed curve, last segment is a closing segment.
+	/// Segments are groups of four control points ep, rh, lh, ep where last end point is a next segments first endpoint.
+	/// So that in a <see cref="Segments">Segment</see> ep,rh,lh,ep are four points, even though a step is 3.<para/>
+	/// 
+	/// Ex:Curve with 3 Segments, have 10 points, 3 * 3 + 1;<para/>
+	/// 
+	/// PropertyDrawer of this class implements an editor, so that this class could be used as a field
+	/// or even in an array or list and still be editable in your script's inspector.<para/>
+	/// 
+	/// For Mesh Generation or cached position/rotation/scale lookups, use <see cref="VertexData"/>
+	/// </summary>
 	[Serializable]
 	public class Curve : EditableClass, ISerializationCallbackReceiver
 	{
@@ -72,48 +88,64 @@ namespace BezierCurveZ
 		[DebuggerStepThrough]
 		public bool IsEndPoint(int index) => _points[index].IsEndPoint;
 
-		private Vector3[][] _segments;
+		// Cached arrays
+
 		private int _sVersion;
+		private Vector3[][] _segments;
 		public Vector3[][] Segments
 		{
 			[DebuggerStepThrough]
 			get
 			{
-				if (_sVersion != _bVersion || _segments == null)
-				{
-					_segments = getValue();
-					_sVersion = _bVersion;
-				}
-				return _segments;
+				return this.CheckCachedValueVersion(ref _segments, c => getValue(c), ref _sVersion, _bVersion);
 
-				Vector3[][] getValue()
+				static Vector3[][] getValue(Curve curve)
 				{
-					Vector3[][] r = new Vector3[SegmentCount][];
-					for (int i = 0; i < SegmentCount; i++)
-						r[i] = new Vector3[] { _points[i * 3].position, _points[i * 3 + 1].position, _points[i * 3 + 2].position, _points[(i * 3 + 3) % _points.Count].position };
+					Vector3[][] r = new Vector3[curve.SegmentCount][];
+					for (int i = 0; i < curve.SegmentCount; i++)
+						r[i] = new Vector3[] {
+							curve._points[i * 3].position,
+							curve._points[i * 3 + 1].position,
+							curve._points[i * 3 + 2].position,
+							curve._points[(i * 3 + 3) % curve._points.Count].position };
 					return r;
 				}
 			}
 		}
-
-		// Cached arrays
-
 		private int _pposVersion;
 		private Vector3[] _pointPositions;
-		public Vector3[] PointPositions =>
-			this.CheckCachedValueVersion(ref _pointPositions, t => t._points.SelectArray(p => p.position), ref _pposVersion, _bVersion);
-			// { get { if (_pposVersion != _bVersion) _pointPositions = _points.SelectArray(p => p.position); return _pointPositions; } }
-		
-		private int _protVersion;
-		private Quaternion[] _pointRotations;
-		public Quaternion[] PointRotations =>
-			this.CheckCachedValueVersion(ref _pointRotations, t => t._points.SelectArray(p => p.rotation), ref _protVersion, _bVersion);
+		/// <summary>
+		/// Cached Point positions
+		/// </summary>
+		public Vector3[] PointPositions
+		{
+			[DebuggerStepThrough]
+			get => this.CheckCachedValueVersion(ref _pointPositions, t => t._points.SelectArray(p => p.position), ref _pposVersion, _bVersion);
+		}
 
-		private int _pscaleVersion;
-		private Vector3[] _pointScales;
-		public Vector3[] PointScales =>
-			this.CheckCachedValueVersion(ref _pointScales, t => t._points.SelectArray(p => p.scale), ref _pscaleVersion, _bVersion);
+		// { get { if (_pposVersion != _bVersion) _pointPositions = _points.SelectArray(p => p.position); return _pointPositions; } }
 
+		private int _eprotVersion;
+		private Quaternion[] _epRotations;
+		/// <summary>
+		/// Cached Rotations of endpoints
+		/// </summary>
+		public Quaternion[] EndPointRotations
+		{
+			[DebuggerStepThrough]
+			get => this.CheckCachedValueVersion(ref _epRotations, t => t._points.SelectArray(p => p.rotation), ref _eprotVersion, _bVersion);
+		}
+
+		private int _epscalesVersion;
+		private Vector3[] _epScales;
+		/// <summary>
+		/// Cached scales of endpoints
+		/// </summary>
+		public Vector3[] EndPointScales
+		{
+			[DebuggerStepThrough]
+			get => this.CheckCachedValueVersion(ref _epScales, t => t._points.SelectArray(p => p.scale), ref _epscalesVersion, _bVersion);
+		}
 
 		public int PointCount { [DebuggerStepThrough] get => _points.Count; }
 		private ushort lastPointInd { [DebuggerStepThrough] get => (ushort)(Points.Count - 1); }
@@ -126,13 +158,18 @@ namespace BezierCurveZ
 			_points = defaultPoints;
 		}
 
+		/// <summary>
+		/// Reset curve to default points and clears cache
+		/// </summary>
 		public void Reset()
 		{
 			_points = defaultPoints;
 			_bVersion = -1;
 			_vertexData = null;
 			_pointPositions = null;
-			_pointRotations = null;
+			_epRotations = null;
+			_epScales = null;
+			_segments = null;
 			_vertexDataPoints = null;
 			_interpolationAccuracy = 10;
 			_interpolationMaxAngleError = 5;
@@ -140,6 +177,7 @@ namespace BezierCurveZ
 			_interpolationCapmullRomTension = .5f;
 			IterpolationOptionsInd = InterpolationMethod.CatmullRomAdditive;
 		}
+
 		private static List<Point> defaultPoints
 		{
 			get
@@ -187,6 +225,9 @@ namespace BezierCurveZ
 			}
 		}
 
+		/// <summary>
+		/// Updates point position. Used in case point parameters changed that can influence other points.
+		/// </summary>
 		public void UpdatePosition(int index) => SetPointPosition(index, _points[index]);
 		public void SetPointPosition(int index, Vector3 position) => SetPointPosition((ushort)index, position, true);
 		public void SetPointPosition(int index, Vector3 position, bool recursive = true) => SetPointPosition((ushort)index, position, recursive);
@@ -319,7 +360,13 @@ namespace BezierCurveZ
 			}
 		}
 
+		/// <summary>
+		/// Set EndPoint rotation and rotate handles
+		/// </summary>
 		public void SetEPRotation(int segmentIndex, Quaternion rotation) => SetEPRotation((ushort)segmentIndex, rotation);
+		/// <summary>
+		/// Set EndPoint rotation and rotate handles
+		/// </summary>
 		public void SetEPRotation(ushort segmentIndex, Quaternion rotation)
 		{
 			var index = GetPointIndex(segmentIndex);
@@ -331,7 +378,13 @@ namespace BezierCurveZ
 			RotateHandles(index, _points[index], delta, rotation);
 			_bVersion++;
 		}
+		/// <summary>
+		/// Add rotation to EndPoint and rotate handles
+		/// </summary>
 		public void AddEPRotation(int segmentIndex, Quaternion delta) => AddEPRotation((ushort)segmentIndex, delta);
+		/// <summary>
+		/// Add rotation to EndPoint and rotate handles
+		/// </summary>
 		public void AddEPRotation(ushort segmentIndex, Quaternion delta)
 		{
 			var index = GetPointIndex(segmentIndex);
@@ -344,7 +397,13 @@ namespace BezierCurveZ
 			RotateHandles(index, _points[index], delta, _points[index].rotation);
 			_bVersion++;
 		}
+		/// <summary>
+		/// Set EndPoint scale parameter
+		/// </summary>
 		public void SetEPScale(int segmentIndex, Vector3 scale) => SetEPScale((ushort)segmentIndex, scale);
+		/// <summary>
+		/// Set EndPoint scale parameter
+		/// </summary>
 		public void SetEPScale(ushort segmentIndex, Vector3 scale)
 		{
 			var index = GetPointIndex(segmentIndex);
@@ -376,6 +435,7 @@ namespace BezierCurveZ
 			}
 		}
 
+
 		public void SetPointMode(int index, Point.Mode mode) => SetPointMode((ushort)index, mode);
 		public void SetPointMode(ushort index, Point.Mode mode)
 		{
@@ -403,6 +463,10 @@ namespace BezierCurveZ
 		public void OnAfterDeserialize() => UpdateVertexData(true);
 
 		//========================
+
+		/// <summary>
+		/// Cuts curve at point splitting segment in two, returning new EndPoint
+		/// </summary>
 		public Point SplitCurveAt(Vector3 point)
 		{
 			var t = GetClosestPointTimeSegment(point, out var segmentIndex);
@@ -411,6 +475,9 @@ namespace BezierCurveZ
 			return _points[segmentIndex];
 		}
 
+		/// <summary>
+		/// Splits segment at time using Castejau method and replaces initial segment.
+		/// </summary>
 		public void SplitCurveAt(int segmentIndex, float t)
 		{
 			var newSegments = CasteljauUtility.GetSplitSegmentPoints(t, Segments[segmentIndex]);
@@ -418,68 +485,43 @@ namespace BezierCurveZ
 			ReplaceCurveSegment(segmentIndex, newSegments);
 		}
 
-		//TODO Debug how to work with low vertex count
-		public float GetClosestTimeSegment(Vector3 position, out int segmentInd)
+		/// <summary>
+		/// Goest through all VertexData and looks for closest point and returns t [0..1] and segmentIndex of it.
+		/// </summary>
+		/// <param name="position"></param>
+		/// <param name="segmentIndex"></param>
+		/// <returns></returns>
+		public float GetClosestPointTimeSegment(Vector3 position, out int segmentIndex)
 		{
-			UpdateVertexData();
-			var minDist = float.MaxValue;
-			var closestTime = float.MaxValue;
-			segmentInd = -1;
-
-			var prevVert = VertexData.FirstOrDefault();
-
-			var i = 1;
-			foreach (var v in VertexData.Skip(1))
-			{
-				Vector3 direction = (v.Position - prevVert.Position);
-				float magMax = direction.magnitude;
-				var normDirection = direction.normalized;
-				Vector3 localPosition = position - prevVert.Position;
-				var dot = Mathf.Clamp(Vector3.Dot(normDirection, localPosition), 0, magMax);
-				var point = prevVert.Position + normDirection * dot;
-				var dist = Vector3.Distance(point, position);
-				if (dist < minDist)
-				{
-					minDist = dist;
-					segmentInd = _vertexData[i].segmentInd;
-					closestTime = prevVert.cumulativeTime + (v.cumulativeTime - prevVert.cumulativeTime) * (localPosition.magnitude / direction.magnitude);
-				}
-
-				i++;
-				prevVert = v;
-			}
-
-			return closestTime;
-		}
-
-		public float GetClosestPointTimeSegment(Vector3 point, out int segmentIndex)
-		{
-			var z = VertexData.Take(2).ToArray();
+			var vpair = VertexData.Take(2).ToArray();
 			float minDist = float.MaxValue;
 			foreach (var v in VertexData.Skip(1))
 			{
-				var dist = (point - v.Position).magnitude;
+				var dist = (position - v.Position).magnitude;
 				if (dist < minDist)
 				{
-					z[1] = z[0];
-					z[0] = v;
+					vpair[1] = vpair[0];
+					vpair[0] = v;
 					minDist = dist;
 				}
 			}
-			var a = z[0].cumulativeTime < z[1].cumulativeTime ? z[0] : z[1];
-			var b = z[0].cumulativeTime > z[1].cumulativeTime ? z[0] : z[1];
+			var a = vpair[0].cumulativeTime < vpair[1].cumulativeTime ? vpair[0] : vpair[1];
+			var b = vpair[0].cumulativeTime > vpair[1].cumulativeTime ? vpair[0] : vpair[1];
 			Vector3 dir = b.Position - a.Position;
 			float mag = dir.magnitude;
 			dir.Normalize();
-			var locPos = point - a.Position;
+			var locPos = position - a.Position;
 			var dot = Mathf.Clamp(Vector3.Dot(dir, locPos), 0, mag) / mag;
 			var timeDist = b.cumulativeTime - a.cumulativeTime;
-			segmentIndex = Mathf.FloorToInt(a.cumulativeTime);
 			float t = a.cumulativeTime + dot * timeDist;
 			segmentIndex = Mathf.Min(SegmentCount - 1, Mathf.FloorToInt(t));
 			return t - segmentIndex;
 		}
 
+		/// <summary>
+		/// Dissolves Endpoint and its handles. Uses Casteljau method to calculate merged segment.
+		/// </summary>
+		/// <param name="segmentIndex"></param>
 		public void DissolveEP(int segmentIndex)
 		{
 			if (segmentIndex <= 0 && segmentIndex >= SegmentCount) return;
@@ -499,6 +541,10 @@ namespace BezierCurveZ
 			}
 		}
 
+		/// <summary>
+		/// Removes Endpoints and its respective handles.
+		/// </summary>
+		/// <param name="indexes"></param>
 		public void RemoveMany(IEnumerable<int> indexes)
 		{
 			foreach (var index in indexes.Where(i => IsEndPoint(i)).OrderByDescending(i => i))
@@ -518,7 +564,7 @@ namespace BezierCurveZ
 				else
 				{
 					//Cancel if not a control point
-					if (!IsEndPoint(index)) return;
+					//if (!IsEndPoint(index)) return;
 					//First just remove that point
 					_points.RemoveRange(index - 1, 3);
 
@@ -628,9 +674,19 @@ namespace BezierCurveZ
 				return _vertexData;
 			}
 		}
+		public void UpdateVertexData(bool force = false) =>
+			_vertexData = this.CheckCachedValueVersion(ref _vertexData, c => BezierCurveZ.VertexData.GetVertexData(c), ref _vVersion, _bVersion, force);
+
 
 		private int _vDPVersion;
 		private Vector3[] _vertexDataPoints;
+		public Vector3[] VertexDataPoints
+		{
+			[DebuggerStepThrough]
+			get => this.CheckCachedValueVersion(ref _vertexDataPoints, c => c.VertexData.SelectArray(v => v.Position), ref _vDPVersion, _vVersion);
+		}
+
+
 		[SerializeField]
 		private float _interpolationMaxAngleError = 5;
 		[SerializeField]
@@ -641,35 +697,10 @@ namespace BezierCurveZ
 		public float InterpolationMaxAngleError { get => _interpolationMaxAngleError; set { if (_interpolationMaxAngleError != value) { _interpolationMaxAngleError = value; _bVersion++; } } }
 		public float InterpolationMinDistance { get => _interpolationMinDistance; set { if (_interpolationMinDistance != value) { _interpolationMinDistance = value; _bVersion++; } } }
 
-		public Vector3[] VertexDataPoints
-		{
-			[DebuggerStepThrough]
-			get
-			{
-				UpdateVertexData();
-				if (_vDPVersion != _vVersion || _vertexDataPoints == null)
-				{
-					_vertexDataPoints = VertexData.SelectArray(v => v.Position);
-					_vDPVersion = _vVersion;
-				}
-				return _vertexDataPoints;
-			}
-		}
-
 		public InterpolationMethod IterpolationOptionsInd = InterpolationMethod.CatmullRomAdditive;
 		[SerializeField]
 		float _interpolationCapmullRomTension = .5f;
 		public float InterpolationCapmullRomTension { get => _interpolationCapmullRomTension; set { if (_interpolationCapmullRomTension != value) { _interpolationCapmullRomTension = value; _vVersion++; } } }
-
-		public void UpdateVertexData(bool force = false)
-		{
-			if (_bVersion != _vVersion || _vertexData == null || force)
-			{
-				//Debug.Log("UpdateVertexData");
-				_vertexData = BezierCurveZ.VertexData.GetVertexData(this);
-				_vVersion = _bVersion;
-			}
-		}
 
 		public Curve Copy()
 		{
