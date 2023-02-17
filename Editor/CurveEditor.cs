@@ -1,15 +1,11 @@
 ﻿using UnityEngine;
 using UnityEditor;
 using System.Diagnostics;
-using BezierCurveZ;
 using System;
 using System.Collections.Generic;
-using static Codice.CM.Common.CmCallContext;
 using RectEx;
 using System.Linq;
 using Utility.Editor;
-using Debug = UnityEngine.Debug;
-using Sirenix.Utilities;
 
 namespace BezierCurveZ.Editor
 {
