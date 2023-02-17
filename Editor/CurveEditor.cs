@@ -6,7 +6,6 @@ using System.Collections.Generic;
 using RectEx;
 using System.Linq;
 using Utility.Editor;
-using Debug = UnityEngine.Debug;
 
 namespace BezierCurveZ.Editor
 {
