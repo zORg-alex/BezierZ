@@ -1,6 +1,6 @@
 ﻿using UnityEditor;
 using UnityEngine;
-
+/*
 namespace Utility.Editor
 {
 	public class AxisRotation
@@ -148,3 +148,4 @@ namespace Utility.Editor
 		static bool IsHovering(int controlID, Event evt) => controlID == HandleUtility.nearestControl && GUIUtility.hotControl == 0 && !Tools.viewToolActive;
 	}
 }
+*/
