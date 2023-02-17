@@ -32,17 +32,42 @@ namespace BezierCurveZ
 			}
 		}
 
-		public int this[int index] => index switch
+		public int this[int index]
 		{
-			0 => x,
-			1 => y,
-			2 => z,
-			3 => xy,
-			4 => yz,
-			5 => xz,
-			6 => xyz,
-			_ => -1,
-		};
+			get
+			{
+				switch (index)
+				{
+					case 0:
+						return x;
+					case 1:
+						return y;
+					case 2:
+						return z;
+					case 3:
+						return xy;
+					case 4:
+						return yz;
+					case 5:
+						return xz;
+					case 6:
+						return xyz;
+					default:
+						return -1;
+				}
+			}
+		}
+		//	index switch
+		//{
+		//	0 => x,
+		//	1 => y,
+		//	2 => z,
+		//	3 => xy,
+		//	4 => yz,
+		//	5 => xz,
+		//	6 => xyz,
+		//	_ => -1,
+		//};
 
 		public bool Has(int id)
 		{
