@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.CompilerServices;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -97,9 +98,9 @@ namespace BezierCurveZ
 			[DebuggerStepThrough]
 			get
 			{
-				return this.CheckCachedValueVersion(ref _segments, c => getValue(c), ref _sVersion, _bVersion);
+				return this.CheckCachedValueVersion(ref _segments, curve => /*getValue(c), ref _sVersion, _bVersion);
 
-				static Vector3[][] getValue(Curve curve)
+				static Vector3[][] getValue(Curve curve)*/
 				{
 					Vector3[][] r = new Vector3[curve.SegmentCount][];
 					for (int i = 0; i < curve.SegmentCount; i++)
@@ -110,6 +111,7 @@ namespace BezierCurveZ
 							curve._points[(i * 3 + 3) % curve._points.Count].position };
 					return r;
 				}
+				, ref _sVersion, _bVersion);
 			}
 		}
 		private int _pposVersion;
@@ -335,14 +337,14 @@ namespace BezierCurveZ
 			}
 			_bVersion++;
 
-			Point GetLinearHandle(int index)
+			Point GetLinearHandle(int index_)
 			{
-				int segmentIndex = GetSegmentIndex(index);
+				int segmentIndex = GetSegmentIndex(index_);
 				int aind = GetPointIndex(segmentIndex);
 				var a = _points[aind];
 				var b = _points[aind + 3 < _points.Count ? aind + 3 : GetPointIndex(segmentIndex + 1)];
-				var isRight = index == GetPointIndex(segmentIndex) + 1;
-				var otherInd = index + (isRight ? 1 : -1);
+				var isRight = index_ == GetPointIndex(segmentIndex) + 1;
+				var otherInd = index_ + (isRight ? 1 : -1);
 				Vector3 otherPoint;
 				if (_points[otherInd].IsLinear)
 				{

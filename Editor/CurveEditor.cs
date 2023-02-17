@@ -1,15 +1,12 @@
 ﻿using UnityEngine;
 using UnityEditor;
 using System.Diagnostics;
-using BezierCurveZ;
 using System;
 using System.Collections.Generic;
-using static Codice.CM.Common.CmCallContext;
 using RectEx;
 using System.Linq;
 using Utility.Editor;
 using Debug = UnityEngine.Debug;
-using Sirenix.Utilities;
 
 namespace BezierCurveZ.Editor
 {
@@ -499,7 +496,7 @@ namespace BezierCurveZ.Editor
 				Handles.DrawAAConvexPolygon(editedPosition, editedPosition + r * Vector3.right * h, editedPosition + r * Vector3.down * h);
 			}
 
-			static Vector3 MultiplyVectorsComponentwise(Vector3 a, Vector3 b)
+			Vector3 MultiplyVectorsComponentwise(Vector3 a, Vector3 b)
 			{
 				return new Vector3(b.x * a.x, b.y * a.y, b.z * a.z);
 			}
@@ -554,23 +551,23 @@ namespace BezierCurveZ.Editor
 				var newDot = Vector3.Dot(v.up, v.position - campos);
 				if (upDotCamera != newDot)
 				{
-					DrawVertices(vertices, !(upDotCamera > 0));
+					CompatibilityExtensions.DrawVertices(vertices, !(upDotCamera > 0));
 
 					vertices.Clear();
 					vertices.Add(v.position);
 					upDotCamera = newDot;
 				}
 			}
-			DrawVertices(vertices, upDotCamera > 0);
+			CompatibilityExtensions.DrawVertices(vertices, upDotCamera > 0);
 
 			Handles.color = c;
 			Handles.matrix = m;
-
+			/*
 			static void DrawVertices(List<Vector3> vertices, bool towardCamera)
 			{
 				Handles.color = towardCamera ? Color.green : new Color(.6f, .3f, 0);
 				Handles.DrawAAPolyLine((towardCamera ? 2f : 3f), vertices.ToArray());
-			}
+			}*/
 		}
 
 		/// <summary>

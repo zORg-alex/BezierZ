@@ -94,7 +94,22 @@ namespace BezierCurveZ
 						if (data.segmentIndices.Count == segInd)
 							data.segmentIndices.Add(data.points.Count - 1);
 						data.rotations.Add(rotation);
-						data.scales.Add(GetScale(segInd, t));
+
+						if (interpolation is InterpolationMethod.CatmullRomAdditive)
+						{
+							data.scales.Add(CatmullRomCurveUtility.Evaluate(t, catmullRomTension,
+									scalesCR[segInd], scalesCR[segInd + 1], scalesCR[segInd + 2], scalesCR[segInd + 3]));
+						}
+						else if (interpolation is InterpolationMethod.Linear)
+						{
+							data.scales.Add(Vector3.Lerp(endPointScales[segInd], endPointScales[segInd + 1], t));
+						}
+						else
+						{
+							data.scales.Add(Vector3.Lerp(endPointScales[segInd], endPointScales[segInd + 1], t.SmoothStep()));
+						}
+
+						//data.scales.Add(GetScale(segInd, t));
 						data.isSharp.Add(_isSharp || (segInd == 0 && t == 0) || (segInd == segments.Length - 1 && t == 1));
 						_dist = 0;
 						_lastAddedPoint = _currentPoint;
@@ -178,8 +193,8 @@ namespace BezierCurveZ
 			Quaternion allignedSecondRoation() => Quaternion.LookRotation(secondEPRotation() * Vector3.forward, secondRotation() * Vector3.up);
 
 			bool InterpolationIsLinearOrSmooth() =>
-				interpolation is InterpolationMethod.Linear or InterpolationMethod.Smooth;
-
+				interpolation == InterpolationMethod.Linear || interpolation == InterpolationMethod.Smooth;
+			/*
 			Vector3 GetScale(int segInd, float t)
 			{
 				if (interpolation is InterpolationMethod.CatmullRomAdditive)
@@ -195,9 +210,8 @@ namespace BezierCurveZ
 				{
 					return Vector3.Lerp(endPointScales[segInd], endPointScales[segInd + 1], t.SmoothStep());
 				}
-			}
+			}*/
 		}
-
 
 		private static Quaternion GetRotation(Vector3 tangent, Vector3 firstTangent, Vector3 lastTangent, Quaternion[] rotations)
 		{

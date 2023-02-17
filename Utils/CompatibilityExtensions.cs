@@ -1,5 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using UnityEditor;
+using UnityEngine;
 using UnityEngine.Networking.Types;
 
 public static class CompatibilityExtensions
@@ -19,6 +21,19 @@ public static class CompatibilityExtensions
 			}
 			itemqueue[i++ % count] = item;
 		}
+	}
+
+	public static void DrawVertices(List<Vector3> vertices, bool towardCamera)
+	{
+		Handles.color = towardCamera ? Color.green : new Color(.6f, .3f, 0);
+		Handles.DrawAAPolyLine((towardCamera ? 2f : 3f), vertices.ToArray());
+	}
+
+	public static TValue GetValueOrDefault<TKey, TValue>(this IReadOnlyDictionary<TKey, TValue> dictionary, TKey key)
+	{
+		if (dictionary.ContainsKey(key))
+			return dictionary[key];
+		return default;
 	}
 }
 public static class HashCode
