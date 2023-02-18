@@ -557,14 +557,14 @@ namespace BezierCurveZ.Editor
 					upDotCamera = newDot;
 				}
 			}
-			CompatibilityExtensions.DrawVertices(vertices, upDotCamera > 0);
+			CompatibilityExtensions.DrawVertices(vertices, upDotCamera < 0);
 
 			Handles.color = c;
 			Handles.matrix = m;
 			/*
 			static void DrawVertices(List<Vector3> vertices, bool towardCamera)
 			{
-				Handles.color = towardCamera ? Color.green : new Color(.6f, .3f, 0);
+				Handles.color = towardCamera ? Color.green : new Color(1f, .3f, 0f);
 				Handles.DrawAAPolyLine((towardCamera ? 2f : 3f), vertices.ToArray());
 			}*/
 		}
