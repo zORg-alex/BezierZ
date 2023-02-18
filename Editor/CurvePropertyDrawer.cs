@@ -62,7 +62,7 @@ namespace BezierCurveZ.Editor
 
 			if (curve == null)
 			{
-				UnityEditor.EditorGUI.LabelField(position, label, "null");
+				UnityEditor.EditorGUI.LabelField(position, label);
 				return;
 			}
 
@@ -124,7 +124,7 @@ namespace BezierCurveZ.Editor
 			return EditorGUIUtility.singleLineHeight + EditorHeight(curve);
 		}
 
-		private float EditorHeight(Curve curve) => curve.IsInEditMode ? 64 + 2 * 3 + 8 : 0;
+		private float EditorHeight(Curve curve) => (curve != null && curve.IsInEditMode) ? 64 + 2 * 3 + 8 : 0;
 
 		private void EditorGUI(Rect position, Curve curve, UnityEngine.Object targetObject)
 		{
