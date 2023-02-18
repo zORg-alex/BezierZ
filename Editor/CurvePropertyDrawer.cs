@@ -62,7 +62,7 @@ namespace BezierCurveZ.Editor
 
 			if (curve == null)
 			{
-				UnityEditor.EditorGUI.LabelField(position, label, "null");
+				UnityEditor.EditorGUI.LabelField(position, label);
 				return;
 			}
 
@@ -124,7 +124,7 @@ namespace BezierCurveZ.Editor
 			return EditorGUIUtility.singleLineHeight + EditorHeight(curve);
 		}
 
-		private float EditorHeight(Curve curve) => curve.IsInEditMode ? 64 + 2 * 3 + 8 : 0;
+		private float EditorHeight(Curve curve) => (curve != null && curve.IsInEditMode) ? 64 + 2 * 3 + 8 : 0;
 
 		private void EditorGUI(Rect position, Curve curve, UnityEngine.Object targetObject)
 		{
@@ -149,7 +149,7 @@ namespace BezierCurveZ.Editor
 				UnityEditor.EditorGUI.IntField(detStack[2], _accuracyLabel, curve.InterpolationAccuracy)
 				, 1, 1000);
 			var tens = 0f;
-			if (curve.IterpolationOptionsInd == InterpolationMethod.CatmullRomAdditive)
+			if (curve.InterpolationOptionsInd == InterpolationMethod.CatmullRomAdditive)
 				tens = Mathf.Max(
 					UnityEditor.EditorGUI.FloatField(interpStack[1], "tension", curve.InterpolationCapmullRomTension)
 					, 0.01f);
@@ -171,11 +171,11 @@ namespace BezierCurveZ.Editor
 				RepaintSceneViews();
 			}
 
-			var ops = UnityEditor.EditorGUI.Popup(interpStack[0], (int)curve.IterpolationOptionsInd, interpolationOptions);
-			if (ops != (int)curve.IterpolationOptionsInd)
+			var ops = UnityEditor.EditorGUI.Popup(interpStack[0], (int)curve.InterpolationOptionsInd, interpolationOptions);
+			if (ops != (int)curve.InterpolationOptionsInd)
 			{
 				Undo.RecordObject(targetObject, $"Interpolation options changed on curve");
-				curve.IterpolationOptionsInd = (InterpolationMethod)ops;
+				curve.InterpolationOptionsInd = (InterpolationMethod)ops;
 				RepaintSceneViews();
 			}
 		}

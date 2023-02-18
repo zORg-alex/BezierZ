@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using NUnit.Framework;
+using System.Collections;
 using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
@@ -71,11 +72,11 @@ namespace Utility {
 		private static object GetFieldValueWithIndex(string fieldName, object obj, int index, BindingFlags bindings = BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic) {
 			FieldInfo field = obj.GetType().GetField(fieldName, bindings);
 			if (field != null) {
-				object list = field.GetValue(obj);
-				if (list.GetType().IsArray) {
-					return ((object[])list)[index];
-				} else if (list is IEnumerable) {
-					return ((IList)list)[index];
+				object val = field.GetValue(obj);
+				if (val.GetType().IsArray && val is object[] arr && index < arr.Length) {
+					return arr[index];
+				} else if (val is IEnumerable && val is IList lst && index < lst.Count) {
+					return lst[index];
 				}
 			}
 			return default(object);
