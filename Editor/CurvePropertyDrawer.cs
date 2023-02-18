@@ -31,11 +31,12 @@ namespace BezierCurveZ.Editor
 		private GUIContent _accuracyLabel = new GUIContent("Acc");
 
 		GUIContent[] interpolationOptions = new GUIContent[] { new GUIContent("Rotation Minimization"), new GUIContent("Linear Interpolation"), new GUIContent("Smooth Interpolation"), new GUIContent("CatmullRom Additive Interpolation") };
-
+		private GUIStyle boxStyle;
 
 		private void Initialize()
 		{
 			LoadTextures();
+			boxStyle = EditorStyles.helpBox;
 			initialized = true;
 		}
 
@@ -109,7 +110,8 @@ namespace BezierCurveZ.Editor
 
 			if (curve.IsInEditMode)
 			{
-				EditorGUI(posDivided[1], curve, property.serializedObject.targetObject);
+				GUI.Box(posDivided[1].Extend(0,-4), GUIContent.none, boxStyle);
+				EditorGUI(posDivided[1].Extend(-4, -8), curve, property.serializedObject.targetObject);
 			}
 
 			UnityEditor.EditorGUI.EndProperty();
@@ -122,7 +124,7 @@ namespace BezierCurveZ.Editor
 			return EditorGUIUtility.singleLineHeight + EditorHeight(curve);
 		}
 
-		private float EditorHeight(Curve curve) => curve.IsInEditMode ? 64 + 2 * 3 : 0;
+		private float EditorHeight(Curve curve) => curve.IsInEditMode ? 64 + 2 * 3 + 8 : 0;
 
 		private void EditorGUI(Rect position, Curve curve, UnityEngine.Object targetObject)
 		{
