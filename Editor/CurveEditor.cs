@@ -22,7 +22,7 @@ namespace BezierCurveZ.Editor
 			}
 		}
 		//TODO remove
-		Curve curve => field;
+		Curve curve { [DebuggerStepThrough] get => field; }
 
 		private Transform targetTransform;
 		private bool targetIsGameObject;
@@ -742,33 +742,20 @@ namespace BezierCurveZ.Editor
 			Undo.RecordObject(targetObject, "Curve Extrude");
 			int segmentIndex = curve.GetSegmentIndex(closestIndex);
 			//BackupCurve();
-			curve.SetPointPosition(closestIndex, closestPoint);
-			if (curve.GetEPTangentFromPoints(segmentIndex).Dot(TransformPoint(closestPoint) - editedPosition) < 0)
+			curve.SetPointPosition(closestIndex, this.closestPoint);
+			if (curve.IsClosed) segmentIndex %= curve.SegmentCount;
+			if (segmentIndex == curve.SegmentCount)
 			{
-				if (curve.IsClosed) segmentIndex %= curve.SegmentCount;
-				if (segmentIndex == curve.SegmentCount)
-				{
-					curve.SplitCurveAt(segmentIndex - 1, 1f);
-					closestIndex += 3;
-				}
-				else
-				{
-					curve.SplitCurveAt(segmentIndex, 0f);
-				}
+				curve.SplitCurveAt(segmentIndex - 1, 1f);
+				curve.UpdatePosition(closestIndex - 1);
+				closestIndex += 3;
 			}
 			else
 			{
-				var prevSegmentIndex = segmentIndex - 1;
-				if (curve.IsClosed) prevSegmentIndex = (curve.SegmentCount + prevSegmentIndex) % curve.SegmentCount;
-				if (prevSegmentIndex > 0 || curve.SegmentCount == segmentIndex)
-					curve.SplitCurveAt(prevSegmentIndex, 1f);
-				else
-				{
-					curve.SplitCurveAt(segmentIndex, 0f);
-					closestIndex += 3;
-				}
+				curve.SplitCurveAt(segmentIndex, 0f);
+				curve.UpdatePosition(closestIndex + 4);
 			}
-			closestPoint = curve.Points[closestIndex];
+			this.closestPoint = curve.Points[closestIndex];
 		}
 
 		private void Cut()

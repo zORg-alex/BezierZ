@@ -231,7 +231,9 @@ namespace BezierCurveZ
 		/// Updates point position. Used in case point parameters changed that can influence other points.
 		/// </summary>
 		public void UpdatePosition(int index) => SetPointPosition(index, _points[index]);
+		[DebuggerStepThrough]
 		public void SetPointPosition(int index, Vector3 position) => SetPointPosition((ushort)index, position, true);
+		[DebuggerStepThrough]
 		public void SetPointPosition(int index, Vector3 position, bool recursive = true) => SetPointPosition((ushort)index, position, recursive);
 		public void SetPointPosition(ushort index, Vector3 position, bool recursive = true)
 		{
