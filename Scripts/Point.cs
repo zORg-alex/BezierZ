@@ -86,15 +86,23 @@ namespace BezierCurveZ
 			_rotation = Quaternion.LookRotation(tangent, rotation * Vector3.up);
 			return this;
 		}
-
+		[DebuggerStepThrough]
 		public static implicit operator Vector3(Point ep) => ep.position;
+		[DebuggerStepThrough]
 		public static Vector3 operator +(Point a, Point b) => a.position + b.position;
+		[DebuggerStepThrough]
 		public static Vector3 operator -(Point a, Point b) => a.position - b.position;
+		[DebuggerStepThrough]
 		public static Vector3 operator +(Point a, Vector3 b) => a.position + b;
+		[DebuggerStepThrough]
 		public static Vector3 operator -(Point a, Vector3 b) => a.position - b;
+		[DebuggerStepThrough]
 		public static Vector3 operator +(Vector3 a, Point b) => a + b.position;
+		[DebuggerStepThrough]
 		public static Vector3 operator -(Vector3 a, Point b) => a - b.position;
+		[DebuggerStepThrough]
 		public static Vector3 operator -(Point a) => -a.position;
+		[DebuggerStepThrough]
 		public static Vector3 operator *(Point a, float f) => a.position * f;
 
 		[DebuggerStepThrough]
