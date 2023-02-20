@@ -130,10 +130,10 @@ namespace BezierCurveZ
 							uvs[curveInd + profInd] =
 								Vector2.up * (mode.HasFlag(UVMode.VUniform) ? (ep.distance / curve.VertexData.CurveLength()) :
 								mode.HasFlag(UVMode.VLength) ? ep.distance :
-								mode.HasFlag(UVMode.VSegment) ? ep.cumulativeTime - ep.segmentInd : 0) +
+								mode.HasFlag(UVMode.VSegment) ? ep.cumulativeTime : 0) +
 								Vector2.right * (mode.HasFlag(UVMode.UUniform) ? pp.distance / profile.VertexData.CurveLength() :
 								mode.HasFlag(UVMode.ULength) ? pp.distance :
-								mode.HasFlag(UVMode.USegment) ? pp.cumulativeTime - pp.segmentInd : 0);
+								mode.HasFlag(UVMode.USegment) ? pp.cumulativeTime : 0);
 
 							if ((profInd < profileLen - 1 || profile.IsClosed) && (curveInd > 0 || curve.IsClosed))
 							{

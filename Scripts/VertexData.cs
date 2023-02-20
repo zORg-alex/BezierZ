@@ -41,8 +41,6 @@ namespace BezierCurveZ
 			var segInd = 0;
 			for (int i = 0; i < splitdata.Count; i++)
 			{
-				if (segInd + 1 < splitdata.segmentIndices.Count && splitdata.segmentIndices[segInd + 1] == i)
-					segInd++;
 				vd[i] = new VertexData()
 				{
 					Position = splitdata.points[i],
@@ -51,8 +49,9 @@ namespace BezierCurveZ
 					distance = splitdata.cumulativeLength[i],
 					cumulativeTime = splitdata.cumulativeTime[i],
 					isSharp = splitdata.isSharp[i],
-					segmentInd = segInd,
-					segmentStartVertInd = splitdata.segmentIndices[segInd]
+					segmentInd = splitdata.cumulativeTime[i].FloorToInt(),
+					segmentStartVertInd = splitdata.firstSegmentIndex[i]
+
 				};
 			}
 

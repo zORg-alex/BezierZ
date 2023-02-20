@@ -44,7 +44,7 @@ namespace BezierCurveZ
 			}
 
 			//Should correct for previous point estimation
-			var _dist = -1f;
+			var _dist = float.MinValue;
 			var length = -1f;
 			//bool nextEPIsAutomatic = endPointIsAutomatic[0];
 			var segInd = 0;
@@ -64,11 +64,12 @@ namespace BezierCurveZ
 				bool prevEPIsAutomatic = endPointIsAutomatic[segInd];
 				bool nextEPIsAutomatic = endPointIsAutomatic[segInd + 1];
 
+				var firstSegmentIndex = data.points.Count;
 				float t = 0f;
 				while (true)
 				{
-					var _endPoint = (t == 0 && segInd == 0) || (t >= 1);
-					var _isSharp = (t == 0 && segInd == 0 && !prevEPIsAutomatic) || (t >= 1 && !nextEPIsAutomatic);
+					var _endPoint = (t == 0) || (t >= 1 && segInd == segments.Length - 1);
+					var _isSharp = (t == 0 && !prevEPIsAutomatic) || (t >= 1 && segInd == segments.Length - 1 && !nextEPIsAutomatic);
 
 					Vector3 _toLastPoint = _lastAddedPoint - _currentPoint;
 					var _toLastPointMag = _toLastPoint.magnitude;
@@ -77,19 +78,22 @@ namespace BezierCurveZ
 					if (segInd < endPointRotations.Length - 1)
 						_rollAngle += _rollIncrement;
 
-					if (_isSharp || (_endPoint && _lastAddedPoint != _currentPoint)
+					_dist += (_currentPoint - _nextEvalPoint).magnitude;
+
+					if (_isSharp || (_endPoint /*&& _lastAddedPoint != _currentPoint*/)
 						|| (_angleError > maxAngleError || _rollAngle > maxAngleError)
 						&& _dist >= minSplitDistance)
 					{
-						if (_dist < minSplitDistance && t >= 1 && data.cumulativeTime[data.cumulativeTime.Count - 1] > segInd)
+						int lastIndex = data.points.Count - 1;
+						if (_dist >= 0 && t == 0 && !data.isEndPoint[lastIndex] && _dist < minSplitDistance)
 						{
-							data.points.RemoveAt(data.points.Count - 1);
-							data.tangents.RemoveAt(data.tangents.Count - 1);
-							data.cumulativeTime.RemoveAt(data.cumulativeTime.Count - 1);
-							data.cumulativeLength.RemoveAt(data.cumulativeLength.Count - 1);
-							data.rotations.RemoveAt(data.rotations.Count - 1);
-							data.scales.RemoveAt(data.scales.Count - 1);
-							data.isSharp.RemoveAt(data.isSharp.Count - 1);
+							data.points.RemoveAt(lastIndex);
+							data.tangents.RemoveAt(lastIndex);
+							data.cumulativeTime.RemoveAt(lastIndex);
+							data.cumulativeLength.RemoveAt(lastIndex);
+							data.rotations.RemoveAt(lastIndex);
+							data.scales.RemoveAt(lastIndex);
+							data.isSharp.RemoveAt(lastIndex);
 						}
 						_rollAngle = 0;
 						length += _toLastPointMag;
@@ -102,16 +106,15 @@ namespace BezierCurveZ
 						data.tangents.Add(tang);
 						data.cumulativeTime.Add(segInd + t);
 						data.cumulativeLength.Add(length);
-						if (data.segmentIndices.Count == segInd)
-							data.segmentIndices.Add(data.points.Count - 1);
+						data.firstSegmentIndex.Add(firstSegmentIndex);
 						data.rotations.Add(rotation);
 						data.scales.Add(GetScale(segInd, t));
 						data.isSharp.Add(_isSharp || (segInd == 0 && t == 0) || (segInd == segments.Length - 1 && t == 1));
+						data.isEndPoint.Add(_endPoint);
 						_dist = 0;
 						_lastAddedPoint = _currentPoint;
 						prevTang = tang;
 					}
-					else _dist += (_currentPoint - _nextEvalPoint).magnitude;
 
 					if (t == 1) break;
 					t = (t + increment).Min(1f);
@@ -180,9 +183,9 @@ namespace BezierCurveZ
 
 			//Local methods
 
-			Quaternion secondToLastRotation() => data.rotations[data.segmentIndices[data.segmentIndices.Count - 2]];
+			Quaternion secondToLastRotation() => data.rotations[data.firstSegmentIndex[data.firstSegmentIndex.Count - 2]];
 			Quaternion secondToLastEPRotation() => endPointRotations[endPointRotations.Length - 2];
-			Quaternion secondRotation() => data.rotations[data.segmentIndices[1]];
+			Quaternion secondRotation() => data.rotations[data.firstSegmentIndex[1]];
 			Quaternion secondEPRotation() => endPointRotations[1];
 			Quaternion allignedSecondToLastRotation() => Quaternion.LookRotation(secondToLastEPRotation() * Vector3.forward, secondToLastRotation() * Vector3.up);
 			Quaternion allignedSecondRoation() => Quaternion.LookRotation(secondEPRotation() * Vector3.forward, secondRotation() * Vector3.up);
@@ -222,12 +225,13 @@ namespace BezierCurveZ
 			/// <summary>
 			/// contains splitdata first indexes for each segment. It is shorter than rest. It's length is same as EndPoint Count
 			/// </summary>
-			public List<int> segmentIndices = new List<int>();
+			public List<int> firstSegmentIndex = new List<int>();
 			public List<float> cumulativeLength = new List<float>();
 			public List<float> cumulativeTime = new List<float>();
 			public List<Quaternion> rotations = new List<Quaternion>();
 			public List<Vector3> scales = new List<Vector3>();
 			internal List<bool> isSharp = new List<bool>();
+			internal List<bool> isEndPoint = new List<bool>();
 
 			public int Count => points.Count;
 		}
