@@ -11,7 +11,7 @@ namespace BezierCurveZ
 	{
 		public static float MinSplitDistance = 0.000001f;
 		public static SplitData SplitCurveByAngleError(
-			Vector3[][] segments, Quaternion[] endPointRotations, Vector3[] endPointScales, bool[] endPointIsSharp,
+			Vector3[][] segments, Quaternion[] endPointRotations, Vector3[] endPointScales, bool[] endPointIsAutomatic,
 			bool IsClosed, float maxAngleError, float minSplitDistance, int accuracy = 10,
 			InterpolationMethod interpolation = InterpolationMethod.CatmullRomAdditive, float catmullRomTension = 1f)
 		{
@@ -46,7 +46,7 @@ namespace BezierCurveZ
 			//Should correct for previous point estimation
 			var _dist = -1f;
 			var length = -1f;
-			bool nextEPIsAutomatic = endPointIsSharp[0];
+			//bool nextEPIsAutomatic = endPointIsAutomatic[0];
 			var segInd = 0;
 			var prevUp = endPointRotations[segInd] * Vector3.up;
 			foreach (var segment in segments)
@@ -61,10 +61,11 @@ namespace BezierCurveZ
 				Vector3 _nextEvalPoint = CurveUtils.Evaluate(increment, segment);
 				float _rollAngle = 0f;
 				float _rollIncrement = segInd < endPointRotations.Length - 1 ? ((endPointRotations[segInd].eulerAngles.z - endPointRotations[segInd + 1].eulerAngles.z) / divisions).Abs() : 0f;
-				bool prevEPIsAutomatic = endPointIsSharp[segInd];
+				bool prevEPIsAutomatic = endPointIsAutomatic[segInd];
+				bool nextEPIsAutomatic = endPointIsAutomatic[segInd+ 1];
 
 				float t = 0f;
-				while (true)
+				do
 				{
 					var _edgePoint = (t == 0) || (t >= 1 && segInd == segments.Length - 1);
 					var _isSharp = (t == 0 && !prevEPIsAutomatic) || (t >= 1 && !nextEPIsAutomatic);
@@ -102,13 +103,12 @@ namespace BezierCurveZ
 					}
 					else _dist += (_currentPoint - _nextEvalPoint).magnitude;
 
-					if (t >= 1f) break;
 					t = (t + increment).Min(1f);
 					_currentPoint = _nextEvalPoint;
 					_nextEvalPoint = CurveUtils.Evaluate(t + increment, segment);
 					_previousAngle = _angle;
-					nextEPIsAutomatic = prevEPIsAutomatic;
-				}
+					//nextEPIsAutomatic = prevEPIsAutomatic;
+				} while (t <= 1f);
 
 				if (interpolation == InterpolationMethod.CatmullRomAdditive)
 				{

@@ -28,9 +28,9 @@ namespace BezierCurveZ
 			if (otherCurve.PointCount == 0) otherCurve.Reset();
 			var splitdata = CurveInterpolation.SplitCurveByAngleError(
 				otherCurve.Segments,
-				otherCurve.EndPoints.SelectArray(p=>p.rotation),
-				otherCurve.EndPoints.SelectArray(p=>p.scale),
-				otherCurve.EndPoints.SelectArray(p => !p.IsAutomatic),
+				otherCurve.EndPoints.SelectArray(p => p.rotation),
+				otherCurve.EndPoints.SelectArray(p => p.scale),
+				otherCurve.EndPoints.SelectArray(p => p.IsAutomatic),
 				otherCurve.IsClosed,
 				otherCurve.InterpolationMaxAngleError,
 				otherCurve.InterpolationMinDistance,
