@@ -133,7 +133,7 @@ namespace BezierCurveZ
 								mode.HasFlag(UVMode.VSegment) ? ep.cumulativeTime - ep.segmentInd : 0) +
 								Vector2.right * (mode.HasFlag(UVMode.UUniform) ? pp.distance / profile.VertexData.CurveLength() :
 								mode.HasFlag(UVMode.ULength) ? pp.distance :
-								mode.HasFlag(UVMode.USegment) ? pp.cumulativeTime - ep.segmentInd : 0);
+								mode.HasFlag(UVMode.USegment) ? pp.cumulativeTime - pp.segmentInd : 0);
 
 							if ((profInd < profileLen - 1 || profile.IsClosed) && (curveInd > 0 || curve.IsClosed))
 							{
