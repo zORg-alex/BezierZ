@@ -11,7 +11,7 @@ namespace BezierCurveZ
 	{
 		public static float MinSplitDistance = 0.000001f;
 		public static SplitData SplitCurveByAngleError(
-			Vector3[][] segments, Quaternion[] endPointRotations, Vector3[] endPointScales, bool[] endPointIsSharp,
+			Vector3[][] segments, Quaternion[] endPointRotations, Vector3[] endPointScales, bool[] endPointIsAutomatic,
 			bool IsClosed, float maxAngleError, float minSplitDistance, int accuracy = 10,
 			InterpolationMethod interpolation = InterpolationMethod.CatmullRomAdditive, float catmullRomTension = 1f)
 		{
@@ -46,7 +46,7 @@ namespace BezierCurveZ
 			//Should correct for previous point estimation
 			var _dist = -1f;
 			var length = -1f;
-			bool nextEPIsAutomatic = endPointIsSharp[0];
+			//bool nextEPIsAutomatic = endPointIsAutomatic[0];
 			var segInd = 0;
 			var prevUp = endPointRotations[segInd] * Vector3.up;
 			foreach (var segment in segments)
@@ -61,13 +61,14 @@ namespace BezierCurveZ
 				Vector3 _nextEvalPoint = CurveUtils.Evaluate(increment, segment);
 				float _rollAngle = 0f;
 				float _rollIncrement = segInd < endPointRotations.Length - 1 ? ((endPointRotations[segInd].eulerAngles.z - endPointRotations[segInd + 1].eulerAngles.z) / divisions).Abs() : 0f;
-				bool prevEPIsAutomatic = endPointIsSharp[segInd];
+				bool prevEPIsAutomatic = endPointIsAutomatic[segInd];
+				bool nextEPIsAutomatic = endPointIsAutomatic[segInd + 1];
 
 				float t = 0f;
 				while (true)
 				{
-					var _edgePoint = (t == 0) || (t >= 1 && segInd == segments.Length - 1);
-					var _isSharp = (t == 0 && !prevEPIsAutomatic) || (t >= 1 && !nextEPIsAutomatic);
+					var _endPoint = (t == 0 && segInd == 0) || (t >= 1);
+					var _isSharp = (t == 0 && segInd == 0 && !prevEPIsAutomatic) || (t >= 1 && !nextEPIsAutomatic);
 
 					Vector3 _toLastPoint = _lastAddedPoint - _currentPoint;
 					var _toLastPointMag = _toLastPoint.magnitude;
@@ -76,10 +77,20 @@ namespace BezierCurveZ
 					if (segInd < endPointRotations.Length - 1)
 						_rollAngle += _rollIncrement;
 
-					if (_isSharp || (_edgePoint && _lastAddedPoint != _currentPoint)
+					if (_isSharp || (_endPoint && _lastAddedPoint != _currentPoint)
 						|| (_angleError > maxAngleError || _rollAngle > maxAngleError)
 						&& _dist >= minSplitDistance)
 					{
+						if (_dist < minSplitDistance && t >= 1 && data.cumulativeTime[data.cumulativeTime.Count - 1] > segInd)
+						{
+							data.points.RemoveAt(data.points.Count - 1);
+							data.tangents.RemoveAt(data.tangents.Count - 1);
+							data.cumulativeTime.RemoveAt(data.cumulativeTime.Count - 1);
+							data.cumulativeLength.RemoveAt(data.cumulativeLength.Count - 1);
+							data.rotations.RemoveAt(data.rotations.Count - 1);
+							data.scales.RemoveAt(data.scales.Count - 1);
+							data.isSharp.RemoveAt(data.isSharp.Count - 1);
+						}
 						_rollAngle = 0;
 						length += _toLastPointMag;
 						Vector3 tang = CurveUtils.EvaluateDerivative(t, segment).normalized;
@@ -102,12 +113,11 @@ namespace BezierCurveZ
 					}
 					else _dist += (_currentPoint - _nextEvalPoint).magnitude;
 
-					if (t >= 1f) break;
+					if (t == 1) break;
 					t = (t + increment).Min(1f);
 					_currentPoint = _nextEvalPoint;
 					_nextEvalPoint = CurveUtils.Evaluate(t + increment, segment);
 					_previousAngle = _angle;
-					nextEPIsAutomatic = prevEPIsAutomatic;
 				}
 
 				if (interpolation == InterpolationMethod.CatmullRomAdditive)
@@ -201,7 +211,7 @@ namespace BezierCurveZ
 
 		private static Quaternion GetRotation(Vector3 tangent, Vector3 firstTangent, Vector3 lastTangent, Quaternion[] rotations)
 		{
-			var t = Vector3.Angle(tangent, firstTangent)/Vector3.Angle(firstTangent,lastTangent);
+			var t = Vector3.Angle(tangent, firstTangent) / Vector3.Angle(firstTangent, lastTangent);
 			return CatmullRomCurveUtility.EvaluateAngleAxis(t, 1, rotations[0], rotations[1], rotations[2], rotations[3]);
 		}
 
