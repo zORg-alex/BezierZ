@@ -173,7 +173,7 @@ namespace BezierCurveZ
 			_vertexDataPoints = null;
 			_interpolationAccuracy = 10;
 			_interpolationMaxAngleError = 5;
-			_interpolationMinDistance = 0;
+			_interpolationMinDistance = 0.000001f;
 			_interpolationCapmullRomTension = .5f;
 			InterpolationOptionsInd = InterpolationMethod.CatmullRomAdditive;
 		}
@@ -692,12 +692,12 @@ namespace BezierCurveZ
 		[SerializeField]
 		private float _interpolationMaxAngleError = 5;
 		[SerializeField]
-		private float _interpolationMinDistance;
+		private float _interpolationMinDistance = 0.000001f;
 		[SerializeField]
 		private int _interpolationAccuracy = 10;
 		public int InterpolationAccuracy { get => _interpolationAccuracy; set { if (_interpolationAccuracy != value) { _interpolationAccuracy = value; _bVersion++; } } }
 		public float InterpolationMaxAngleError { get => _interpolationMaxAngleError; set { if (_interpolationMaxAngleError != value) { _interpolationMaxAngleError = value; _bVersion++; } } }
-		public float InterpolationMinDistance { get => _interpolationMinDistance; set { if (_interpolationMinDistance != value) { _interpolationMinDistance = value; _bVersion++; } } }
+		public float InterpolationMinDistance { get => _interpolationMinDistance; set { if (_interpolationMinDistance != value) { _interpolationMinDistance = Mathf.Max(value, 0.000001f); _bVersion++; } } }
 
 		private InterpolationMethod _interpolationOptionsInd = InterpolationMethod.CatmullRomAdditive;
 		public InterpolationMethod InterpolationOptionsInd { get => _interpolationOptionsInd; set { if (_interpolationOptionsInd != value) { _interpolationOptionsInd = value; _bVersion++; } } }
