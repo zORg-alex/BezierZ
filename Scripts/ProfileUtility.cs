@@ -2,11 +2,13 @@
 using BezierCurveZ;
 using System.Collections.Generic;
 using System.Linq;
+using System;
 
 namespace BezierCurveZ
 {
 	public static class ProfileUtility
 	{
+		[Flags]
 		public enum UVMode { None = 0, UUniform = 1, USegment = 2, ULength = 4, VUniform = 8, VSegment = 16, VLength = 32, Uniform = UUniform | VUniform, Length = ULength | VLength, Segment = USegment | VSegment }
 
 		public static Mesh GenerateProfileMesh(Curve curve, MeshGeneration.MeshProfile profile) => GenerateProfileMesh(curve, profile, Vector3.zero, Vector3.one);
