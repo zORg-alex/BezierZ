@@ -65,7 +65,7 @@ namespace BezierCurveZ
 				bool nextEPIsAutomatic = endPointIsAutomatic[segInd + 1];
 
 				float t = 0f;
-				while (true)
+				do
 				{
 					var _endPoint = (t == 0 && segInd == 0) || (t >= 1);
 					var _isSharp = (t == 0 && segInd == 0 && !prevEPIsAutomatic) || (t >= 1 && !nextEPIsAutomatic);
