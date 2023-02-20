@@ -458,6 +458,30 @@ namespace BezierCurveZ
 
 				UpdatePosition(index);
 			}
+			else if (mode == Point.Mode.Linear)
+			{
+				int epIndex = index + (_points[index].isRightHandle ? -1 : 1);
+				if (epIndex < lastPointInd && _points[index].isRightHandle)
+				{
+					_points[epIndex] = _points[epIndex].RemoveAutomaticMode();
+					int leftIndex = index - 2;
+					if (_points[leftIndex].IsAutomatic)
+						_points[leftIndex] = _points[leftIndex].RemoveAutomaticMode();
+					else if (_points[leftIndex].IsLinear)
+						_points[epIndex] = _points[epIndex].SetMode(Point.Mode.Linear);
+				}
+				if (epIndex > 0 && _points[index].isLeftHandle)
+				{
+					_points[epIndex] = _points[epIndex].RemoveAutomaticMode();
+					int rightIndex = index + 2;
+					if (_points[rightIndex].IsAutomatic)
+						_points[rightIndex] = _points[rightIndex].RemoveAutomaticMode();
+					else if (_points[rightIndex].IsLinear)
+						_points[epIndex] = _points[epIndex].SetMode(Point.Mode.Linear);
+				}
+				UpdatePosition((index + 1) % PointCount);
+				UpdatePosition((index - 1) % PointCount);
+			}
 			_bVersion++;
 		}
 

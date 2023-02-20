@@ -80,6 +80,12 @@ namespace BezierCurveZ
 			return this;
 		}
 
+		public Point RemoveAutomaticMode()
+		{
+			_mode = _mode == Mode.Automatic ? Mode.Manual : _mode ^ Mode.Automatic;
+			return this;
+		}
+
 		[DebuggerStepThrough]
 		public Point SetTangent(Vector3 tangent)
 		{

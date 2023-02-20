@@ -475,19 +475,19 @@ namespace BezierCurveZ.Editor
 						closestPoint = curve.Points[closestIndex];
 					}
 
-					//Draw Modes dropdown
-					line = line.MoveDown();
-					GUI.Label(line.MoveLeftFor(30), "mode");
-					EditorGUI.BeginChangeCheck();
-					var modeId = EditorGUI.Popup(line, Point.AllModes.IndexOf(closestPoint.mode), Point.AllModes.SelectArray(m => m.ToString()));
-					if (EditorGUI.EndChangeCheck())
-					{
-						Undo.RecordObject(targetObject, "Set mode");
-						curve.SetPointMode(closestIndex, Point.AllModes[modeId]);
-						closestPoint = curve.Points[closestIndex];
-					}
-					Handles.EndGUI();
 				}
+				//Draw Modes dropdown
+				line = line.MoveDown();
+				GUI.Label(line.MoveLeftFor(30), "mode");
+				EditorGUI.BeginChangeCheck();
+				var modeId = EditorGUI.Popup(line, Point.AllModes.IndexOf(closestPoint.mode), Point.AllModes.SelectArray(m => m.ToString()));
+				if (EditorGUI.EndChangeCheck())
+				{
+					Undo.RecordObject(targetObject, "Set mode");
+					curve.SetPointMode(closestIndex, Point.AllModes[modeId]);
+					closestPoint = curve.Points[closestIndex];
+				}
+				Handles.EndGUI();
 
 				Quaternion r = Camera.current.transform.rotation;
 				float h = HandleUtility.GetHandleSize(editedPosition) * .2f;

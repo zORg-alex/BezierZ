@@ -69,7 +69,7 @@ namespace BezierCurveZ
 				while (true)
 				{
 					var _endPoint = (t == 0) || (t >= 1 && segInd == segments.Length - 1);
-					var _isSharp = (t == 0 && !prevEPIsAutomatic) || (t >= 1 && segInd == segments.Length - 1 && !nextEPIsAutomatic);
+					var _isSharp = (t == 0 && !prevEPIsAutomatic) || (t >= 1 && !nextEPIsAutomatic);
 
 					Vector3 _toLastPoint = _lastAddedPoint - _currentPoint;
 					var _toLastPointMag = _toLastPoint.magnitude;
@@ -85,7 +85,7 @@ namespace BezierCurveZ
 						&& _dist >= minSplitDistance)
 					{
 						int lastIndex = data.points.Count - 1;
-						if (_dist >= 0 && t == 0 && !data.isEndPoint[lastIndex] && _dist < minSplitDistance)
+						if (!_isSharp && _dist >= 0 && t == 0 && !data.isEndPoint[lastIndex] && _dist < minSplitDistance)
 						{
 							data.points.RemoveAt(lastIndex);
 							data.tangents.RemoveAt(lastIndex);
