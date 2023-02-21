@@ -405,11 +405,12 @@ namespace BezierCurveZ.Editor
 							for (int i = 0; i < selectedPointIdexes.Count; i++)
 							{
 								var ind = selectedPointIdexes[i];
+								var segInd = curve.GetSegmentIndex(ind);
 								var point = selectedPoints[i];
 								Vector3 loPos = (point - center);
 								Vector3 scaledPos = center + MultiplyVectorsComponentwise(loPos, scaleDiff);
 								curve.SetPointPosition(ind, scaledPos);
-								curve.SetEPScale(ind, MultiplyVectorsComponentwise(scaleDiff, point.scale));
+								curve.SetEPScale(segInd, MultiplyVectorsComponentwise(scaleDiff, point.scale));
 							}
 						}
 						else

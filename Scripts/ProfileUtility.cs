@@ -105,22 +105,23 @@ namespace BezierCurveZ
 			foreach (var cStrip in curveStrips)
 			{
 				//Each curve point in strips
-				foreach (var ep in cStrip)
+				foreach (var cp in cStrip)
 				{
 					var profInd = 0;
 					var prevProfileInd = profileLen - 1;
 					//Profile flowing segmentws
 					foreach (var pStrip in profileStrips)
 					{
-						var right = ep.Rotation * Vector3.right;
-						var up = ep.Rotation * Vector3.up;
+						var right = cp.Rotation * Vector3.right;
+						var up = cp.Rotation * Vector3.up;
+						int pStripInd = 0;
 						//Each profile point in strips
 						foreach (var pp in pStrip)
 						{
 							//Transform point
-							var rot = ep.Rotation * pp.Rotation;
-							var scaledprofpoint = offset + pp.Position.MultiplyComponentwise(ep.Scale).MultiplyComponentwise(scale);
-							var pos = ep.Position + right * scaledprofpoint.x + up * scaledprofpoint.y;
+							var rot = cp.Rotation * pp.Rotation;
+							var scaledprofpoint = offset + pp.Position.MultiplyComponentwise(cp.Scale).MultiplyComponentwise(scale);
+							var pos = cp.Position + right * scaledprofpoint.x + up * scaledprofpoint.y;
 							//var pos = ep.point + rot * scaledprofpoint;
 
 							vertices[curveInd + profInd] = pos;
@@ -128,23 +129,30 @@ namespace BezierCurveZ
 							//uvs[curveInd + profInd] = new Vector2(pp.distance / profile.VertexData.CurveLength(), unifiedVCoofdinate ? ep.distance / curve.VertexData.CurveLength() : ep.distance);
 
 							uvs[curveInd + profInd] =
-								Vector2.up * (mode.HasFlag(UVMode.VUniform) ? (ep.distance / curve.VertexData.CurveLength()) :
-								mode.HasFlag(UVMode.VLength) ? ep.distance :
-								mode.HasFlag(UVMode.VSegment) ? ep.cumulativeTime : 0) +
+								Vector2.up * (mode.HasFlag(UVMode.VUniform) ? (cp.distance / curve.VertexData.CurveLength()) :
+								mode.HasFlag(UVMode.VLength) ? cp.distance :
+								mode.HasFlag(UVMode.VSegment) ? cp.cumulativeTime : 0) +
 								Vector2.right * (mode.HasFlag(UVMode.UUniform) ? pp.distance / profile.VertexData.CurveLength() :
 								mode.HasFlag(UVMode.ULength) ? pp.distance :
 								mode.HasFlag(UVMode.USegment) ? pp.cumulativeTime : 0);
-
-							if ((profInd < profileLen - 1 || profile.IsClosed) && (curveInd > 0 || curve.IsClosed))
+							
+							if ((profInd > 0 || profile.IsClosed) && (curveInd > 0 || curve.IsClosed) && pStripInd > 0)
 							{
-								var nextProfInd = (profInd + 1) % profileLen;
-								triangles.AddRange_(prevCurveInd + profInd, prevCurveInd + nextProfInd, curveInd + nextProfInd);
-								triangles.AddRange_(prevCurveInd + profInd, curveInd + nextProfInd, curveInd + profInd);
+								triangles.AddRange_(prevCurveInd + prevProfileInd, prevCurveInd + profInd, curveInd + profInd);
+								triangles.AddRange_(prevCurveInd + prevProfileInd, curveInd + profInd, curveInd + prevProfileInd);
 							}
+
+							//if (false && (profInd < profileLen - 1 || profile.IsClosed) && (curveInd > 0 || curve.IsClosed))
+							//{
+							//	var nextProfInd = (profInd + 1) % profileLen;
+							//	triangles.AddRange_(prevCurveInd + profInd, prevCurveInd + nextProfInd, curveInd + nextProfInd);
+							//	triangles.AddRange_(prevCurveInd + profInd, curveInd + nextProfInd, curveInd + profInd);
+							//}
 
 							prevProfileInd = profInd;
 							profInd++;
 							profInd %= profileLen;
+							pStripInd++;
 						}
 					}
 
