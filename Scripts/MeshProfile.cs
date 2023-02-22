@@ -7,23 +7,26 @@ using UnityEngine;
 
 namespace MeshGeneration
 {
+	/// <summary>
+	/// This class won't be supported. It is left for prototyping cases and never for actual use in prod.
+	/// </summary>
 	[Serializable]
 	public class MeshProfile {
 		[SerializeField,HideInInspector]
 		Vector2[] _points;
-		[SerializeField, HideInInspector]
-		Vector2[] _normals;
-		[SerializeField, HideInInspector]
-		Vector2[] _uvs;
-		[SerializeField, HideInInspector]
-		bool[] _autoNormals;
+		//[SerializeField, HideInInspector]
+		//Vector2[] _normals;
+		//[SerializeField, HideInInspector]
+		//Vector2[] _uvs;
+		//[SerializeField, HideInInspector]
+		//bool[] _autoNormals;
 
 		public MeshProfile()
 		{
 			_points = new Vector2[] { Vector2.zero};
-			_normals = new Vector2[] { Vector2.up};
-			_uvs = new Vector2[] { Vector2.zero};
-			_autoNormals = new bool[] { true };
+			//_normals = new Vector2[] { Vector2.up};
+			//_uvs = new Vector2[] { Vector2.zero};
+			//_autoNormals = new bool[] { true };
 		}
 
 		public Vector2 this[int index] {
