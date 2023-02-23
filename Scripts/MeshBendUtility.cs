@@ -1,7 +1,4 @@
-﻿using Sirenix.OdinInspector;
-using System.Linq;
-using System.Text;
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace BezierCurveZ.MeshGeneration
 {
