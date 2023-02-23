@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System;
 
-namespace BezierCurveZ
+namespace BezierCurveZ.MeshGeneration
 {
 	public static class ProfileUtility
 	{

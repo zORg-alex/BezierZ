@@ -5,7 +5,7 @@ using System.Linq;
 using UnityEditor;
 using UnityEngine;
 
-namespace MeshGeneration
+namespace BezierCurveZ.MeshGeneration
 {
 	/// <summary>
 	/// This class won't be supported. It is left for prototyping cases and never for actual use in prod.

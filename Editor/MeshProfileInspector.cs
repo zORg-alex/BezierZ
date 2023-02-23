@@ -6,7 +6,7 @@ using Utility.Editor;
 #if UNITY_EDITOR
 #endif
 
-namespace MeshGeneration
+namespace BezierCurveZ.MeshGeneration
 {
 #if UNITY_EDITOR
 	[CustomPropertyDrawer(typeof(MeshProfile))]
