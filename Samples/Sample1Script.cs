@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using System;
+using BezierCurveZ.MeshGeneration;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
