@@ -17,6 +17,7 @@ namespace BezierCurveZ.Samples {
 		public List<Curve> curves;
 		public Vector3 scale = Vector3.one;
 		public Vector3 offset;
+		public Vector2 UVScale = Vector2.one;
 		public ProfileUtility.UVMode mode;
 
 		public void Generate()
@@ -24,11 +25,11 @@ namespace BezierCurveZ.Samples {
 			var mf = GetComponent<MeshFilter>();
 			var meshes = new List<Mesh>
 			{
-				ProfileUtility.GenerateProfileMesh(path, profile, offset, scale, mode: mode)
+				ProfileUtility.GenerateProfileMesh(path, profile, offset, scale, mode: mode, UVScale: UVScale)
 			};
 			foreach (var curve in curves)
 			{
-				meshes.Add(ProfileUtility.GenerateProfileMesh(curve, profile, offset, scale, mode: mode));
+				meshes.Add(ProfileUtility.GenerateProfileMesh(curve, profile, offset, scale, mode: mode, UVScale: UVScale));
 			}
 			CombineInstance[] combine = new CombineInstance[meshes.Count];
 			for (int i = 0; i < meshes.Count; i++)

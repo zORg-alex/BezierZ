@@ -41,9 +41,9 @@ public class Sample2Script : MonoBehaviour
 #if UNITY_EDITOR
 [CustomEditor(typeof(Sample2Script))]
 #if ODIN_INSPECTOR
-public class Test3ScriptInspector : Sirenix.OdinInspector.Editor.OdinEditor
+public class Test2ScriptInspector : Sirenix.OdinInspector.Editor.OdinEditor
 #else
-	public class Test3ScriptInspector : Editor
+	public class Test2ScriptInspector : Editor
 #endif
 {
 	public override void OnInspectorGUI()
