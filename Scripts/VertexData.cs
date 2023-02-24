@@ -97,5 +97,16 @@ namespace BezierCurveZ
 			var relT = (t - a.cumulativeTime) / (b.cumulativeTime - a.cumulativeTime);
 			return a.LerpTo(b, relT);
 		}
+
+		public static VertexData GetPointFromDistance(this VertexData[] vertexData, float distance)
+		{
+			if (distance <= 0) return vertexData[0];
+			if (distance >= vertexData.CurveLength()) return vertexData[vertexData.Length - 1];
+			var ind = vertexData.BinarySearchIndex(v => distance - v.distance);
+			var a  = vertexData[ind];
+			var b = vertexData[ind + 1];
+			var relDist = (distance - a.distance) / (b.distance - a.distance);
+			return a.LerpTo(b, relDist);
+		}
 	} 
 }
