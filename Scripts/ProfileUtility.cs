@@ -99,6 +99,18 @@ namespace BezierCurveZ.MeshGeneration
 		/// Segment [0..1] for each segment, Length coordinate equals to point distance from start</param>
 		public static Mesh GenerateProfileMesh(Curve curve, Curve profile, bool autoNormals = true, UVMode mode = UVMode.Uniform, string name = null) =>
 			GenerateProfileMesh(curve, profile, new Vector3[] { Vector3.zero }, new Vector3[] { Vector3.one }, autoNormals, mode, name);
+
+		/// <summary>
+		/// Generates mesh from curve profile.
+		/// </summary>
+		/// <param name="curve">Along this curve profile will be extruded</param>
+		/// <param name="profile">Profile for a generated mesh</param>
+		/// <param name="autoNormals">Use GenerateNormals or leave calculated by curve rotations</param>
+		/// <param name="mode">UV coordinate generation, Uniform [0..1] from curve start to end,
+		/// Segment [0..1] for each segment, Length coordinate equals to point distance from start</param>
+		public static Mesh GenerateProfileMesh(Curve curve, Curve profile, Vector2 UVScale, bool autoNormals = true, UVMode mode = UVMode.Uniform, string name = null) =>
+			GenerateProfileMesh(curve, profile, new Vector3[] { Vector3.zero }, new Vector3[] { Vector3.one }, UVScale, autoNormals, mode, name);
+
 		/// <summary>
 		/// Generates mesh from curve profile.
 		/// </summary>
@@ -113,6 +125,21 @@ namespace BezierCurveZ.MeshGeneration
 			GenerateProfileMesh(curve, profile, new Vector3[] { offset }, new Vector3[] { scale }, autoNormals, mode, name);
 
 		/// <summary>
+		/// Generates mesh from curve profile.
+		/// </summary>
+		/// <param name="curve">Along this curve profile will be extruded</param>
+		/// <param name="profile">Profile for a generated mesh</param>
+		/// <param name="offset">profile offset</param>
+		/// <param name="scale">profile scale</param>
+		/// <param name="autoNormals">Use GenerateNormals or leave calculated by curve rotations</param>
+		/// <param name="mode">UV coordinate generation, Uniform [0..1] from curve start to end,
+		/// Segment [0..1] for each segment, Length coordinate equals to point distance from start</param>
+		public static Mesh GenerateProfileMesh(Curve curve, Curve profile, Vector3 offset, Vector3 scale, Vector2 UVScale, bool autoNormals = true, UVMode mode = UVMode.Uniform, string name = null) =>
+			GenerateProfileMesh(curve, profile, new Vector3[] { offset }, new Vector3[] { scale }, UVScale, autoNormals, mode, name);
+
+		public static readonly Vector2 UVDefaultScale = new Vector2(1,1);
+
+		/// <summary>
 		/// Generates mesh from curve profile multiple times with given offsets and scales.
 		/// </summary>
 		/// <param name="curve">Along this curve profile will be extruded</param>
@@ -123,6 +150,19 @@ namespace BezierCurveZ.MeshGeneration
 		/// <param name="mode">UV coordinate generation, Uniform [0..1] from curve start to end,
 		/// Segment [0..1] for each segment, Length coordinate equals to point distance from start</param>
 		public static Mesh GenerateProfileMesh(Curve curve, Curve profile, Vector3[] offsets, Vector3[] scales, bool autoNormals = true, UVMode mode = UVMode.Uniform, string name = null)
+			=> GenerateProfileMesh(curve, profile, offsets, scales, Vector2.one, autoNormals, mode, name);
+
+		/// <summary>
+		/// Generates mesh from curve profile multiple times with given offsets and scales.
+		/// </summary>
+		/// <param name="curve">Along this curve profile will be extruded</param>
+		/// <param name="profile">Profile for a generated mesh</param>
+		/// <param name="offsets">profile offsets</param>
+		/// <param name="scales">profile scales</param>
+		/// <param name="autoNormals">Use GenerateNormals or leave calculated by curve rotations</param>
+		/// <param name="mode">UV coordinate generation, Uniform [0..1] from curve start to end,
+		/// Segment [0..1] for each segment, Length coordinate equals to point distance from start</param>
+		public static Mesh GenerateProfileMesh(Curve curve, Curve profile, Vector3[] offsets, Vector3[] scales, Vector2 UVScale, bool autoNormals = true, UVMode mode = UVMode.Uniform, string name = null)
 		{
 			if (offsets.Length != scales.Length) throw new ArgumentException("Offets and Scales has different lengths.");
 			var curveStrips = GetVertexDataStrips(curve.VertexData, curve.IsClosed);
@@ -171,10 +211,10 @@ namespace BezierCurveZ.MeshGeneration
 								uvs[curveInd + profInd] =
 									Vector2.up * (mode.HasFlag(UVMode.VUniform) ? (cp.distance / curve.VertexData.CurveLength()) :
 									mode.HasFlag(UVMode.VLength) ? cp.distance :
-									mode.HasFlag(UVMode.VSegment) ? cp.cumulativeTime : 0) +
+									mode.HasFlag(UVMode.VSegment) ? cp.cumulativeTime : 0) * UVScale.y +
 									Vector2.right * (mode.HasFlag(UVMode.UUniform) ? pp.distance / profile.VertexData.CurveLength() :
 									mode.HasFlag(UVMode.ULength) ? pp.distance :
-									mode.HasFlag(UVMode.USegment) ? pp.cumulativeTime : 0);
+									mode.HasFlag(UVMode.USegment) ? pp.cumulativeTime : 0) * UVScale.x;
 
 								//skip stitching to last curve vertex if open, skip stitching to last profile vertex if open, skip on profile mid strip, skip on next offset sweep
 								//In case of profile formed from linear segments, each endpoint has 2 vertices with different normals, that can be skipped to save 0 size triangles
