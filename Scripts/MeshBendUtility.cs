@@ -22,13 +22,15 @@ namespace BezierCurveZ.MeshGeneration
 			if (mesh == null || mesh == originalMesh)
 				mesh = originalMesh.Copy();
 
+			var distCoef = curve.VertexData.CurveLength() / zLength;
+
 			var verts = originalMesh.vertices;
 			for (int i = 0; i < verts.Length; i++)
 			{
 				var v = originalToBendSpace.MultiplyPoint3x4(verts[i]);
-				var t = Mathf.Clamp01(v.z / zLength);
-				var point = curve.VertexData.GetPointFromTime(t * curve.SegmentCount);
-				var vRelToPoint = new Vector3(v.x, v.y, 0);
+				var dist = Mathf.Clamp(v.z, 0, zLength);
+				var point = curve.VertexData.GetPointFromDistance(dist);
+				var vRelToPoint = v - new Vector3(0, 0, dist);
 				verts[i] = bendSpaceToMesh.MultiplyPoint3x4(point.Position + point.Rotation * vRelToPoint);
 			}
 			mesh.vertices = verts;
