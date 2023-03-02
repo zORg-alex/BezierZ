@@ -132,6 +132,13 @@ namespace BezierCurveZ.Editor
 			var detStack = line[1].Column(3);
 			var interpStack = line[2].Column(3);
 
+			if (GUI.Button(line[0], isOpenClosedTexture(curve.IsClosed)))
+			{
+				Undo.RecordObject(targetObject, $"IsClosed changed on curve");
+				curve.SetIsClosed(!curve.IsClosed);
+				RepaintSceneViews();
+			}
+
 			var lw = EditorGUIUtility.labelWidth;
 			EditorGUIUtility.labelWidth = Mathf.Max(
 				EditorStyles.label.CalcSize(_maxAngleErrorLabel).x,
@@ -149,9 +156,9 @@ namespace BezierCurveZ.Editor
 				UnityEditor.EditorGUI.IntField(detStack[2], _accuracyLabel, curve.InterpolationAccuracy)
 				, 1, 1000);
 			var tens = 0f;
-			if (curve.InterpolationOptionsInd == InterpolationMethod.CatmullRomAdditive)
+			if (curve.InterpolationMethod == InterpolationMethod.CatmullRomAdditive)
 				tens = Mathf.Max(
-					UnityEditor.EditorGUI.FloatField(interpStack[1], "tension", curve.InterpolationCapmullRomTension)
+					UnityEditor.EditorGUI.FloatField(interpStack[1], "Tension", curve.InterpolationCapmullRomTension)
 					, 0.01f);
 			EditorGUIUtility.labelWidth = lw;
 			if (UnityEditor.EditorGUI.EndChangeCheck())
@@ -164,20 +171,21 @@ namespace BezierCurveZ.Editor
 				RepaintSceneViews();
 			}
 
-			if (GUI.Button(line[0], isOpenClosedTexture(curve.IsClosed)))
+			var ops = UnityEditor.EditorGUI.Popup(interpStack[0], (int)curve.InterpolationMethod, interpolationOptions);
+			if (ops != (int)curve.InterpolationMethod)
 			{
-				Undo.RecordObject(targetObject, $"IsClosed changed on curve");
-				curve.SetIsClosed(!curve.IsClosed);
+				Undo.RecordObject(targetObject, $"Interpolation options changed on curve");
+				curve.InterpolationMethod = (InterpolationMethod)ops;
 				RepaintSceneViews();
 			}
 
-			var ops = UnityEditor.EditorGUI.Popup(interpStack[0], (int)curve.InterpolationOptionsInd, interpolationOptions);
-			if (ops != (int)curve.InterpolationOptionsInd)
+			var c = GUI.color;
+			GUI.color = new Color(.6f, .6f, 1f);
+			if (GUI.Button(interpStack[2], "Donate"))
 			{
-				Undo.RecordObject(targetObject, $"Interpolation options changed on curve");
-				curve.InterpolationOptionsInd = (InterpolationMethod)ops;
-				RepaintSceneViews();
+				Application.OpenURL("https://www.paypal.com/donate/?hosted_button_id=UA959RWJHC6AG");
 			}
+			GUI.color = c;
 		}
 
 		private void OnPreview(Curve curve)
