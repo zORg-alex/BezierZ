@@ -237,6 +237,39 @@ namespace BezierCurveZ.Editor
 			DrawCurve();
 			DrawCurveHandles();
 			DrawTools(current);
+			DrawHelp();
+		}
+		static Rect _helpBoxRect = new Rect(10, 10, 340, 100);
+		static bool _showHelpBox = true;
+		private void DrawHelp()
+		{
+			var rows = _helpBoxRect.Column(5);
+			var i = 0;
+
+			Handles.BeginGUI();
+			_showHelpBox = EditorGUI.Foldout(rows[0], _showHelpBox, (_showHelpBox ? "Hide" : "Show") + " BezierZ help");
+			EditorGUI.HelpBox(_showHelpBox ? _helpBoxRect : rows[0], string.Empty, MessageType.None);
+			i++;
+
+			if (_showHelpBox)
+			{
+				GUI.color = selectHandlesOnly ? new Color(.4f, 1f, .4f) : Color.white;
+				GUI.Label(rows[i], "[C] Select only Handles");
+				i++;
+
+				GUI.color = cutInitiated ? new Color(.4f, 1f, .4f) : Color.white;
+				GUI.Label(rows[i], "[V] Start splitting or extrude if dragging first or last endpoint");
+				i++;
+
+				GUI.color = snapKeyDown ? new Color(.4f, 1f, .4f) : Color.white;
+				GUI.Label(rows[i], "[S] Snap");
+				i++;
+
+				GUI.color = showPointGUI ? new Color(.4f, 1f, .4f) : Color.white;
+				GUI.Label(rows[i], "[Q] GUI mode for values");
+				i++;
+			}
+			Handles.EndGUI();
 		}
 
 		/// <summary>
