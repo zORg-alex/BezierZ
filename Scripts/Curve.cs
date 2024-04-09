@@ -26,6 +26,7 @@ namespace BezierCurveZ
 	/// 
 	/// For Mesh Generation or cached position/rotation/scale lookups, use <see cref="VertexData"/>
 	/// </summary>
+	/// TODO Warning if two points are in the same place, it will break interpolation.
 	[Serializable]
 	public class Curve : EditableClass, ISerializationCallbackReceiver
 	{
