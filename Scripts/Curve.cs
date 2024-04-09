@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -30,16 +30,21 @@ namespace BezierCurveZ
 	public class Curve : EditableClass, ISerializationCallbackReceiver
 	{
 
+		public delegate void CurveChanged(Curve curve);
+		public event CurveChanged OnCurveChanged;
+
 		[SerializeField]
 		private int _bVersion = new System.Random().Next();
-
+		
 		[SerializeField]
 		internal List<Point> _points;
 
-		public void BumpVersion()
+		public void BumpVersion(bool updateVertexData = false)
 		{
 			_bVersion++;
-			UpdateVertexData(force: true);
+			if (updateVertexData)
+				UpdateVertexData(force: true);
+			OnCurveChanged?.Invoke(this);
 		}
 
 		/// <summary>
@@ -208,14 +213,14 @@ namespace BezierCurveZ
 					_points[0] = _points[0].SetMode(_preservedNodeModesWhileClosed[0]);
 					_points[LastPointInd] = _points[LastPointInd].SetMode(_preservedNodeModesWhileClosed[1]);
 				}
-				_bVersion++;
+				BumpVersion();
 			}
 			else
 			{
 				_points.Add(new Point(getHandlePosition(LastPointInd, LastPointInd - 1), Point.Type.Right, _points[LastPointInd].mode));
 				_points.Add(new Point(getHandlePosition(0, 1), Point.Type.Left, _points[0].mode));
 				_points.Add(new Point(Points[0]));
-				_bVersion++;
+				BumpVersion();
 
 				Vector3 getHandlePosition(int ind, int otherind)
 				{
@@ -335,7 +340,7 @@ namespace BezierCurveZ
 				if (nextHandle.IsLinear)
 					_points[nextHandleIndex] = GetLinearHandle(nextHandleIndex);
 			}
-			_bVersion++;
+			BumpVersion();
 
 			Point GetLinearHandle(int index)
 			{
@@ -378,7 +383,7 @@ namespace BezierCurveZ
 				_points[index == 0 ? LastPointInd : 0] = _points[index];
 
 			RotateHandles(index, _points[index], delta, rotation);
-			_bVersion++;
+			BumpVersion();
 		}
 		/// <summary>
 		/// Add rotation to EndPoint and rotate handles
@@ -397,7 +402,7 @@ namespace BezierCurveZ
 				_points[index == 0 ? LastPointInd : 0] = _points[index];
 
 			RotateHandles(index, _points[index], delta, _points[index].rotation);
-			_bVersion++;
+			BumpVersion();
 		}
 		/// <summary>
 		/// Set EndPoint scale parameter
@@ -413,7 +418,7 @@ namespace BezierCurveZ
 			if (IsClosed && (index == 0 || index == LastPointInd))
 				_points[index == 0 ? LastPointInd : 0] = _points[index];
 
-			_bVersion++;
+			BumpVersion();
 		}
 
 		private void RotateHandles(int index, Vector3 origin, Quaternion delta, Quaternion rotation)
@@ -482,7 +487,7 @@ namespace BezierCurveZ
 				UpdatePosition((index + 1) % PointCount);
 				UpdatePosition((index - 1) % PointCount);
 			}
-			_bVersion++;
+			BumpVersion();
 		}
 
 		public void OnBeforeSerialize() { }
@@ -509,6 +514,12 @@ namespace BezierCurveZ
 			var newSegments = CasteljauUtility.GetSplitSegmentPoints(t, Segments[segmentIndex]);
 
 			ReplaceCurveSegment(segmentIndex, newSegments);
+		}
+
+		public VertexData GetClosestPoint(Vector3 position)
+		{
+			var t = GetClosestPointTimeSegment(position, out var segmentIndex);
+			return VertexData.GetPointFromTime(segmentIndex + t);
 		}
 
 		/// <summary>
@@ -577,7 +588,7 @@ namespace BezierCurveZ
 			{
 				if (PointCount <= (IsClosed ? 7 : 4))
 				{
-					_bVersion++;
+					BumpVersion();
 					return;
 				}
 				else if (index == 0 || index == LastPointInd)
@@ -596,7 +607,7 @@ namespace BezierCurveZ
 
 				}
 			}
-			_bVersion++;
+			BumpVersion();
 		}
 
 		private void ReplaceCurveSegment(int segmentInd, Vector3[] newSegments) => ReplaceCurveSegment(segmentInd, 1, newSegments);
@@ -627,7 +638,7 @@ namespace BezierCurveZ
 			Points.RemoveRange(index, replaceCount * 3 + 1);
 			Points.InsertRange(index, newPoints);
 
-			_bVersion++;
+			BumpVersion();
 		}
 
 		private int GetRightIndex(int index) => index + 1 - (IsClosed && index == lastPointInd ? lastPointInd : 0);
@@ -719,13 +730,13 @@ namespace BezierCurveZ
 		private float _interpolationMinDistance = 0.000001f;
 		[SerializeField]
 		private int _interpolationAccuracy = 10;
-		public int InterpolationAccuracy { get => _interpolationAccuracy; set { if (_interpolationAccuracy != value) { _interpolationAccuracy = value; _bVersion++; } } }
-		public float InterpolationMaxAngleError { get => _interpolationMaxAngleError; set { if (_interpolationMaxAngleError != value) { _interpolationMaxAngleError = value; _bVersion++; } } }
-		public float InterpolationMinDistance { get => _interpolationMinDistance; set { if (_interpolationMinDistance != value) { _interpolationMinDistance = Mathf.Max(value, 0.000001f); _bVersion++; } } }
+		public int InterpolationAccuracy { get => _interpolationAccuracy; set { if (_interpolationAccuracy != value) { _interpolationAccuracy = value; BumpVersion(); } } }
+		public float InterpolationMaxAngleError { get => _interpolationMaxAngleError; set { if (_interpolationMaxAngleError != value) { _interpolationMaxAngleError = value; BumpVersion(); } } }
+		public float InterpolationMinDistance { get => _interpolationMinDistance; set { if (_interpolationMinDistance != value) { _interpolationMinDistance = Mathf.Max(value, 0.000001f); BumpVersion(); } } }
 
 		[SerializeField]
 		private InterpolationMethod _interpolationmethod = InterpolationMethod.CatmullRomAdditive;
-		public InterpolationMethod InterpolationMethod { get => _interpolationmethod; set { if (_interpolationmethod != value) { _interpolationmethod = value; _bVersion++; } } }
+		public InterpolationMethod InterpolationMethod { get => _interpolationmethod; set { if (_interpolationmethod != value) { _interpolationmethod = value; BumpVersion(); } } }
 		[SerializeField]
 		float _interpolationCapmullRomTension = .5f;
 		public float InterpolationCapmullRomTension { get => _interpolationCapmullRomTension; set { if (_interpolationCapmullRomTension != value) { _interpolationCapmullRomTension = value; _vVersion++; } } }
@@ -748,7 +759,7 @@ namespace BezierCurveZ
 			_interpolationMinDistance = curve._interpolationMinDistance;
 			_interpolationMaxAngleError = curve._interpolationMaxAngleError;
 			_interpolationAccuracy = curve._interpolationAccuracy;
-			_bVersion++;
+			BumpVersion();
 		}
 
 		public override bool Equals(object obj)
