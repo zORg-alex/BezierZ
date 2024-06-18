@@ -158,7 +158,7 @@ namespace BezierCurveZ.Editor
 			var tens = 0f;
 			if (curve.InterpolationMethod == InterpolationMethod.CatmullRomAdditive)
 				tens = Mathf.Max(
-					UnityEditor.EditorGUI.FloatField(interpStack[1], "Tension", curve.InterpolationCapmullRomTension)
+					UnityEditor.EditorGUI.FloatField(interpStack[1], "Tension", curve.InterpolationCatmullRomTension)
 					, 0.01f);
 			EditorGUIUtility.labelWidth = lw;
 			if (UnityEditor.EditorGUI.EndChangeCheck())
@@ -167,7 +167,7 @@ namespace BezierCurveZ.Editor
 				curve.InterpolationMaxAngleError = maxerr;
 				curve.InterpolationMinDistance = mindist;
 				curve.InterpolationAccuracy = acc;
-				curve.InterpolationCapmullRomTension = tens;
+				curve.InterpolationCatmullRomTension = tens;
 				RepaintSceneViews();
 			}
 

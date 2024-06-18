@@ -36,7 +36,7 @@ namespace BezierCurveZ
 				otherCurve.InterpolationMinDistance,
 				otherCurve.InterpolationAccuracy,
 				otherCurve.InterpolationMethod,
-				otherCurve.InterpolationCapmullRomTension);
+				otherCurve.InterpolationCatmullRomTension);
 			var vd = new VertexData[splitdata.Count];
 			var segInd = 0;
 			for (int i = 0; i < splitdata.Count; i++)
