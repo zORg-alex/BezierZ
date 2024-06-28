@@ -183,7 +183,7 @@ namespace BezierCurveZ.Editor
 				openContext = false;
 				ContextMenuOpen(current);
 			}
-			if (GetMouseDown(1) && closestIndex != -1)
+			if (GetMouseDown(1) && closestIndex != -1 && !showPointGUI)
 			{
 				rightMouseDownPosition = current.mousePosition;
 				mouseDownDateTime = DateTime.Now;
