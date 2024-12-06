@@ -1,10 +1,10 @@
 {
     "name": "BezierCurveEditor",
     "references": [
-        "GUID:6da1aebc48fccd44bb8ccdb8510cdfc1",
-        "GUID:73c70a6eb6b6f444c878926f743350f6",
-        "GUID:c5754df3d6863c845bc181ceeff225b4",
-        "GUID:7af1beae0348edc48a56709e3ef6a963"
+		"BezierCurve",
+		"Bezier.Utils.Editor",
+		"Bezier.Utils",
+        "st.rect-ex.Runtime"
     ],
     "includePlatforms": [
         "Editor"

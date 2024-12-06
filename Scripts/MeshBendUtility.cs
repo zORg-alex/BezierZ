@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 
 namespace BezierCurveZ.MeshGeneration
 {
@@ -37,6 +37,41 @@ namespace BezierCurveZ.MeshGeneration
 			if (autoNormals)
 				mesh.RecalculateNormals();
 			return mesh;
+		}
+
+		public static void BendMesh(Mesh originalMesh, ref Mesh mesh, Curve curve, Vector3 bendspaceOrigin, Quaternion bendspaceRotation, float bendLength, bool scaleBendToCurve = false, bool autoNormals = true)
+		{
+			if (mesh == null || mesh == originalMesh)
+				mesh = originalMesh.Copy();
+
+
+			var distCoef = curve.VertexData.CurveLength() / bendLength;
+			var bendDir = bendspaceRotation * Vector3.forward;
+
+			var vertices = originalMesh.vertices;
+			var normals = originalMesh.normals;
+			var tangents = originalMesh.tangents;
+			for (int i = 0; i < vertices.Length; i++)
+			{
+				var v = vertices[i];
+				var n = normals[i];
+				var t = tangents[i];
+
+				var vBendspaceDist = Vector3.Dot(v - bendspaceOrigin, bendDir) * (scaleBendToCurve ? distCoef : 1f);
+				vBendspaceDist = Mathf.Clamp(v.z, 0, bendLength);
+				var curvePoint = curve.VertexData.GetPointFromDistance(vBendspaceDist);
+
+				var vRelToCurvePoint = v - bendDir * vBendspaceDist;
+				vertices[i] = bendspaceOrigin + bendspaceRotation * (curvePoint.Position + curvePoint.Rotation * vRelToCurvePoint);
+				normals[i] = bendspaceRotation * curvePoint.Rotation * normals[i];
+				tangents[i] = bendspaceRotation * curvePoint.Rotation * tangents[i];
+			}
+
+			mesh.vertices = vertices;
+			mesh.normals = normals;
+			mesh.tangents = tangents;
+			if (autoNormals)
+				mesh.RecalculateNormals();
 		}
 
 		public static Matrix4x4 FromToMatrix(this Transform from, Transform to) => to.worldToLocalMatrix * from.localToWorldMatrix;

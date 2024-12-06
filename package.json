@@ -5,13 +5,14 @@
   "unity": "2020.1",
   "description": "Basic curve class with Editor built into property drawer.",
   "keywords": [
-      "editor",
-      "unity",
-      "curve",
-	  "bezier"
+    "editor",
+    "unity",
+    "curve",
+    "bezier"
   ],
   "author": {
     "name": "zORg_alex"
   },
-  "dependencies": {}
+  "dependencies": {},
+  "_fingerprint": "a695353a598748d37b2995825b033c68f3bd4ec8"
 }
