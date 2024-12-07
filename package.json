@@ -1,9 +1,9 @@
 {
   "name": "zorg.bezier-curve",
   "displayName": "BezierCurve",
-  "version": "0.0.22",
+  "version": "0.0.23",
   "unity": "2020.1",
-  "description": "Basic curve class with Editor built into property drawer.",
+  "description": "Crude curve class with Editor built into property drawer. Some geometry generation tools and mesh bending scripts.",
   "keywords": [
     "editor",
     "unity",
@@ -13,6 +13,5 @@
   "author": {
     "name": "zORg_alex"
   },
-  "dependencies": {},
-  "_fingerprint": "a695353a598748d37b2995825b033c68f3bd4ec8"
+  "dependencies": {}
 }

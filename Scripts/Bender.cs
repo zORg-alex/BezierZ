@@ -7,12 +7,19 @@ namespace BezierCurveZ.MeshGeneration
 	[RequireComponent(typeof(MeshFilter))]
 	public class Bender : MonoBehaviour
 	{
+		[OnValueChanged("UpdateMeshes")]
 		public Transform meshFilterParent;
+		[OnValueChanged("UpdateBend")]
 		public Vector3 BendOriginPosition;
+		[OnValueChanged("UpdateBend")]
 		public Quaternion BendOriginRotation = Quaternion.identity;
+		[OnValueChanged("UpdateBend")]
 		public Curve Curve;
+		[OnValueChanged("UpdateBend")]
 		public float BendLength = 1f;
+		[OnValueChanged("UpdateBend")]
 		public bool ScaleBendToCurve;
+		[OnValueChanged("UpdateBend")]
 		public bool AutoNormals;
 
 		private MeshFilter _meshFilter;
@@ -30,14 +37,21 @@ namespace BezierCurveZ.MeshGeneration
 		{
 			TryGetComponent(out _meshFilter);
 			UpdateMeshes();
+			Curve.OnCurveChanged += Curve_OnCurveChanged; ;
 		}
 
+		private void Curve_OnCurveChanged(Curve curve) => UpdateBend();
+
+
+		[ContextMenu("UpdateAll")]
+#if ODIN_INSPECTOR
 		[Button]
+#endif
 		public void UpdateMeshes()
 		{
 			_originalMesh = MeshBendUtility.CombineMeshFilters(meshFilterParent.GetComponentsInChildren<MeshFilter>(), meshFilterParent.transform.worldToLocalMatrix);
 			_meshFilter.sharedMesh = _originalMesh;
-			//UpdateBend();
+			UpdateBend();
 		}
 
 		[ContextMenu("UpdateBend")]
@@ -48,8 +62,10 @@ namespace BezierCurveZ.MeshGeneration
 		{
 			if (_originalMesh == null) return;
 
-			var mesh = _meshFilter.sharedMesh;
-			MeshBendUtility.BendMesh(_originalMesh, ref mesh, Curve, BendOriginPosition, BendOriginRotation, BendLength, ScaleBendToCurve, AutoNormals);
+			if (BendLength <= 0)
+				_meshFilter.sharedMesh = _originalMesh;
+			else
+				_meshFilter.sharedMesh = MeshBendUtility.BendMesh(_originalMesh, _meshFilter.sharedMesh, Curve, BendLength, ScaleBendToCurve, AutoNormals);
 		}
 	}
 }

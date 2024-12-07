@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 namespace BezierCurveZ.MeshGeneration
@@ -17,6 +18,7 @@ namespace BezierCurveZ.MeshGeneration
 		/// <param name="bendSpaceToMesh"></param>
 		/// <param name="zLength"></param>
 		/// <returns></returns>
+		[Obsolete]
 		public static Mesh GetBentMesh(Mesh originalMesh, Mesh mesh, Curve curve, Matrix4x4 originalToBendSpace, Matrix4x4 bendSpaceToMesh, float zLength, bool autoNormals = true)
 		{
 			if (mesh == null || mesh == originalMesh)
@@ -39,32 +41,49 @@ namespace BezierCurveZ.MeshGeneration
 			return mesh;
 		}
 
-		public static void BendMesh(Mesh originalMesh, ref Mesh mesh, Curve curve, Vector3 bendspaceOrigin, Quaternion bendspaceRotation, float bendLength, bool scaleBendToCurve = false, bool autoNormals = true)
+
+		/// <summary>
+		/// Bends <paramref name="source"/> mesh with a curve. Curves first point and direction decides model median,
+		/// <paramref name="bendLength"/> length of the bent part,
+		/// <paramref name="scaleBendToCurve"/> will set to scale model bendable part to curve length,
+		/// or ignore curve after <paramref name="bendLength"/>
+		/// </summary>
+		/// <param name="source">Original mesh to bend</param>
+		/// <param name="mesh">Previously bent mesh, in case there is one</param>
+		/// <param name="curve">Curve</param>
+		/// <param name="bendLength">Length of <paramref name="source"/> mesh to apply bend</param>
+		/// <param name="scaleBendToCurve">If true, bendable part of the <paramref name="source"/> mesh will be resized to curve length,
+		/// else curve part further <paramref name="bendLength"/> will be ignored</param>
+		/// <param name="autoNormals">Recalculate normals after bending</param>
+		/// <returns></returns>
+		public static Mesh BendMesh(Mesh source, Mesh mesh, Curve curve, float bendLength, bool scaleBendToCurve = false, bool autoNormals = true)
 		{
-			if (mesh == null || mesh == originalMesh)
-				mesh = originalMesh.Copy();
+			if (mesh == null || mesh == source)
+				mesh = source.Copy();
 
+			float curveLength = curve.VertexData.CurveLength();
+			var distCoef = scaleBendToCurve ? curveLength / bendLength : 1f;
+			var bendDir = curve.VertexData[0].forward;
+			var origin = curve.VertexData[0].Position;
+			var originInv = curve.VertexData[0].Rotation.Inverted();
 
-			var distCoef = curve.VertexData.CurveLength() / bendLength;
-			var bendDir = bendspaceRotation * Vector3.forward;
-
-			var vertices = originalMesh.vertices;
-			var normals = originalMesh.normals;
-			var tangents = originalMesh.tangents;
+			var vertices = source.vertices;
+			var normals = source.normals;
+			var tangents = source.tangents;
 			for (int i = 0; i < vertices.Length; i++)
 			{
 				var v = vertices[i];
 				var n = normals[i];
 				var t = tangents[i];
 
-				var vBendspaceDist = Vector3.Dot(v - bendspaceOrigin, bendDir) * (scaleBendToCurve ? distCoef : 1f);
-				vBendspaceDist = Mathf.Clamp(v.z, 0, bendLength);
-				var curvePoint = curve.VertexData.GetPointFromDistance(vBendspaceDist);
+				float bendSpaceDist = Mathf.Clamp(Vector3.Dot(v - origin, bendDir),0,bendLength);
+				var curveSpaceDist = Mathf.Clamp(bendSpaceDist, 0, curveLength) * distCoef;
+				var curvePoint = curve.VertexData.GetPointFromDistance(curveSpaceDist);
 
-				var vRelToCurvePoint = v - bendDir * vBendspaceDist;
-				vertices[i] = bendspaceOrigin + bendspaceRotation * (curvePoint.Position + curvePoint.Rotation * vRelToCurvePoint);
-				normals[i] = bendspaceRotation * curvePoint.Rotation * normals[i];
-				tangents[i] = bendspaceRotation * curvePoint.Rotation * tangents[i];
+				var vRelToCurvePoint = v - bendDir * bendSpaceDist;
+				vertices[i] = curvePoint.Position - origin + curvePoint.Rotation * vRelToCurvePoint;
+				normals[i] = originInv * curvePoint.Rotation * normals[i];
+				tangents[i] = originInv * curvePoint.Rotation * tangents[i];
 			}
 
 			mesh.vertices = vertices;
@@ -72,10 +91,17 @@ namespace BezierCurveZ.MeshGeneration
 			mesh.tangents = tangents;
 			if (autoNormals)
 				mesh.RecalculateNormals();
+			mesh.RecalculateBounds();
+			return mesh;
 		}
 
 		public static Matrix4x4 FromToMatrix(this Transform from, Transform to) => to.worldToLocalMatrix * from.localToWorldMatrix;
 
+		/// <summary>
+		/// Combines all meshes into worldspace coodinates unless is supplied with WorldToLocal matrix of a parent or a relative transform
+		/// </summary>
+		/// <param name="meshFilters">MeshFilter supplies both sharedMesh and <see cref="Transform.localToWorldMatrix"/> to get a worldspace vertices of that mesh.</param>
+		/// <param name="worldToLocal"><see cref="Transform.worldToLocalMatrix"/> of a parent or any other transform to be a coordinate center of new mesh</param>
 		public static Mesh CombineMeshFilters(this MeshFilter[] meshFilters, Matrix4x4 worldToLocal, string name = null)
 		{
 			if (name == null)
