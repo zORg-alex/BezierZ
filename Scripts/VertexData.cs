@@ -1,4 +1,5 @@
-﻿using System.Runtime.CompilerServices;
+﻿using BezierZUtility;
+using System.Runtime.CompilerServices;
 using UnityEngine;
 using static BezierCurveZ.Curve;
 

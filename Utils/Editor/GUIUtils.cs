@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 
-namespace Utility.Editor {
+namespace BezierZUtility.Editor {
 	public static class GUIUtils {
 
 		public static void DrawCircle(Vector2 center, float radius, bool filled = false, int quality = 12) {

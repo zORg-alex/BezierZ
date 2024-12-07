@@ -1,8 +1,9 @@
-﻿using System.Reflection;
+﻿using BezierZUtility;
+using System.Reflection;
 using UnityEditor;
 using UnityEngine;
-using Utility;
-using Utility.Editor;
+using BezierZUtility;
+using BezierZUtility.Editor;
 #if UNITY_EDITOR
 #endif
 

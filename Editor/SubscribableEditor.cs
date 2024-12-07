@@ -1,6 +1,6 @@
 ﻿using UnityEditor;
 using System;
-using Utility;
+using BezierZUtility;
 using UnityEngine.SceneManagement;
 
 namespace BezierCurveZ.Editor

@@ -5,7 +5,8 @@ using System;
 using System.Collections.Generic;
 using RectEx;
 using System.Linq;
-using Utility.Editor;
+using BezierZUtility.Editor;
+using BezierZUtility;
 
 namespace BezierCurveZ.Editor
 {

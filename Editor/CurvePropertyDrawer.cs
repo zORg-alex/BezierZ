@@ -1,12 +1,13 @@
 ﻿using UnityEngine;
 using UnityEditor;
-using Utility;
+using BezierZUtility;
 using RectEx;
 using UnityEditor.SceneManagement;
 using System.Collections.Generic;
 using System.Reflection;
 using System.IO;
 using System.Linq;
+using BezierZUtility;
 
 namespace BezierCurveZ.Editor
 {

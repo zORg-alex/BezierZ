@@ -1,7 +1,7 @@
 ﻿using UnityEditor;
 using UnityEngine;
 
-namespace Utility.Editor
+namespace BezierZUtility.Editor
 {
 	public class AxisRotation
 	{
