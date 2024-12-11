@@ -43,11 +43,16 @@ namespace BezierCurveZ
 
 		public void BumpVersion(bool updateVertexData = false)
 		{
+			_constraints.ForEach(c=>c?.OnCurveChanged(this));
 			_bVersion++;
 			if (updateVertexData)
 				UpdateVertexData(force: true);
 			OnCurveChanged?.Invoke(this);
 		}
+
+		[SerializeReference]
+		internal List<CurveConstraint> _constraints = new List<CurveConstraint>();
+		public List<CurveConstraint> Constraints => _constraints;
 
 		/// <summary>
 		/// Points and segments in open curve: {Control, Right, Left}, {Control}

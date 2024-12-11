@@ -3,11 +3,12 @@ using UnityEditor;
 using BezierZUtility;
 using RectEx;
 using UnityEditor.SceneManagement;
-using System.Collections.Generic;
-using System.Reflection;
-using System.IO;
 using System.Linq;
-using BezierZUtility;
+using UnityEditorInternal;
+using System;
+using System.Reflection;
+using System.Collections;
+using System.Collections.Generic;
 
 namespace BezierCurveZ.Editor
 {
@@ -34,11 +35,16 @@ namespace BezierCurveZ.Editor
 		GUIContent[] interpolationOptions = new GUIContent[] { new GUIContent("Rotation Minimization"), new GUIContent("Linear Interpolation"), new GUIContent("Smooth Interpolation"), new GUIContent("CatmullRom Additive Interpolation") };
 		private GUIStyle boxStyle;
 
-		private void Initialize()
+		private ReorderableList _contraintList;
+		private SerializedObject _serializedObject;
+
+		private void Initialize(SerializedProperty property)
 		{
+			_serializedObject = property.serializedObject;
 			LoadTextures();
 			boxStyle = EditorStyles.helpBox;
 			initialized = true;
+			CreateConstraintList(property);
 		}
 
 		private void LoadTextures()
@@ -56,7 +62,7 @@ namespace BezierCurveZ.Editor
 
 		public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
 		{
-			if (!initialized) Initialize();
+			if (!initialized) Initialize(property);
 			var c = GUI.color;
 			current = Event.current;
 			var curve = property.GetValue<Curve>();
@@ -112,7 +118,7 @@ namespace BezierCurveZ.Editor
 			if (curve.IsInEditMode)
 			{
 				GUI.Box(posDivided[1].Extend(0,-4), GUIContent.none, boxStyle);
-				EditorGUI(posDivided[1].Extend(-4, -8), curve, property.serializedObject.targetObject);
+				CurveEditorGUI(property, posDivided[1].Extend(-4, -8), curve, property.serializedObject.targetObject);
 			}
 
 			UnityEditor.EditorGUI.EndProperty();
@@ -122,14 +128,20 @@ namespace BezierCurveZ.Editor
 		public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
 		{
 			var curve = property.GetValue<Curve>();
-			return EditorGUIUtility.singleLineHeight + EditorHeight(curve);
+			return EditorGUIUtility.singleLineHeight +
+				CurveEditorHeight(property, curve);
 		}
 
-		private float EditorHeight(Curve curve) => (curve != null && curve.IsInEditMode) ? 64 + 2 * 3 + 8 : 0;
+		private float CurveEditorHeight(SerializedProperty property, Curve curve) => (curve != null && curve.IsInEditMode) ? 64 + 2 * 3 + 8 +
+				 UnityEditor.EditorGUI.GetPropertyHeight(property.FindPropertyRelative(nameof(Curve._constraints)))
+			: 0;
 
-		private void EditorGUI(Rect position, Curve curve, UnityEngine.Object targetObject)
+		private void CurveEditorGUI(SerializedProperty property, Rect position, Curve curve, UnityEngine.Object targetObject)
 		{
-			var line = position.Row(new float[] { 0, 1, 1 }, new float[] { 64, 0, 0 }, 4);
+			SerializedProperty constraintsProperty = property.FindPropertyRelative(nameof(Curve._constraints));
+			var constraintsHeight = UnityEditor.EditorGUI.GetPropertyHeight(constraintsProperty);
+			var mainColumn = position.CutFromBottom(constraintsHeight);
+			var line = mainColumn[0].Row(new float[] { 0, 1, 1 }, new float[] { 64, 0, 0 }, 4);
 			var detStack = line[1].Column(3);
 			var interpStack = line[2].Column(3);
 
@@ -179,6 +191,9 @@ namespace BezierCurveZ.Editor
 				curve.InterpolationMethod = (InterpolationMethod)ops;
 				RepaintSceneViews();
 			}
+
+			Rect contraintsRect = mainColumn[1].Extend(-12, 0, -2, 0);
+			_contraintList.DoList(contraintsRect);
 
 			var c = GUI.color;
 			GUI.color = new Color(.6f, .6f, 1f);
@@ -251,5 +266,31 @@ namespace BezierCurveZ.Editor
 			}
 		}
 
+		private void CreateConstraintList(SerializedProperty property)
+		{
+
+			var constraintsProperty = property.FindPropertyRelative(nameof(Curve._constraints));
+			_contraintList = new UnityEditorInternal.ReorderableList(property.GetValue<Curve>().Constraints, typeof(Curve), false, true, true, true);
+			_contraintList.onAddDropdownCallback = OnConstraintAddDropdownCallback;
+		}
+
+		private void OnConstraintAddDropdownCallback(Rect buttonRect, ReorderableList list)
+		{
+			var menu = new GenericMenu();
+
+			foreach (Type type in Assembly.GetAssembly(typeof(CurveConstraint)).GetTypes()
+				.Where(myType => myType.IsClass && !myType.IsAbstract && !myType.IsGenericType && myType.IsSubclassOf(typeof(CurveConstraint))))
+				menu.AddItem(new GUIContent(type.Name), true, handler, Activator.CreateInstance(type));
+
+				menu.ShowAsContext();
+
+
+			void handler(object data)
+			{
+				//var val = data as CurveConstraint;
+				_contraintList.list.Add(data);
+				_contraintList.index = _contraintList.list.Count - 1;
+			}
+		}
 	}
 }

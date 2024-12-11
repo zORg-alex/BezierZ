@@ -1,4 +1,7 @@
 ﻿using Sirenix.OdinInspector;
+using System;
+using System.Collections;
+using System.Linq;
 using UnityEngine;
 
 namespace BezierCurveZ.MeshGeneration
@@ -36,16 +39,17 @@ namespace BezierCurveZ.MeshGeneration
 		private void Initialize()
 		{
 			TryGetComponent(out _meshFilter);
+			Curve.OnCurveChanged += Curve_OnCurveChanged;
 			UpdateMeshes();
-			Curve.OnCurveChanged += Curve_OnCurveChanged; ;
 		}
 
 		private void Curve_OnCurveChanged(Curve curve) => UpdateBend();
 
 
-		[ContextMenu("UpdateAll")]
 #if ODIN_INSPECTOR
 		[Button]
+#else
+		[ContextMenu("UpdateAll")]
 #endif
 		public void UpdateMeshes()
 		{
@@ -54,9 +58,10 @@ namespace BezierCurveZ.MeshGeneration
 			UpdateBend();
 		}
 
-		[ContextMenu("UpdateBend")]
 #if ODIN_INSPECTOR
 		[Button]
+#else
+		[ContextMenu("UpdateBend")]
 #endif
 		public void UpdateBend()
 		{

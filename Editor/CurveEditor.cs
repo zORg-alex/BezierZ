@@ -1,12 +1,13 @@
 ﻿using UnityEngine;
 using UnityEditor;
-using System.Diagnostics;
 using System;
 using System.Collections.Generic;
 using RectEx;
 using System.Linq;
 using BezierZUtility.Editor;
 using BezierZUtility;
+using System.Diagnostics;
+using Debug = UnityEngine.Debug;
 
 namespace BezierCurveZ.Editor
 {
@@ -204,6 +205,8 @@ namespace BezierCurveZ.Editor
 				{
 					StartExtruding();
 				}
+				else if (cutInitiated)
+					cutInitiated = false;
 				else
 				{
 					cutInitiated = true;
@@ -219,10 +222,12 @@ namespace BezierCurveZ.Editor
 			{
 				cutInitiated = false;
 				Cut();
+				current.Use();
 			}
 			else if (cutInitiated && (GetKeyDown(KeyCode.Escape) || GetMouseDown(1)))
 			{
 				cutInitiated = false;
+				current.Use();
 			}
 
 
@@ -231,6 +236,47 @@ namespace BezierCurveZ.Editor
 			bool GetKeyUp(KeyCode key) => current.type == EventType.KeyUp && current.keyCode == key;
 			bool GetMouseDown(int button) => current.type == EventType.MouseDown && current.button == button;
 			bool GetMouseUp(int button) => current.type == EventType.MouseUp && current.button == button;
+		}
+
+		private void WhileSelectingMultiple(Event current)
+		{
+			if (GUIUtility.hotControl != 0)
+			{
+				selectingMultiple = false;
+				return;
+			}
+			if (!(current.type == EventType.Repaint || current.type == EventType.MouseDrag || current.type == EventType.MouseDown))
+				return;
+			if (!current.shift && !EditorGUI.actionKey)
+			{
+				selectedPointIdexes.Clear();
+				selectedPoints.Clear();
+			}
+
+			//Extend selection rect just enough to include points touching, this will also add clicked points
+			var rect = new Rect(mouseDownPosition, current.mousePosition - mouseDownPosition).Abs().Extend(18, 18);
+			for (int i = 0; i < curve.Points.Count; i++)
+			{
+				var point = curve.Points[i];
+				if (!point.IsEndPoint || (curve.IsClosed && i == curve.LastPointInd)) continue;
+
+				if (rect.Contains(HandleUtility.WorldToGUIPoint(TransformPoint(point))))
+				{
+					if (EditorGUI.actionKey)
+					{
+						var ind = selectedPointIdexes.IndexOf(i);
+						selectedPointIdexes.RemoveAt(ind);
+						selectedPoints.RemoveAt(ind);
+					}
+					else if (!selectedPointIdexes.Contains(i))
+					{
+						selectedPointIdexes.Add(i);
+						selectedPoints.Add(point);
+					}
+				}
+			}
+
+			CallAllSceneViewRepaint();
 		}
 
 		private void DrawStuff(Event current)
@@ -284,26 +330,6 @@ namespace BezierCurveZ.Editor
 			}
 			Tools.current = Tool.None;
 			var c = Handles.color;
-
-			if (selectingMultiple && GUIUtility.hotControl == 0)
-			{
-				if (current.type == EventType.Repaint)
-				{
-					var mousePos = current.mousePosition;
-					var rect = new Vector3[] {
-					HandleUtility.GUIPointToWorldRay(mouseDownPosition).GetPoint(.1f),
-					HandleUtility.GUIPointToWorldRay(new Vector2(mouseDownPosition.x, mousePos.y)).GetPoint(.1f),
-					HandleUtility.GUIPointToWorldRay(mousePos).GetPoint(.1f),
-					HandleUtility.GUIPointToWorldRay(new Vector2(mousePos.x, mouseDownPosition.y)).GetPoint(.1f),
-					HandleUtility.GUIPointToWorldRay(mouseDownPosition).GetPoint(.1f),
-				};
-					Handles.color = SelecrionRectColor * .5f;
-					Handles.DrawAAConvexPolygon(rect);
-					Handles.color = SelecrionRectColor;
-					Handles.DrawAAPolyLine(rect);
-					Handles.color = c;
-				}
-			}
 
 			if (cutInitiated && current.type == EventType.MouseMove)
 			{
@@ -699,47 +725,6 @@ namespace BezierCurveZ.Editor
 			editedScale = closestPoint.scale;
 			if (minDist > 100)
 				closestIndex = -1;
-		}
-
-		private void WhileSelectingMultiple(Event current)
-		{
-			if (GUIUtility.hotControl != 0)
-			{
-				selectingMultiple = false;
-				return;
-			}
-			if (!(current.type == EventType.Repaint || current.type == EventType.MouseDrag || current.type == EventType.MouseDown))
-				return;
-			if (!current.shift && !EditorGUI.actionKey)
-			{
-				selectedPointIdexes.Clear();
-				selectedPoints.Clear();
-			}
-
-			//Extend selection rect just enough to include points touching, this will also add clicked points
-			var rect = new Rect(mouseDownPosition, current.mousePosition - mouseDownPosition).Abs().Extend(18, 18);
-			for (int i = 0; i < curve.Points.Count; i++)
-			{
-				var point = curve.Points[i];
-				if (!point.IsEndPoint || (curve.IsClosed && i == curve.LastPointInd)) continue;
-
-				if (rect.Contains(HandleUtility.WorldToGUIPoint(TransformPoint(point))))
-				{
-					if (EditorGUI.actionKey)
-					{
-						var ind =  selectedPointIdexes.IndexOf(i);
-						selectedPointIdexes.RemoveAt(ind);
-						selectedPoints.RemoveAt(ind);
-					}
-					else if (!selectedPointIdexes.Contains(i))
-					{
-						selectedPointIdexes.Add(i);
-						selectedPoints.Add(point);
-					}
-				}
-			}
-
-			CallAllSceneViewRepaint();
 		}
 
 		private void CallAllSceneViewRepaint()
