@@ -174,6 +174,7 @@ namespace BezierCurveZ.Editor
 				selectingMultiple = true;
 			}
 			if ((selectingMultiple && current.type == EventType.MouseMove) || (GetMouseUp(0) || GUIUtility.hotControl != 0))
+			if (current.type == EventType.MouseDrag)
 			{
 				selectingMultiple = false;
 				mouseDownPosition = Vector2.zero;

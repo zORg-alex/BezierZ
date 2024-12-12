@@ -9,6 +9,7 @@ using System;
 using System.Reflection;
 using System.Collections;
 using System.Collections.Generic;
+using Sirenix.Utilities;
 
 namespace BezierCurveZ.Editor
 {
@@ -36,6 +37,7 @@ namespace BezierCurveZ.Editor
 		private GUIStyle boxStyle;
 
 		private ReorderableList _contraintList;
+		GUIContent _constraintsLabel = new GUIContent("Constraints");
 		private SerializedObject _serializedObject;
 
 		private void Initialize(SerializedProperty property)
@@ -133,13 +135,12 @@ namespace BezierCurveZ.Editor
 		}
 
 		private float CurveEditorHeight(SerializedProperty property, Curve curve) => (curve != null && curve.IsInEditMode) ? 64 + 2 * 3 + 8 +
-				 UnityEditor.EditorGUI.GetPropertyHeight(property.FindPropertyRelative(nameof(Curve._constraints)))
-			: 0;
+				 _contraintList.GetHeight()	: 0;
 
 		private void CurveEditorGUI(SerializedProperty property, Rect position, Curve curve, UnityEngine.Object targetObject)
 		{
 			SerializedProperty constraintsProperty = property.FindPropertyRelative(nameof(Curve._constraints));
-			var constraintsHeight = UnityEditor.EditorGUI.GetPropertyHeight(constraintsProperty);
+			var constraintsHeight = _contraintList.GetHeight();
 			var mainColumn = position.CutFromBottom(constraintsHeight);
 			var line = mainColumn[0].Row(new float[] { 0, 1, 1 }, new float[] { 64, 0, 0 }, 4);
 			var detStack = line[1].Column(3);
@@ -270,8 +271,49 @@ namespace BezierCurveZ.Editor
 		{
 
 			var constraintsProperty = property.FindPropertyRelative(nameof(Curve._constraints));
-			_contraintList = new UnityEditorInternal.ReorderableList(property.GetValue<Curve>().Constraints, typeof(Curve), false, true, true, true);
+			_contraintList = new ReorderableList(property.GetValue<Curve>().Constraints, typeof(Curve), false, true, true, true);
+			_contraintList.drawHeaderCallback = r => EditorGUI.LabelField(r, _constraintsLabel);
 			_contraintList.onAddDropdownCallback = OnConstraintAddDropdownCallback;
+			_contraintList.elementHeightCallback = ind =>
+			{
+				SerializedProperty element = GetArrayProperty(ind, constraintsProperty);
+				return element.CountInProperty() * (EditorGUIUtility.singleLineHeight + 2) - 2;
+			};
+			_contraintList.drawElementCallback = (r, i, act, foc) =>
+			{
+				var element = GetArrayProperty(i, constraintsProperty);
+				int count = element.Copy().CountInProperty();
+				var line = r.TakeFromTop(EditorGUIUtility.singleLineHeight).Expand(-8,0,0,0);
+
+				EditorGUI.PropertyField(line, element);
+				element.NextVisible(true);
+				line = line.Expand(-20, 0, 0, 0);
+				bool visitChild = false;
+				for (int ind = 1; ind < count; ind++)
+				{
+					visitChild = false;
+					if (element.propertyType == SerializedPropertyType.ManagedReference)
+						visitChild = true;
+
+					line = line.MoveDown();
+					EditorGUI.PropertyField(line, element);
+					if (!element.isArray || element.type == "string")
+						element.NextVisible(visitChild);
+				}
+			};
+		}
+
+		private static SerializedProperty GetArrayProperty(int ind, SerializedProperty arrayProperty)
+		{
+			SerializedProperty element = arrayProperty.Copy();
+			element.Next(true);
+			element.Next(true);
+			for (int i = 0; i <= ind; i++)
+			{
+				element.Next(true);
+			}
+
+			return element;
 		}
 
 		private void OnConstraintAddDropdownCallback(Rect buttonRect, ReorderableList list)
@@ -280,10 +322,11 @@ namespace BezierCurveZ.Editor
 
 			foreach (Type type in Assembly.GetAssembly(typeof(CurveConstraint)).GetTypes()
 				.Where(myType => myType.IsClass && !myType.IsAbstract && !myType.IsGenericType && myType.IsSubclassOf(typeof(CurveConstraint))))
+			{
 				menu.AddItem(new GUIContent(type.Name), true, handler, Activator.CreateInstance(type));
+			}
 
-				menu.ShowAsContext();
-
+			menu.ShowAsContext();
 
 			void handler(object data)
 			{
