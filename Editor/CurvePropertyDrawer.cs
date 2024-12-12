@@ -139,7 +139,7 @@ namespace BezierCurveZ.Editor
 
 		private void CurveEditorGUI(SerializedProperty property, Rect position, Curve curve, UnityEngine.Object targetObject)
 		{
-			SerializedProperty constraintsProperty = property.FindPropertyRelative(nameof(Curve._constraints));
+			SerializedProperty constraintsProperty = property.FindPropertyRelative("_constraints");
 			var constraintsHeight = _contraintList.GetHeight();
 			var mainColumn = position.CutFromBottom(constraintsHeight);
 			var line = mainColumn[0].Row(new float[] { 0, 1, 1 }, new float[] { 64, 0, 0 }, 4);
@@ -270,7 +270,7 @@ namespace BezierCurveZ.Editor
 		private void CreateConstraintList(SerializedProperty property)
 		{
 
-			var constraintsProperty = property.FindPropertyRelative(nameof(Curve._constraints));
+			var constraintsProperty = property.FindPropertyRelative("_constraints");
 			_contraintList = new ReorderableList(property.GetValue<Curve>().Constraints, typeof(Curve), false, true, true, true);
 			_contraintList.drawHeaderCallback = r => EditorGUI.LabelField(r, _constraintsLabel);
 			_contraintList.onAddDropdownCallback = OnConstraintAddDropdownCallback;
