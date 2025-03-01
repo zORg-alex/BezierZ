@@ -10,20 +10,20 @@ namespace BezierCurveZ.MeshGeneration
 	[RequireComponent(typeof(MeshFilter))]
 	public class Bender : MonoBehaviour
 	{
-		[OnValueChanged("UpdateMeshes")]
-		public Transform meshFilterParent;
-		[OnValueChanged("UpdateBend")]
-		public Vector3 BendOriginPosition;
-		[OnValueChanged("UpdateBend")]
-		public Quaternion BendOriginRotation = Quaternion.identity;
-		[OnValueChanged("UpdateBend")]
-		public Curve Curve;
-		[OnValueChanged("UpdateBend")]
-		public float BendLength = 1f;
-		[OnValueChanged("UpdateBend")]
-		public bool ScaleBendToCurve;
-		[OnValueChanged("UpdateBend")]
-		public bool AutoNormals;
+		[SerializeField, OnValueChanged("UpdateMeshes")]
+		private Transform _meshFilterParent;
+		[SerializeField, OnValueChanged("UpdateBend")]
+		private Vector3 BendOriginPosition;
+		[SerializeField, OnValueChanged("UpdateBend")]
+		private Quaternion BendOriginRotation = Quaternion.identity;
+		[SerializeField, OnValueChanged("UpdateBend")]
+		private Curve Curve;
+		[SerializeField, OnValueChanged("UpdateBend")]
+		private float BendLength = 1f;
+		[SerializeField, OnValueChanged("UpdateBend")]
+		private bool ScaleBendToCurve;
+		[SerializeField, OnValueChanged("UpdateBend")]
+		private bool AutoNormals;
 
 		private MeshFilter _meshFilter;
 		public Mesh _originalMesh;
@@ -53,7 +53,7 @@ namespace BezierCurveZ.MeshGeneration
 #endif
 		public void UpdateMeshes()
 		{
-			_originalMesh = MeshBendUtility.CombineMeshFilters(meshFilterParent.GetComponentsInChildren<MeshFilter>(), meshFilterParent.transform.worldToLocalMatrix);
+			_originalMesh = MeshBendUtility.CombineMeshFilters(_meshFilterParent.GetComponentsInChildren<MeshFilter>(), _meshFilterParent.transform.worldToLocalMatrix);
 			_meshFilter.sharedMesh = _originalMesh;
 			UpdateBend();
 		}

@@ -9,8 +9,8 @@ namespace BezierCurveZ
 	public class CurveConstraint
 	{
 		public virtual void OnCurveChanged(Curve curve) { }
-		public virtual bool OnBeforeSetPosition(Curve curve, int index, Vector3 position) => true;
-		public virtual bool OnBeforeSetRotation(Curve curve, int index, Quaternion rotation) => true;
+		public virtual bool OnBeforeSetPositionCancel(Curve curve, int index, Vector3 position) => false;
+		public virtual bool OnBeforeSetRotationCancel(Curve curve, int index, Quaternion rotation) => false;
 	}
 
 	[Serializable]
@@ -25,8 +25,15 @@ namespace BezierCurveZ
 			if (curve._points[1].position.x != 0 && curve._points[1].position.y != 0)
 				curve._points[1] = curve._points[1].SetPosition(Vector3.forward * curve._points[1].position.z);
 		}
-		public override bool OnBeforeSetPosition(Curve curve, int index, Vector3 position) => index > 0;
-		public override bool OnBeforeSetRotation(Curve curve, int index, Quaternion rotation) => index > 0;
+		public override bool OnBeforeSetPositionCancel(Curve curve, int index, Vector3 position)
+		{
+			if (index == 1)
+				curve._points[1] = curve._points[1].SetPosition(Vector3.forward * position.z);
+
+			return index <= 1;
+		}
+
+		public override bool OnBeforeSetRotationCancel(Curve curve, int index, Quaternion rotation) => index == 0;
 	}
 
 	[Serializable]

@@ -263,9 +263,8 @@ namespace BezierCurveZ.Editor
 
 				if (rect.Contains(HandleUtility.WorldToGUIPoint(TransformPoint(point))))
 				{
-					if (EditorGUI.actionKey)
+					if (EditorGUI.actionKey && selectedPointIdexes.IndexOf(i) is int ind && ind != -1)
 					{
-						var ind = selectedPointIdexes.IndexOf(i);
 						selectedPointIdexes.RemoveAt(ind);
 						selectedPoints.RemoveAt(ind);
 					}

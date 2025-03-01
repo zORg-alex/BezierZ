@@ -247,7 +247,7 @@ namespace BezierCurveZ
 		public void SetPointPosition(int index, Vector3 position, bool recursive = true) => SetPointPosition((ushort)index, position, recursive);
 		public void SetPointPosition(ushort index, Vector3 position, bool recursive = true)
 		{
-			if (!_constraints.All(c => c?.OnBeforeSetPosition(this, index, position) ?? true)) return;
+			if (_constraints.Any(c => c?.OnBeforeSetPositionCancel(this, index, position) ?? true)) return;
 
 			var thisPoint = _points[index];
 			if (thisPoint.IsEndPoint)
@@ -298,11 +298,11 @@ namespace BezierCurveZ
 				var endPoint = _points[endpointIndex];
 
 				int handleDirection = thisPoint.isRightHandle ? 1 : -1;
-				var rotationForward = (position - endPoint) * handleDirection;
+				var toEndpoint = (position - endPoint) * handleDirection;
 				//Fix for handles positioned at endpoint position
-				if (rotationForward != Vector3.zero)
-					rotationForward = (_points[index + handleDirection] - endPoint) * handleDirection;
-				_points[endpointIndex] = endPoint.SetRotation(Quaternion.LookRotation(rotationForward, endPoint.up).normalized);
+				if (toEndpoint == Vector3.zero)
+					toEndpoint = (_points[index + handleDirection] - endPoint) * handleDirection;
+				_points[endpointIndex] = endPoint.SetRotation(Quaternion.LookRotation(toEndpoint, endPoint.up).normalized);
 
 				var otherHandleIndex = thisPoint.isRightHandle ? index - 2 : index + 2;
 				bool outOfBounds = (otherHandleIndex < 0 || otherHandleIndex >= PointCount);
@@ -408,7 +408,7 @@ namespace BezierCurveZ
 			var point = _points[index];
 			Quaternion newRotation = Quaternion.LookRotation(GetEPTangentFromPoints(segmentIndex, index), rotation * Vector3.up);
 
-			if (!_constraints.All(c => c?.OnBeforeSetRotation(this, index, newRotation) ?? true)) return;
+			if (_constraints.Any(c => c?.OnBeforeSetRotationCancel(this, index, newRotation) ?? true)) return;
 
 			_points[index] = point.SetRotation(newRotation);
 			if (IsClosed && (index == 0 || index == LastPointInd))
