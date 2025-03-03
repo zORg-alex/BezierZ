@@ -247,7 +247,7 @@ namespace BezierCurveZ
 		public void SetPointPosition(int index, Vector3 position, bool recursive = true) => SetPointPosition((ushort)index, position, recursive);
 		public void SetPointPosition(ushort index, Vector3 position, bool recursive = true)
 		{
-			if (_constraints.Any(c => c?.OnBeforeSetPositionCancel(this, index, position) ?? true)) return;
+			if (_constraints.Any(c => c?.OnBeforeSetPositionCancel(this, index, position) ?? false)) return;
 
 			var thisPoint = _points[index];
 			if (thisPoint.IsEndPoint)
@@ -387,11 +387,14 @@ namespace BezierCurveZ
 		{
 			var index = GetPointIndex(segmentIndex);
 			var delta = _points[index].rotation.Inverted() * rotation;
+
+			if (_constraints.Any(c => c?.OnBeforeSetRotationCancel(this, index, rotation) ?? false)) return;
+
 			_points[index] = _points[index].SetRotation(rotation);
 			if (IsClosed && (index == 0 || index == LastPointInd))
 				_points[index == 0 ? LastPointInd : 0] = _points[index];
 
-			RotateHandles(index, _points[index], delta, rotation);
+			RotateHandles(index, _points[index].position, rotation, delta);
 			BumpVersion();
 		}
 		/// <summary>
@@ -406,15 +409,14 @@ namespace BezierCurveZ
 			var index = GetPointIndex(segmentIndex);
 			var rotation = delta * _points[index].rotation;
 			var point = _points[index];
+
+			if (_constraints.Any(c => c?.OnBeforeSetRotationCancel(this, index, rotation) ?? false)) return;
+
+			RotateHandles(index, _points[index].position, _points[index].rotation, delta);
 			Quaternion newRotation = Quaternion.LookRotation(GetEPTangentFromPoints(segmentIndex, index), rotation * Vector3.up);
-
-			if (_constraints.Any(c => c?.OnBeforeSetRotationCancel(this, index, newRotation) ?? true)) return;
-
 			_points[index] = point.SetRotation(newRotation);
 			if (IsClosed && (index == 0 || index == LastPointInd))
 				_points[index == 0 ? LastPointInd : 0] = _points[index];
-
-			RotateHandles(index, _points[index], delta, _points[index].rotation);
 			BumpVersion();
 		}
 		/// <summary>
@@ -434,7 +436,7 @@ namespace BezierCurveZ
 			BumpVersion();
 		}
 
-		private void RotateHandles(int index, Vector3 origin, Quaternion delta, Quaternion rotation)
+		private void RotateHandles(int index, Vector3 origin, Quaternion rotation, Quaternion delta)
 		{
 			DoActionForHandles(index, i =>
 			{

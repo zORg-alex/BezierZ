@@ -271,7 +271,8 @@ namespace BezierCurveZ.Editor
 		{
 
 			var constraintsProperty = property.FindPropertyRelative("_constraints");
-			_contraintList = new ReorderableList(property.GetValue<Curve>().Constraints, typeof(Curve), false, true, true, true);
+			Curve curve = property.GetValue<Curve>();
+			_contraintList = new ReorderableList(curve.Constraints, typeof(Curve), false, true, true, true);
 			_contraintList.drawHeaderCallback = r => EditorGUI.LabelField(r, _constraintsLabel);
 			_contraintList.onAddDropdownCallback = OnConstraintAddDropdownCallback;
 			_contraintList.elementHeightCallback = ind =>
@@ -296,7 +297,15 @@ namespace BezierCurveZ.Editor
 						visitChild = true;
 
 					line = line.MoveDown();
+					EditorGUI.BeginChangeCheck();
 					EditorGUI.PropertyField(line, element);
+					if (EditorGUI.EndChangeCheck())
+					{
+						property.serializedObject.ApplyModifiedProperties();
+						(GetArrayProperty(i, constraintsProperty).managedReferenceValue as CurveConstraint)?.OnCurveChanged(curve);
+						curve.BumpVersion();
+						this.RepaintSceneViews();
+					}
 					if (!element.isArray || element.type == "string")
 						element.NextVisible(visitChild);
 				}
