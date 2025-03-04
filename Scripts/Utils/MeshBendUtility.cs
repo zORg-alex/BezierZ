@@ -57,13 +57,23 @@ namespace BezierCurveZ.MeshGeneration
 		/// else curve part further <paramref name="bendLength"/> will be ignored</param>
 		/// <param name="autoNormals">Recalculate normals after bending</param>
 		/// <returns></returns>
-		public static Mesh BendMesh(Mesh source, Mesh mesh, Curve curve, float bendLength, bool scaleBendToCurve = false, bool autoNormals = true)
+		public static Mesh BendMesh(Mesh source, Mesh mesh, Curve curve, float bendLength, bool scaleBendToCurve = false, bool autoNormals = true) =>
+			BendMesh(source, mesh, curve, bendLength, scaleBendToCurve, autoNormals, Matrix4x4.identity, Matrix4x4.identity);
+
+		/// <inheritdoc cref="BendMesh"/>
+		/// <param name="meshToBendSpace">CurveTransform.worldToLocalMatrix * MeshTransform.localToWorldMatrix  Mesh=>Curve</param>
+		/// <param name="bendSpaceToMesh">MeshTransform.worldToLocalMatrix * CurveTransform.localToWorldMatrix Curve=>Mesh</param>
+		public static Mesh BendMesh(Mesh source, Mesh mesh, Curve curve, float bendLength, bool scaleBendToCurve = false, bool autoNormals = true, Matrix4x4 meshToBendSpace = default, Matrix4x4 bendSpaceToMesh = default)
 		{
 			if (mesh == null || mesh == source)
 				mesh = source.Copy();
+			if (meshToBendSpace == default)
+				meshToBendSpace = Matrix4x4.identity;
+			if (bendSpaceToMesh == default)
+				bendSpaceToMesh = Matrix4x4.identity;
 
 			float curveLength = curve.VertexData.CurveLength();
-			var distCoef = scaleBendToCurve ? curveLength / bendLength : 1f;
+			var distCoef = scaleBendToCurve ? bendLength / curveLength : 1f;
 			var bendDir = curve.VertexData[0].forward;
 			var origin = curve.VertexData[0].Position;
 			var originInv = curve.VertexData[0].Rotation.Inverted();
@@ -73,23 +83,27 @@ namespace BezierCurveZ.MeshGeneration
 			var tangents = source.tangents;
 			for (int i = 0; i < vertices.Length; i++)
 			{
-				var v = vertices[i];
-				var n = normals[i];
-				var t = tangents[i];
+				var v = meshToBendSpace.MultiplyPoint3x4(vertices[i]);
+				var n = normals.Length > 0 ? normals[i] : Vector3.zero;
+				var t = tangents.Length > 0 ? tangents[i] : Vector4.zero;
 
-				float bendSpaceDist = Mathf.Clamp(Vector3.Dot(v - origin, bendDir),0,bendLength);
-				var curveSpaceDist = Mathf.Clamp(bendSpaceDist, 0, curveLength) * distCoef;
+				float bendSpaceDist = Mathf.Clamp(Vector3.Dot(v - origin, bendDir), 0, bendLength);
+				var curveSpaceDist = Mathf.Clamp(bendSpaceDist / distCoef, 0, curveLength);
 				var curvePoint = curve.VertexData.GetPointFromDistance(curveSpaceDist);
 
 				var vRelToCurvePoint = v - bendDir * bendSpaceDist;
-				vertices[i] = curvePoint.Position - origin + curvePoint.Rotation * vRelToCurvePoint;
-				normals[i] = originInv * curvePoint.Rotation * normals[i];
-				tangents[i] = originInv * curvePoint.Rotation * tangents[i];
+				vertices[i] = bendSpaceToMesh.MultiplyPoint3x4(curvePoint.Position - origin + curvePoint.Rotation * vRelToCurvePoint);
+				if (n != Vector3.zero)
+					normals[i] = originInv * curvePoint.Rotation * normals[i];
+				if (t != Vector4.zero)
+					tangents[i] = originInv * curvePoint.Rotation * tangents[i];
 			}
 
 			mesh.vertices = vertices;
-			mesh.normals = normals;
-			mesh.tangents = tangents;
+			if (normals.Length > 0)
+				mesh.normals = normals;
+			if (tangents.Length > 0)
+				mesh.tangents = tangents;
 			if (autoNormals)
 				mesh.RecalculateNormals();
 			mesh.RecalculateBounds();

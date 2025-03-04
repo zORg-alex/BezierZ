@@ -11,6 +11,10 @@ using Debug = UnityEngine.Debug;
 
 namespace BezierCurveZ.Editor
 {
+	//Notes;
+	//TODO Click Creation Method for linear curves
+	//TODO Round Linear EPs
+	//TODO forbid selecting linear handles?
 	public class CurveEditor : SubscribableEditor<Curve>
 	{
 		private static CurveEditor instance;

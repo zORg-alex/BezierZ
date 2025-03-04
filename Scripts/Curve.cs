@@ -536,6 +536,7 @@ namespace BezierCurveZ
 			var t = GetClosestPointTimeSegment(position, out var segmentIndex);
 			return VertexData.GetPointFromTime(segmentIndex + t);
 		}
+		public VertexData GetPointFromDistance(float distance) => VertexData.GetPointFromDistance(distance);
 
 		/// <summary>
 		/// Goest through all VertexData and looks for closest point and returns t [0..1] and segmentIndex of it.
@@ -740,7 +741,7 @@ namespace BezierCurveZ
 
 
 		[SerializeField]
-		private float _interpolationMaxAngleError = 5;
+		private float _interpolationMaxAngleError = 1;
 		[SerializeField]
 		private float _interpolationMinDistance = 0.000001f;
 		[SerializeField]

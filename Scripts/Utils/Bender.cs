@@ -13,17 +13,17 @@ namespace BezierCurveZ.MeshGeneration
 		[SerializeField, OnValueChanged("UpdateMeshes")]
 		private Transform _meshFilterParent;
 		[SerializeField, OnValueChanged("UpdateBend")]
-		private Vector3 BendOriginPosition;
+		private Vector3 _bendOriginPosition;
 		[SerializeField, OnValueChanged("UpdateBend")]
-		private Quaternion BendOriginRotation = Quaternion.identity;
+		private Quaternion _bendOriginRotation = Quaternion.identity;
 		[SerializeField, OnValueChanged("UpdateBend")]
-		private Curve Curve;
+		private Curve _curve;
 		[SerializeField, OnValueChanged("UpdateBend")]
-		private float BendLength = 1f;
+		private float _bendLength = 1f;
 		[SerializeField, OnValueChanged("UpdateBend")]
-		private bool ScaleBendToCurve;
+		private bool _scaleBendToCurve;
 		[SerializeField, OnValueChanged("UpdateBend")]
-		private bool AutoNormals;
+		private bool _autoNormals;
 
 		private MeshFilter _meshFilter;
 		public Mesh _originalMesh;
@@ -39,7 +39,7 @@ namespace BezierCurveZ.MeshGeneration
 		private void Initialize()
 		{
 			TryGetComponent(out _meshFilter);
-			Curve.OnCurveChanged += Curve_OnCurveChanged;
+			_curve.OnCurveChanged += Curve_OnCurveChanged;
 			UpdateMeshes();
 		}
 
@@ -67,10 +67,10 @@ namespace BezierCurveZ.MeshGeneration
 		{
 			if (_originalMesh == null) return;
 
-			if (BendLength <= 0)
+			if (_bendLength <= 0)
 				_meshFilter.sharedMesh = _originalMesh;
 			else
-				_meshFilter.sharedMesh = MeshBendUtility.BendMesh(_originalMesh, _meshFilter.sharedMesh, Curve, BendLength, ScaleBendToCurve, AutoNormals);
+				_meshFilter.sharedMesh = MeshBendUtility.BendMesh(_originalMesh, _meshFilter.sharedMesh, _curve, _bendLength, _scaleBendToCurve, _autoNormals);
 		}
 	}
 }
