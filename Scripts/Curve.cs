@@ -537,6 +537,7 @@ namespace BezierCurveZ
 			return VertexData.GetPointFromTime(segmentIndex + t);
 		}
 		public VertexData GetPointFromDistance(float distance) => VertexData.GetPointFromDistance(distance);
+		public VertexData GetPointFromTime(float time) => VertexData.GetPointFromTime(time);
 
 		/// <summary>
 		/// Goest through all VertexData and looks for closest point and returns t [0..1] and segmentIndex of it.

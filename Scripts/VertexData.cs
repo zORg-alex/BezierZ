@@ -15,6 +15,7 @@ namespace BezierCurveZ
 		public Vector3 normal => Rotation * Vector3.right;
 		public Vector3 forward => Rotation * Vector3.forward;
 		public Vector3 tangent => Rotation * Vector3.forward;
+		public Matrix4x4 TRS => Matrix4x4.TRS(Position, Rotation, Scale);
 
 		public static implicit operator Vector3(VertexData v) => v.Position;
 

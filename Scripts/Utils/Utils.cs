@@ -1,5 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Reflection;
+using System.Runtime.CompilerServices;
+using UnityEditor;
 using UnityEngine;
 
 namespace BezierZUtility
@@ -18,6 +21,14 @@ namespace BezierZUtility
 			float dotP = Vector2.Dot(lhs, heading);
 			dotP = Mathf.Clamp(dotP, 0f, magnitudeMax);
 			return origin + heading * dotP;
+		}
+
+		public static void UndoWrap(this MonoBehaviour mb, Action action, [CallerMemberName] string callerName = "")
+		{
+#if UNITY_EDITOR
+			Undo.RecordObject(mb, callerName);
+#endif
+			action?.Invoke();
 		}
 	}
 }

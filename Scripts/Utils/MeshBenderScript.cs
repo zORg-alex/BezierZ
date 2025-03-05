@@ -94,15 +94,19 @@ public class MeshBenderScript : MonoBehaviour
 		}
 	}
 	[ButtonGroup, Button(SdfIconType.DashSquare, Style = ButtonStyle.CompactBox), GUIColor("#FFAAAA"), PropertyTooltip("Clears cached data. !Reset before use!")]
-	public void Clear() => _meshes.Clear();
+	public void Clear() => this.UndoWrap(()=>_meshes.Clear());
 
 	[ButtonGroup, Button(SdfIconType.PlusSquareFill), GUIColor("#AAFFAA"), PropertyTooltip("Adds all children MeshFilters and caches positions. In case of adding to a list, use Add Mesh Filters field.")]
-	public void AddChildren() => AddMeshFilters(GetComponentsInChildren<MeshFilter>());
+	public void AddChildren() => this.UndoWrap(()=> AddMeshFilters(GetComponentsInChildren<MeshFilter>()));
 
 	[PropertySpace]
 	[Button]
 	public void Generate()
 	{
+#if UNITY_EDITOR
+		Undo.RecordObject(this, nameof(Generate));
+#endif
+
 		_thisWorldToLocalMatrix = transform.worldToLocalMatrix;
 		_thisLocalToWorldMatrix = transform.localToWorldMatrix;
 		for (int i = 0; i < _meshes.Count; i++)
@@ -120,10 +124,11 @@ public class MeshBenderScript : MonoBehaviour
 		if (updateTransform)
 		{
 			var curveDirection = _curve.GetEPRotation(0) * Vector3.forward;
-			var distance = Vector3.Dot(_thisWorldToLocalMatrix.MultiplyPoint3x4(c.Position), curveDirection);
-			var point = _curve.GetPointFromDistance(distance);
-			c.Transform.position = _thisLocalToWorldMatrix.MultiplyPoint3x4(point.Position);
-			c.Transform.rotation = _thisLocalToWorldMatrix.rotation * point.Rotation;
+			var distance = Vector3.Dot(c.Position, curveDirection);
+			var originOffset = c.Position - (curveDirection * distance);
+			var point = _curve.GetPointFromTime(distance / _bendLength);
+			c.Transform.position = _thisLocalToWorldMatrix.MultiplyPoint3x4(point.TRS.MultiplyPoint3x4(originOffset));
+			c.Transform.rotation = _thisLocalToWorldMatrix.rotation * point.Rotation * c.Rotation;
 		}
 		else
 		{
@@ -173,7 +178,7 @@ public class MeshBenderScript : MonoBehaviour
 		public enum SettingsEnum { UpdateTransform = 1, UpdateMesh = 2 }
 
 		[EnumToggleButtons, HideLabel]
-		[SerializeField] private SettingsEnum _update;
+		[SerializeField] private SettingsEnum _update = SettingsEnum.UpdateTransform | SettingsEnum.UpdateMesh;
 		public SettingsEnum Update { get => _update; set => _update = value; }
 
 		[FoldoutGroup("Transform Initial")]
@@ -188,21 +193,26 @@ public class MeshBenderScript : MonoBehaviour
 		[SerializeField] private Quaternion _rotation;
 		public Quaternion Rotation { get => _rotation; }
 
-		[FoldoutGroup("Transform Initial")]
-		[SerializeField] private Matrix4x4 _localToWorld;
-		public Matrix4x4 LocalToWorld { get => _localToWorld; }
+		[SerializeField, HideInInspector] private Transform _parent;
+		public Matrix4x4 LocalToWorld
+		{
+			get
+			{
+				return _parent.localToWorldMatrix * Matrix4x4.TRS(_position, _rotation, _transform.localScale);
+			}
+		}
 
 		public BentMeshCompound(MeshFilter mf, Transform curveTransform)
 		{
+			_parent = curveTransform;
 			_meshFilter = mf;
 			mf.TryGetComponent(out _meshCollider);
 			_originalMesh = mf.sharedMesh;
 			_originalColliderMesh = _meshCollider.sharedMesh;
 			_transform = mf.transform;
-			_localToWorld = _transform.localToWorldMatrix;
-			var inv = _localToWorld.inverse;
-			_position = inv.MultiplyPoint3x4(_transform.position);
-			_rotation = inv.rotation.Inverted() * _transform.rotation;
+			var cwtl = curveTransform.worldToLocalMatrix;
+			_position = cwtl.MultiplyPoint3x4(_transform.position);
+			_rotation = cwtl.rotation * _transform.rotation;
 		}
 
 	}
