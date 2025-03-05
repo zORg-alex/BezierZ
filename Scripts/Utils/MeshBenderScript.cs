@@ -7,6 +7,8 @@ using System;
 using System.Linq;
 using BezierCurveZ.MeshGeneration;
 using UnityEditor;
+using BezierZUtility;
+using Sirenix.OdinInspector.Editor;
 
 //TODO Editor add one list for all things, add settings for node to update Transform/BendMeshes,
 //that will know if there are any MeshColliders or not
@@ -16,6 +18,7 @@ using UnityEditor;
 /// </summary>
 public class MeshBenderScript : MonoBehaviour
 {
+	[PropertySpace()]
 	[SerializeField, OnValueChanged(nameof(Generate))]
 	private float _bendLength = 1f;
 	[SerializeField, OnValueChanged(nameof(Generate))]
@@ -28,26 +31,29 @@ public class MeshBenderScript : MonoBehaviour
 	private bool _autoUpdate;
 	private bool _prevAutoUpdate;
 
+	[PropertySpace]
+	[SerializeField, PropertyOrder(-1), Tooltip("Drag MeshFilters to add to a working list"), OnValueChanged(nameof(AddMeshFiltersInEditor))]
+	private MeshFilter[] _addMeshFilters;
+
 	[SerializeField]
-	private MeshFilter[] _meshFilters;
-	[SerializeField]
-	private MeshCollider[] _meshColliders;
-	[SerializeField]
-	private Mesh[] _originalMeshes;
-	[SerializeField]
-	private Mesh[] _originalColliderMeshes;
-	[SerializeField]
-	private Transform[] _transforms;
-	[SerializeField]
-	private Vector3[] _positions;
-	[SerializeField]
-	private Quaternion[] _rotations;
-	[SerializeField]
-	private Matrix4x4[] _originalLocalToWorldMatrices;
-	[SerializeField]
+	private List<BentMeshCompound> _meshes = new();
 	private Matrix4x4 _thisWorldToLocalMatrix;
-	[SerializeField]
 	private Matrix4x4 _thisLocalToWorldMatrix;
+
+	private void AddMeshFiltersInEditor()
+	{
+		AddMeshFilters(_addMeshFilters);
+		_addMeshFilters = new MeshFilter[0];
+	}
+
+	public void AddMeshFilters(MeshFilter[] meshFilters)
+	{
+		foreach (var mf in meshFilters)
+		{
+			_meshes.Add(new BentMeshCompound(mf, transform));
+		}
+	}
+
 
 	private void OnEnable()
 	{
@@ -75,111 +81,131 @@ public class MeshBenderScript : MonoBehaviour
 		void _curve_OnCurveChanged(Curve curve) => Generate();
 	}
 
-	[Button]
-	public void ResetAndRecache()
-	{
-		Cache(true);
-	}
+	[ButtonGroup, Button(SdfIconType.ArrowCounterclockwise), PropertyTooltip("Restores meshes and transforms to before generation.")]
 	public void ResetTransformsAndMeshes()
 	{
-		int len = Mathf.Min(_meshFilters.Length, _originalMeshes?.Length ?? 0, _originalColliderMeshes?.Length ?? 0);
-		for (int i = 0; i < len; i++)
+		for (int i = 0; i < _meshes.Count; i++)
 		{
-			if (_meshFilters.Length > i && _meshFilters[i])
-				_meshFilters[i].sharedMesh = _originalMeshes[i];
-			if (_meshColliders.Length > i && _meshColliders[i] && _originalColliderMeshes.Length > i && _originalColliderMeshes[i])
-				_meshColliders[i].sharedMesh = _originalColliderMeshes[i];
-			_transforms[i].localPosition = _positions[i];
-			_transforms[i].localRotation = _rotations[i];
+			var c = _meshes[i];
+			c.MeshFilter.sharedMesh = c.OriginalMesh;
+			c.MeshCollider.sharedMesh = c.OriginalColliderMesh;
+			c.Transform.position = transform.TransformPoint(c.Position);
+			c.Transform.rotation = transform.rotation * c.Rotation;
 		}
 	}
+	[ButtonGroup, Button(SdfIconType.DashSquare, Style = ButtonStyle.CompactBox), GUIColor("#FFAAAA"), PropertyTooltip("Clears cached data. !Reset before use!")]
+	public void Clear() => _meshes.Clear();
 
-	private void Cache(bool force = false, bool dontResetTransforms = false)
-	{
-		if (!force && _originalMeshes.Length == _meshFilters.Length &&
-			_meshFilters.Select((mf, i) => mf.sharedMesh.name == _originalMeshes[i].name).All(b => b) &&
-			_meshColliders.Select((mc, i) => mc.sharedMesh.name == _originalColliderMeshes[i].name).All(b=>b)) return;
+	[ButtonGroup, Button(SdfIconType.PlusSquareFill), GUIColor("#AAFFAA"), PropertyTooltip("Adds all children MeshFilters and caches positions. In case of adding to a list, use Add Mesh Filters field.")]
+	public void AddChildren() => AddMeshFilters(GetComponentsInChildren<MeshFilter>());
 
-		if (_meshColliders.Length != _meshFilters.Length)
-		{
-			_meshColliders = new MeshCollider[_meshFilters.Length];
-			for (int i = 0; i < _meshColliders.Length; i++)
-			{
-				_meshColliders[i] = _meshFilters[i].GetComponent<MeshCollider>();
-			}
-		}
-
-		if (!dontResetTransforms)
-			ResetTransformsAndMeshes();
-		var newOriginalMeshes = new Mesh[_meshFilters.Length];
-		var newOriginalColliderMeshes = new Mesh[_meshFilters.Length];
-		int len = Mathf.Min(_originalMeshes.Length, newOriginalMeshes.Length);
-		Array.Copy(_originalMeshes, newOriginalMeshes, len);
-		Array.Copy(_originalColliderMeshes, newOriginalColliderMeshes, len);
-
-		for (int i = 0; i < _originalMeshes.Length; i++)
-		{
-			//if `null` or different name
-			if ((!_originalMeshes[i] || !_originalColliderMeshes[i]) ||
-				_meshFilters[i].name != _originalMeshes[i].name ||
-				_meshColliders[i].name != _originalColliderMeshes[i].name)
-			{
-				newOriginalMeshes[i] = _meshFilters[i].sharedMesh;
-				newOriginalColliderMeshes[i] = _meshColliders[i].sharedMesh;
-			}
-		}
-		for (int i = _originalMeshes.Length; i < newOriginalMeshes.Length; i++)
-		{
-			newOriginalMeshes[i] = _meshFilters[i].sharedMesh;
-			newOriginalColliderMeshes[i] = _meshColliders[i].sharedMesh;
-		}
-		_originalMeshes = newOriginalMeshes;
-		_originalColliderMeshes = newOriginalColliderMeshes;
-		_transforms = _meshFilters.Select(mf => mf.transform).ToArray();
-		_positions = _transforms.Select(SelectPosition).ToArray();
-		_rotations = _transforms.Select(SelectRotation).ToArray();
-		_originalLocalToWorldMatrices = _transforms.Select(SelectLocalToWorld).ToArray();
-
-		Quaternion SelectRotation(Transform t) => t.localRotation;
-		Vector3 SelectPosition(Transform t) => t.localPosition;
-		Matrix4x4 SelectLocalToWorld(Transform t) => t.localToWorldMatrix;
-	}
-
-
+	[PropertySpace]
 	[Button]
 	public void Generate()
 	{
-		Cache();
 		_thisWorldToLocalMatrix = transform.worldToLocalMatrix;
 		_thisLocalToWorldMatrix = transform.localToWorldMatrix;
-		for (int i = 0; i < _meshFilters.Length; i++)
+		for (int i = 0; i < _meshes.Count; i++)
 			GenerateMesh(i);
 		CheckSubscriptipn();
 	}
 
 	private void GenerateMesh(int i)
 	{
+		var c = _meshes[i];
 		if (_bendLength <= 0)
-			_meshFilters[i].sharedMesh = _originalMeshes[i];
+			c.MeshFilter.sharedMesh = c.OriginalMesh;
 
-		var meshTransform = _transforms[i];
-		var curveDirection = _curve.GetEPRotation(0) * Vector3.forward;
-		var distance = Vector3.Dot(_thisWorldToLocalMatrix.MultiplyPoint3x4(_positions[i]), curveDirection);
-		var point = _curve.GetPointFromDistance(distance);
-		meshTransform.position = _thisLocalToWorldMatrix.MultiplyPoint3x4(point.Position);
-		meshTransform.rotation = _rotations[i] * point.Rotation;
+		bool updateTransform = c.Update.HasFlag(BentMeshCompound.SettingsEnum.UpdateTransform);
+		if (updateTransform)
+		{
+			var curveDirection = _curve.GetEPRotation(0) * Vector3.forward;
+			var distance = Vector3.Dot(_thisWorldToLocalMatrix.MultiplyPoint3x4(c.Position), curveDirection);
+			var point = _curve.GetPointFromDistance(distance);
+			c.Transform.position = _thisLocalToWorldMatrix.MultiplyPoint3x4(point.Position);
+			c.Transform.rotation = _thisLocalToWorldMatrix.rotation * point.Rotation;
+		}
+		else
+		{
+			c.Transform.position = _thisLocalToWorldMatrix.MultiplyPoint3x4(c.Position);
+			c.Transform.rotation = _thisLocalToWorldMatrix.rotation * c.Rotation;
+		}
 
-		_meshFilters[i].sharedMesh = MeshBendUtility.BendMesh(_originalMeshes[i], _meshFilters[i].sharedMesh, _curve,
-			_bendLength, _scaleBendToCurve, _autoNormals,
-			_thisWorldToLocalMatrix * _originalLocalToWorldMatrices[i],
-			meshTransform.worldToLocalMatrix * _thisLocalToWorldMatrix);
+		bool updateMesh = c.Update.HasFlag(BentMeshCompound.SettingsEnum.UpdateMesh);
+		if (updateMesh)
+		{
+			Matrix4x4 meshToBendSpace = _thisWorldToLocalMatrix * c.LocalToWorld;
+			Matrix4x4 bendSpaceToMesh = c.Transform.worldToLocalMatrix * _thisLocalToWorldMatrix;
 
-		_meshColliders[i].sharedMesh = MeshBendUtility.BendMesh(_originalColliderMeshes[i], _meshColliders[i].sharedMesh, _curve,
-			_bendLength, _scaleBendToCurve, _autoNormals,
-			_thisWorldToLocalMatrix * _originalLocalToWorldMatrices[i],
-			meshTransform.worldToLocalMatrix * _thisLocalToWorldMatrix);
+			c.MeshFilter.sharedMesh = MeshBendUtility.BendMesh(c.OriginalMesh, c.MeshFilter.sharedMesh, _curve,
+				_bendLength, _scaleBendToCurve, _autoNormals, meshToBendSpace, bendSpaceToMesh);
+
+			c.MeshCollider.sharedMesh = MeshBendUtility.BendMesh(c.OriginalColliderMesh, c.MeshCollider.sharedMesh, _curve,
+				_bendLength, _scaleBendToCurve, _autoNormals, meshToBendSpace, bendSpaceToMesh);
+		}
+		else
+		{
+			c.MeshFilter.sharedMesh = c.OriginalMesh;
+			c.MeshCollider.sharedMesh = c.OriginalColliderMesh;
+		}
 	}
 
+	[Serializable]
+	public class BentMeshCompound
+	{
+		[HorizontalGroup("A"), VerticalGroup("A/Left"), BoxGroup("A/Left/VisualMesh")]
+		[SerializeField] private MeshFilter _meshFilter;
+		public MeshFilter MeshFilter { get => _meshFilter; set => _meshFilter = value; }
+
+		[VerticalGroup("A/Right"), BoxGroup("A/Right/Collider")]
+		[SerializeField] private MeshCollider _meshCollider;
+		public MeshCollider MeshCollider { get => _meshCollider; }
+
+		[BoxGroup("A/Left/VisualMesh")]
+		[SerializeField] private Mesh _originalMesh;
+		public Mesh OriginalMesh { get => _originalMesh; }
+
+		[BoxGroup("A/Right/Collider")]
+		[SerializeField] private Mesh _originalColliderMesh;
+		public Mesh OriginalColliderMesh { get => _originalColliderMesh; }
+
+		[System.Flags]
+		public enum SettingsEnum { UpdateTransform = 1, UpdateMesh = 2 }
+
+		[EnumToggleButtons, HideLabel]
+		[SerializeField] private SettingsEnum _update;
+		public SettingsEnum Update { get => _update; set => _update = value; }
+
+		[FoldoutGroup("Transform Initial")]
+		[SerializeField] private Transform _transform;
+		public Transform Transform { get => _transform; }
+
+		[FoldoutGroup("Transform Initial")]
+		[SerializeField] private Vector3 _position;
+		public Vector3 Position { get => _position; }
+
+		[FoldoutGroup("Transform Initial")]
+		[SerializeField] private Quaternion _rotation;
+		public Quaternion Rotation { get => _rotation; }
+
+		[FoldoutGroup("Transform Initial")]
+		[SerializeField] private Matrix4x4 _localToWorld;
+		public Matrix4x4 LocalToWorld { get => _localToWorld; }
+
+		public BentMeshCompound(MeshFilter mf, Transform curveTransform)
+		{
+			_meshFilter = mf;
+			mf.TryGetComponent(out _meshCollider);
+			_originalMesh = mf.sharedMesh;
+			_originalColliderMesh = _meshCollider.sharedMesh;
+			_transform = mf.transform;
+			_localToWorld = _transform.localToWorldMatrix;
+			var inv = _localToWorld.inverse;
+			_position = inv.MultiplyPoint3x4(_transform.position);
+			_rotation = inv.rotation.Inverted() * _transform.rotation;
+		}
+
+	}
 }
 
 //Adds MeshBenderScript to the end of previous Meshbender and chains curve controlling overlapping points. Might need to add controlled child curves running in parallel. Also add objects anchored to curve.
