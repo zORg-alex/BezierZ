@@ -106,52 +106,57 @@ public class MeshBenderScript : MonoBehaviour
 #if UNITY_EDITOR
 		Undo.RecordObject(this, nameof(Generate));
 #endif
-
+		float curveLength = _curve.VertexData.CurveLength();
+		var lengthCoef = _bendLength / curveLength;
 		_thisWorldToLocalMatrix = transform.worldToLocalMatrix;
 		_thisLocalToWorldMatrix = transform.localToWorldMatrix;
 		for (int i = 0; i < _meshes.Count; i++)
 			GenerateMesh(i);
 		CheckSubscriptipn();
-	}
 
-	private void GenerateMesh(int i)
-	{
-		var c = _meshes[i];
-		if (_bendLength <= 0)
-			c.MeshFilter.sharedMesh = c.OriginalMesh;
 
-		bool updateTransform = c.Update.HasFlag(BentMeshCompound.SettingsEnum.UpdateTransform);
-		if (updateTransform)
+		void GenerateMesh(int i)
 		{
-			var curveDirection = _curve.GetEPRotation(0) * Vector3.forward;
-			var distance = Vector3.Dot(c.Position, curveDirection);
-			var originOffset = c.Position - (curveDirection * distance);
-			var point = _curve.GetPointFromTime(distance / _bendLength);
-			c.Transform.position = _thisLocalToWorldMatrix.MultiplyPoint3x4(point.TRS.MultiplyPoint3x4(originOffset));
-			c.Transform.rotation = _thisLocalToWorldMatrix.rotation * point.Rotation * c.Rotation;
-		}
-		else
-		{
-			c.Transform.position = _thisLocalToWorldMatrix.MultiplyPoint3x4(c.Position);
-			c.Transform.rotation = _thisLocalToWorldMatrix.rotation * c.Rotation;
-		}
+			var c = _meshes[i];
+			if (_bendLength <= 0)
+				c.MeshFilter.sharedMesh = c.OriginalMesh;
 
-		bool updateMesh = c.Update.HasFlag(BentMeshCompound.SettingsEnum.UpdateMesh);
-		if (updateMesh)
-		{
-			Matrix4x4 meshToBendSpace = _thisWorldToLocalMatrix * c.LocalToWorld;
-			Matrix4x4 bendSpaceToMesh = c.Transform.worldToLocalMatrix * _thisLocalToWorldMatrix;
+			bool updateTransform = c.Update.HasFlag(BentMeshCompound.SettingsEnum.UpdateTransform);
+			if (updateTransform)
+			{
+				var curveDirection = _curve.GetEPRotation(0) * Vector3.forward;
+				var bendspaceDistance = Vector3.Dot(c.Position, curveDirection);
+				var curvespaceDistance = Mathf.Clamp(bendspaceDistance / lengthCoef, 0, curveLength);
+				var point = _curve.GetPointFromDistance(curvespaceDistance);
+				var originOffset = c.Position - (curveDirection * bendspaceDistance);
+				c.Transform.SetPositionAndRotation(
+					_thisLocalToWorldMatrix.MultiplyPoint3x4(point.TRS.MultiplyPoint3x4(originOffset)),
+					c.Transform.rotation = _thisLocalToWorldMatrix.rotation * point.Rotation * c.Rotation);
+			}
+			else
+			{
+				c.Transform.SetPositionAndRotation(
+					_thisLocalToWorldMatrix.MultiplyPoint3x4(c.Position),
+					_thisLocalToWorldMatrix.rotation * c.Rotation);
+			}
 
-			c.MeshFilter.sharedMesh = MeshBendUtility.BendMesh(c.OriginalMesh, c.MeshFilter.sharedMesh, _curve,
-				_bendLength, _scaleBendToCurve, _autoNormals, meshToBendSpace, bendSpaceToMesh);
+			bool updateMesh = c.Update.HasFlag(BentMeshCompound.SettingsEnum.UpdateMesh);
+			if (updateMesh)
+			{
+				Matrix4x4 meshToBendSpace = _thisWorldToLocalMatrix * c.LocalToWorld;
+				Matrix4x4 bendSpaceToMesh = c.Transform.worldToLocalMatrix * _thisLocalToWorldMatrix;
 
-			c.MeshCollider.sharedMesh = MeshBendUtility.BendMesh(c.OriginalColliderMesh, c.MeshCollider.sharedMesh, _curve,
-				_bendLength, _scaleBendToCurve, _autoNormals, meshToBendSpace, bendSpaceToMesh);
-		}
-		else
-		{
-			c.MeshFilter.sharedMesh = c.OriginalMesh;
-			c.MeshCollider.sharedMesh = c.OriginalColliderMesh;
+				c.MeshFilter.sharedMesh = MeshBendUtility.BendMesh(c.OriginalMesh, c.MeshFilter.sharedMesh, _curve,
+					_bendLength, _scaleBendToCurve, _autoNormals, meshToBendSpace, bendSpaceToMesh);
+
+				c.MeshCollider.sharedMesh = MeshBendUtility.BendMesh(c.OriginalColliderMesh, c.MeshCollider.sharedMesh, _curve,
+					_bendLength, _scaleBendToCurve, _autoNormals, meshToBendSpace, bendSpaceToMesh);
+			}
+			else if (c.MeshFilter.sharedMesh != c.OriginalMesh)
+			{
+				c.MeshFilter.sharedMesh = c.OriginalMesh;
+				c.MeshCollider.sharedMesh = c.OriginalColliderMesh;
+			}
 		}
 	}
 
