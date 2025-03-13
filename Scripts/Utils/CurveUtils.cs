@@ -85,5 +85,31 @@ namespace BezierCurveZ
 		public static float EstimateSegmentLength(Vector3[] s) =>
 			(s[0] - s[3]).magnitude + ((s[0] - s[1]).magnitude + (s[1] - s[2]).magnitude + (s[2] - s[3]).magnitude) / 2f;
 
+		public static Curve OffsetCurve(this Curve curve, Vector3 Offset)
+		{
+			var ocurve = new Curve();
+			var pind = 0;
+			for (int i = 0, oi = 0; i < curve.SegmentCount; i++, oi++)
+			{
+				//var closestT = curve.GetClosestPointTimeSegment(, out var closestSegInd);
+				var cSeg = curve.Segments[0];
+				var pointA = curve.Points[pind++];
+				var handleA = curve.Points[pind++];
+				var handleB = curve.Points[pind++];
+				var pointB = curve.Points[pind++];
+				var oPosA = pointA.position + pointA.rotation * Offset;
+				var oPosB = pointB.position + pointB.rotation * Offset;
+				var aForward = pointA.forward;
+				var bForward = pointB.forward;
+				var posAh = oPosA + aForward * Vector3.Dot(pointA.forward, handleA - pointA);
+				var posBh = oPosB + bForward * Vector3.Dot(pointB.forward, handleB - pointB);
+
+				var segVerts = curve.VertexData.GetSegmentVerts(i);
+
+				ocurve.SetSegment(oi, oPosA, posAh, posBh, oPosB, pointA.rotation, pointB.rotation, pointA.scale, pointB.scale, pointA.mode, pointB.mode);
+			}
+
+			return ocurve;
+		}
 	}
 }

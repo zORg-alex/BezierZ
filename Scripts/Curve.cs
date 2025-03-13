@@ -82,6 +82,35 @@ namespace BezierCurveZ
 
 		public int SegmentCount { [DebuggerStepThrough] get => (_points.Count / 3f).FloorToInt(); }
 
+		public void SetSegment(int segmentIndex,
+			Vector3 a, Vector3 aHandle, Vector3 bHandle, Vector3 b,
+			Quaternion aRot, Quaternion bRot, Vector3 aScale, Vector3 bScale,
+			Point.Mode aMode = Point.Mode.Automatic, Point.Mode bMode = Point.Mode.Automatic)
+		{
+			int segmentCount = SegmentCount;
+			if (segmentIndex < 0 && segmentIndex > segmentCount) throw new ArgumentException($"index {segmentIndex} out of bounds [{0}..{segmentCount}]");
+
+			Point[] closedCurveTail = IsClosed ? _points.TakeLast(2).ToArray() : new Point[0];
+			if (segmentCount == segmentIndex)
+			{
+				_points.AddRange(Enumerable.Repeat(new Point(), 4));
+			}
+
+			var ind = GetPointIndex(segmentIndex);
+			_points[ind++] = new Point(a, aRot, aScale, type: Point.Type.EndPoint, mode: aMode);
+			_points[ind++] = new Point(aHandle, type: Point.Type.Left);
+			_points[ind++] = new Point(bHandle, type: Point.Type.Right);
+			_points[ind++] = new Point(b, bRot, bScale, type: Point.Type.EndPoint, mode: bMode);
+
+			if (IsClosed)
+			{
+				_points[ind++] = closedCurveTail[0];
+				_points[ind] = closedCurveTail[1];
+			}
+
+			BumpVersion();
+		}
+
 		[DebuggerStepThrough]
 		public int GetSegmentIndex(int index) => GetSegmentIndex((ushort)index);
 		[DebuggerStepThrough]
@@ -641,7 +670,7 @@ namespace BezierCurveZ
 				if (typeInd == 0)
 				{
 					//Skip to current segmant and find closest point to get rotation from
-					var firstVInd = _vertexData.GetStartIndex(segmentInd);
+					var firstVInd = _vertexData.GetStartAtSegmentIndex(segmentInd);
 					var min = _vertexData.Select(v => v.Position).Skip(firstVInd).Min((v) => newSegments[i].DistanceTo(v), out var ind);
 					rot = _vertexData[firstVInd + ind].Rotation;
 				}

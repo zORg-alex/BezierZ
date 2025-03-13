@@ -16,7 +16,7 @@ using Sirenix.OdinInspector.Editor;
 /// Bends set of Meshes inMeshFilters and MeshColliders along Curve.
 /// First curve point should be pointing forward, since Bendspace is calculated from forward direction of this transform
 /// </summary>
-public class MeshBenderScript : MonoBehaviour
+public class MeshBenderScript : MonoBehaviour, IHaveCurve
 {
 	[PropertySpace()]
 	[SerializeField, OnValueChanged(nameof(Generate))]
@@ -27,6 +27,7 @@ public class MeshBenderScript : MonoBehaviour
 	private bool _autoNormals;
 	[SerializeField]
 	private Curve _curve;
+	public Curve Curve => _curve;
 	[SerializeField, OnValueChanged(nameof(OnEnable))]
 	private bool _autoUpdate;
 	private bool _prevAutoUpdate;
@@ -35,7 +36,7 @@ public class MeshBenderScript : MonoBehaviour
 	[SerializeField, PropertyOrder(-1), Tooltip("Drag MeshFilters to add to a working list"), OnValueChanged(nameof(AddMeshFiltersInEditor))]
 	private MeshFilter[] _addMeshFilters;
 
-	[SerializeField]
+	[SerializeField, PropertyOrder(1)]
 	private List<BentMeshCompound> _meshes = new();
 	private Matrix4x4 _thisWorldToLocalMatrix;
 	private Matrix4x4 _thisLocalToWorldMatrix;
@@ -100,7 +101,7 @@ public class MeshBenderScript : MonoBehaviour
 	public void AddChildren() => this.UndoWrap(()=> AddMeshFilters(GetComponentsInChildren<MeshFilter>()));
 
 	[PropertySpace]
-	[Button]
+	[Button, PropertyOrder(1)]
 	public void Generate()
 	{
 #if UNITY_EDITOR
@@ -226,3 +227,7 @@ public class MeshBenderScript : MonoBehaviour
 //Adds MeshBenderScript to the end of previous Meshbender and chains curve controlling overlapping points. Might need to add controlled child curves running in parallel. Also add objects anchored to curve.
 public class CurveChainBuilder : MonoBehaviour { }
 
+public interface IHaveCurve
+{
+	Curve Curve { get; }
+}

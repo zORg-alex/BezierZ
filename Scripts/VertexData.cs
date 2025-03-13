@@ -84,7 +84,7 @@ namespace BezierCurveZ
 
 	public static class OtherVertexDataExtensions
 	{
-		internal static int GetStartIndex(this VertexData[] vertexData, int segmentInd) =>
+		internal static int GetStartAtSegmentIndex(this VertexData[] vertexData, int segmentInd) =>
 			vertexData.BinarySearch(v => v.segmentInd.CompareTo(segmentInd)).segmentStartVertInd;
 
 		public static float CurveLength(this VertexData[] vertexData) => vertexData[vertexData.Length - 1].distance;
@@ -109,6 +109,14 @@ namespace BezierCurveZ
 			var b = vertexData[ind + 1];
 			var relDist = (distance - a.distance) / (b.distance - a.distance);
 			return a.LerpTo(b, relDist);
+		}
+
+		public static VertexData[] GetSegmentVerts(this VertexData[] vertexData, int segmentInd)
+		{
+			var start = vertexData.GetStartAtSegmentIndex(segmentInd);
+			var end = vertexData.GetStartAtSegmentIndex(segmentInd + 1);
+
+			return null;
 		}
 	} 
 }
