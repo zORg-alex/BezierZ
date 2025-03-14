@@ -74,9 +74,10 @@ namespace BezierCurveZ.MeshGeneration
 
 			float curveLength = curve.VertexData.CurveLength();
 			var distCoef = scaleBendToCurve ? bendLength / curveLength : 1f;
-			var bendDir = curve.VertexData[0].forward;
-			var origin = curve.VertexData[0].Position;
-			var originInv = curve.VertexData[0].Rotation.Inverted();
+			//Setting these to default values helps to move meshes to any curve, but restricts bendspace to a 0,0,0 position and 0,0,1 forward direction
+			var bendDir = Vector3.forward;//curve.VertexData[0].forward;
+			var origin = Vector3.zero;//curve.VertexData[0].Position;
+			var originInv = Quaternion.identity;//curve.VertexData[0].Rotation.Inverted();
 
 			var vertices = source.vertices;
 			var normals = source.normals;
@@ -87,16 +88,17 @@ namespace BezierCurveZ.MeshGeneration
 				var n = normals.Length > 0 ? normals[i] : Vector3.zero;
 				var t = tangents.Length > 0 ? tangents[i] : Vector4.zero;
 
-				float bendSpaceDist = Mathf.Clamp(Vector3.Dot(v - origin, bendDir), 0, bendLength);
+				//float bendSpaceDist = Mathf.Clamp(Vector3.Dot(v - origin, bendDir), 0, bendLength);
+				float bendSpaceDist = Mathf.Clamp(v.z, 0, bendLength);
 				var curveSpaceDist = Mathf.Clamp(bendSpaceDist / distCoef, 0, curveLength);
 				var curvePoint = curve.VertexData.GetPointFromDistance(curveSpaceDist);
 
 				var vRelToCurvePoint = v - bendDir * bendSpaceDist;
 				vertices[i] = bendSpaceToMesh.MultiplyPoint3x4(curvePoint.Position - origin + curvePoint.Rotation * vRelToCurvePoint);
 				if (n != Vector3.zero)
-					normals[i] = originInv * curvePoint.Rotation * normals[i];
+					normals[i] = /*originInv * */curvePoint.Rotation * normals[i];
 				if (t != Vector4.zero)
-					tangents[i] = originInv * curvePoint.Rotation * tangents[i];
+					tangents[i] = /*originInv * */curvePoint.Rotation * tangents[i];
 			}
 
 			mesh.vertices = vertices;

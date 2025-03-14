@@ -37,6 +37,7 @@ namespace BezierCurveZ
 		public bool IsLinear { [DebuggerStepThrough] get => mode == Mode.Linear; }
 		public bool IsAutomatic { [DebuggerStepThrough] get => mode.HasFlag(Mode.Automatic); }
 		public bool IsManual { [DebuggerStepThrough] get => mode.HasFlag(Mode.Manual); }
+		public bool IsProportional { [DebuggerStepThrough] get => mode.HasFlag(Mode.Proportional); }
 
 		public static Mode[] AllModes { [DebuggerStepThrough] get => new Mode[] { Mode.Automatic, Mode.Proportional, Mode.Manual, Mode.Linear }; }
 

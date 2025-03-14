@@ -38,10 +38,11 @@ namespace BezierCurveZ.Editor
 		private List<Point> selectedPoints = new List<Point>();
 		private bool updateClosestPoint = true;
 		private int closestIndex;
-		private int closestControlIndex;
+		private int closestEndpointIndex;
 		private Tool currentInternalTool;
 		private bool selectHandlesOnly;
 		private Point closestPoint;
+		private Point closestEndPoint;
 
 		private Color CurveColor = new Color(.3f, 1f, .3f);
 		private Color NormalColor = new Color(1f, .5f, .5f);
@@ -113,11 +114,11 @@ namespace BezierCurveZ.Editor
 			if (GetKeyDown(KeyCode.Delete))
 			{
 				current.Use();
-				if (closestControlIndex != -1 || selectedPointIdexes.Count > 0)
+				if (closestEndpointIndex != -1 || selectedPointIdexes.Count > 0)
 				{
 					Undo.RecordObject(targetObject, "Delete Points");
 					if (selectedPointIdexes.Count == 0)
-						curve.DissolveEP(curve.GetSegmentIndex(closestControlIndex));
+						curve.DissolveEP(curve.GetSegmentIndex(closestEndpointIndex));
 					else
 					{
 						curve.RemoveMany(selectedPointIdexes);
@@ -375,7 +376,7 @@ namespace BezierCurveZ.Editor
 
 					if (selectedPointIdexes.Count == 0)
 					{
-						var ind = closestPoint.IsLinear ? closestControlIndex : closestIndex;
+						var ind = closestPoint.IsLinear ? closestEndpointIndex : closestIndex;
 
 						curve.SetPointPosition(ind, InverseTransformPoint(pos));
 						editedPosition = TransformPoint(curve.Points[closestIndex]);
@@ -395,7 +396,7 @@ namespace BezierCurveZ.Editor
 			else if (currentInternalTool == Tool.Rotate)
 			{
 				EditorGUI.BeginChangeCheck();
-				int segmentIndex = curve.GetSegmentIndex(closestControlIndex);
+				int segmentIndex = curve.GetSegmentIndex(closestEndpointIndex);
 				float handleSize = HandleUtility.GetHandleSize(editedPosition);
 
 				var r = Handles.DoRotationHandle(editedRotation, editedPosition).normalized;
@@ -405,7 +406,7 @@ namespace BezierCurveZ.Editor
 				editedRotation = r;
 
 				if (selectedPointIdexes.Count == 0)
-					GUIUtils.DrawAxes(editedPosition, localToWorldMatrix.rotation * curve.Points[closestControlIndex].rotation, handleSize, 3f);
+					GUIUtils.DrawAxes(editedPosition, localToWorldMatrix.rotation * curve.Points[closestEndpointIndex].rotation, handleSize, 3f);
 				else
 					foreach (var ind in selectedPointIdexes)
 					{
@@ -419,7 +420,7 @@ namespace BezierCurveZ.Editor
 
 					if (selectedPointIdexes.Count == 0)
 					{
-						var ind = closestControlIndex;
+						var ind = closestEndpointIndex;
 
 						curve.AddEPRotation(segmentIndex, pointDelta);
 					}
@@ -438,7 +439,7 @@ namespace BezierCurveZ.Editor
 			else if (currentInternalTool == Tool.Scale)
 			{
 				EditorGUI.BeginChangeCheck();
-				int segmentIndex = curve.GetSegmentIndex(closestControlIndex);
+				int segmentIndex = curve.GetSegmentIndex(closestEndpointIndex);
 				float handleSize = HandleUtility.GetHandleSize(editedPosition);
 
 				var scale = Vector3.zero;
@@ -456,7 +457,7 @@ namespace BezierCurveZ.Editor
 
 					if (selectedPointIdexes.Count == 0)
 					{
-						var ind = closestControlIndex;
+						var ind = closestEndpointIndex;
 
 						curve.SetEPScale(segmentIndex, scale);
 					}
@@ -497,7 +498,7 @@ namespace BezierCurveZ.Editor
 				//			Q Menu			//
 				//////////////////////////////
 				Handles.BeginGUI();
-				var linesCount = closestIndex == closestControlIndex ? 4 : 1;
+				var linesCount = closestIndex == closestEndpointIndex ? 4 : 1;
 				var guiRect = new Rect(HandleUtility.WorldToGUIPoint(editedPosition), new Vector3(300, EditorGUIUtility.singleLineHeight * linesCount + 8));
 				mouseCaptured = guiRect.Contains(current.mousePosition);
 				GUI.Box(guiRect, GUIContent.none);
@@ -514,7 +515,7 @@ namespace BezierCurveZ.Editor
 					closestPoint = curve.Points[closestIndex];
 				}
 
-				if (closestIndex == closestControlIndex)
+				if (closestIndex == closestEndpointIndex)
 				{
 					//Draw Eulers Angles line
 					line = line.MoveDown();
@@ -686,7 +687,7 @@ namespace BezierCurveZ.Editor
 			var minDist = float.MaxValue;
 			var minHDist = float.MaxValue;
 			closestIndex = -1;
-			closestControlIndex = -1;
+			closestEndpointIndex = -1;
 			for (int i = 0; i < curve.PointCount; i++)
 			{
 				bool selectControlsOnly = currentInternalTool == Tool.Rotate;
@@ -715,11 +716,11 @@ namespace BezierCurveZ.Editor
 			if (curve.IsClosed && closestIndex == curve.LastPointInd) closestIndex = 0;
 			closestPoint = curve.Points[closestIndex];
 			var cind = closestIndex + (closestPoint.isRightHandle ? -1 : closestPoint.isLeftHandle ? 1 : 0);
-			closestControlIndex = cind;
-			//closestEndPoint = curve.Points[cind];
+			closestEndpointIndex = cind;
+			closestEndPoint = curve.Points[cind];
 			if (closestPoint.mode == Point.Mode.Linear)
 			{
-				editedPosition = TransformPoint(curve.Points[cind]);
+				editedPosition = TransformPoint(closestEndPoint);
 			}
 			else
 			{
@@ -753,7 +754,7 @@ namespace BezierCurveZ.Editor
 						}
 					else
 						curve.SetPointMode(closestIndex, capturedMode);
-					Undo.RecordObject(targetObject, $"Curve {closestControlIndex} point mode changed to {mode}");
+					Undo.RecordObject(targetObject, $"Curve {closestEndpointIndex} point mode changed to {mode}");
 				});
 			}
 
@@ -839,7 +840,7 @@ namespace BezierCurveZ.Editor
 		Matrix4x4 localToWorldMatrix => targetIsGameObject ? targetTransform.localToWorldMatrix : Matrix4x4.identity;
 		Matrix4x4 worldToLocalMatrix => targetIsGameObject ? targetTransform.worldToLocalMatrix : Matrix4x4.identity;
 		Quaternion TransformRotation => targetIsGameObject ? targetTransform.rotation : Quaternion.identity;
-		private Quaternion toolRotation => Tools.pivotRotation == PivotRotation.Local ? localToWorldMatrix.rotation * closestPoint.rotation : Quaternion.identity;
+		private Quaternion toolRotation => Tools.pivotRotation == PivotRotation.Local ? localToWorldMatrix.rotation * closestEndPoint.rotation : Quaternion.identity;
 
 
 	} 
