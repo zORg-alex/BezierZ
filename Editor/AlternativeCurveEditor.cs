@@ -1,6 +1,7 @@
 ﻿using BezierZUtility;
 using BezierZUtility.Editor;
 using RectEx;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Security.Cryptography;
@@ -21,7 +22,8 @@ namespace BezierCurveZ.Editor
 		private Curve _curve;
 		private Matrix4x4 _worldToLocalMatrix;
 		private Matrix4x4 _localToWorldMatrix;
-		private SelectRectContext _selectRectContext;
+		private SelectRectContext _selectEndPoints;
+		private SelectRectContext _selectAllPoints;
 		private float _handleSize = .2f;
 
 		public override void Start(Curve curve, SerializedProperty property)
@@ -38,7 +40,8 @@ namespace BezierCurveZ.Editor
 			_curve = curve;
 			_worldToLocalMatrix = _targetTransform.worldToLocalMatrix;
 			_localToWorldMatrix = _targetTransform.localToWorldMatrix;
-			_selectRectContext = new();
+			_selectEndPoints = new();
+			_selectAllPoints = new();
 		}
 
 		public override void Stop()
@@ -57,29 +60,35 @@ namespace BezierCurveZ.Editor
 				//Magic thing to stop mouse from selecting other objects
 				HandleUtility.AddDefaultControl(_controlID);
 
-			_selectRectContext.DoSelectionRect(current, _controlID);
-
+			_selectEndPoints.DoSelectionRect(current, _curve.UniqueEndPoints.Select(p=>TransformPoint(p)), _controlID);
 
 			if (!current.IsRepaint()) return;
+			DrawPoints();
+		}
+
+		private void DrawPoints()
+		{
 			var cam = Camera.current;
 			var camPos = cam.transform.position;
 			Handles.color = Color.white * .8f;
-			for(int i = 0; i < _curve.PointCount; i++)
+			for (int i = 0; i < _curve.PointCount; i++)
 			{
 				var point = _curve.Points[i];
 				var pos = TransformPoint(point);
 				float size = HandleUtility.GetHandleSize(pos) * _handleSize;
 				if (point.IsEndPoint)
 				{
-					GUIUtils.DrawCircle(pos, pos - camPos, size, _selectRectContext.Indexes.Contains(i), 1.5f, 24);
+					GUIUtils.DrawCircle(pos, pos - camPos, size, _selectEndPoints.Indexes.Contains(i / 3), 1.5f, 24);
 					Handles.Label(pos, (i == _curve.PointCount - 1 && _curve.IsClosed ? "     / " : "  ") + i.ToString());
 				}
 				else
 				{
+					Point endpoint = point.isRightHandle ? _curve.Points[i - 1] : _curve.Points[i + 1];
 					Handles.DrawAAPolyLine(1.5f, GetHandleShapePoints(
 						pos, pos - camPos,
-						_localToWorldMatrix.rotation * (point.isRightHandle ? _curve.Points[i-1] : _curve.Points[i+1]).forward,
+						_localToWorldMatrix.rotation * endpoint.forward,
 						size));
+					Handles.DrawAAPolyLine(1.5f, TransformPoint(endpoint), pos);
 				}
 			}
 			Handles.color = Color.white;
@@ -89,19 +98,8 @@ namespace BezierCurveZ.Editor
 				var cross = normal.normalized.Cross(forward).normalized;
 				Vector3 d1 = (cross + forward) * size;
 				Vector3 d2 = (cross - forward) * size;
-				return new Vector3[] {
-					TransformPoint(pos - d1),
-					TransformPoint(pos - d2),
-					TransformPoint(pos + d1),
-					TransformPoint(pos + d2),
-					TransformPoint(pos - d1)
-				};
+				return new Vector3[] { pos - d1, pos - d2, pos + d1, pos + d2, pos - d1 };
 			}
-		}
-
-		private Vector3[] GetHandleShapePoints(Vector3 pos, Vector3 vector3, float size)
-		{
-			throw new System.NotImplementedException();
 		}
 
 		private Vector3 InverseTransformPoint(Vector3 position) => _worldToLocalMatrix.MultiplyPoint3x4(position);
@@ -121,12 +119,22 @@ namespace BezierCurveZ.Editor
 	{
 		private Vector2 _mouseDownPos;
 
-		public int[] Indexes { get; private set; } = new int[0]; 
+		public IEnumerable<int> Indexes => _oldIndexes.Concat(_newIndexes);
+		private List<int> _oldIndexes = new();
+		private List<int> _newIndexes = new();
 
-		public void DoSelectionRect(Event current, int controlId)
+		public void DoSelectionRect(Event current, IEnumerable<Vector3> points, int controlId)
 		{
-			if (current.IsMouseDown(0)) _mouseDownPos = current.mousePosition;
-			if (current.IsMouseUp(0)) _mouseDownPos = default;
+			if (current.IsMouseDown(0))
+			{
+				_mouseDownPos = current.mousePosition;
+				if (!current.shift) _oldIndexes.Clear();
+			}
+			if (current.IsMouseUp(0)) {
+				_mouseDownPos = default;
+				_oldIndexes.AddRange(_newIndexes);
+				_newIndexes.Clear();
+			}
 
 			if (!current.IsRepaint() || _mouseDownPos == default) return;
 			var rect = new Rect(_mouseDownPos, current.mousePosition - _mouseDownPos).Abs();
@@ -134,6 +142,21 @@ namespace BezierCurveZ.Editor
 			Handles.BeginGUI();
 			EditorStyles.selectionRect.Draw(rect, GUIContent.none, controlId);
 			Handles.EndGUI();
+
+			_newIndexes.Clear();
+			rect = rect.Extend(15, 15);
+			int i = 0;
+			foreach(var point in points)
+			{
+				if (rect.Contains(HandleUtility.WorldToGUIPoint(point)))
+				{
+					if (current.control)
+						_newIndexes.Remove(i);
+					else
+						_newIndexes.Add(i);
+				}
+				i++;
+			}
 		}
 	}
 	public static class EventExtensions

@@ -68,6 +68,18 @@ namespace BezierCurveZ
 					yield return _points[i];
 			}
 		}
+		/// <summary>
+		/// Does not include last endpoint in closed curve which is same as first one
+		/// </summary>
+		public IEnumerable<Point> UniqueEndPoints
+		{
+			[DebuggerStepThrough]
+			get
+			{
+				for (int i = 0; i < _points.Count - (IsClosed ? 1 : 0); i += 3)
+					yield return _points[i];
+			}
+		}
 		public int LastPointInd { [DebuggerStepThrough] get => _points.Count - 1; }
 		public int EndPointCount { [DebuggerStepThrough] get => (_points.Count / 3f).CeilToInt(); }
 		public IEnumerable<int> EndPointIndexes
