@@ -14,13 +14,12 @@ namespace BezierCurveZ.Editor
 	//Notes;
 	//TODO Click Creation Method for linear curves
 	//TODO Round Linear EPs
-	//TODO forbid selecting linear handles?
 	public class CurveEditor : SubscribableEditor<Curve>
 	{
 		private static CurveEditor instance;
 		public static CurveEditor Instance
 		{
-			[DebuggerStepperBoundary]
+			[DebuggerStepThrough]
 			get
 			{
 				if (instance == null) instance = new CurveEditor();
@@ -57,6 +56,7 @@ namespace BezierCurveZ.Editor
 		private bool mouseCaptured;
 		public bool snapKeyDown;
 		private bool selectingMultiple;
+		private Rect selectionRect;
 		private int controlID;
 		private bool openContext;
 		private bool cutInitiated;
@@ -72,6 +72,7 @@ namespace BezierCurveZ.Editor
 		public override void Start(Curve curve, SerializedProperty property)
 		{
 			base.Start(curve, property);
+			curve.IsInEditMode = true;
 			instance = this;
 			targetObject = property.serializedObject.targetObject;
 			if ((Component)targetObject is Component c)
@@ -82,6 +83,8 @@ namespace BezierCurveZ.Editor
 		}
 		public override void Stop()
 		{
+			if (curve != null)
+				curve.IsInEditMode = false;
 			base.Stop();
 			instance = null;
 		}
@@ -165,24 +168,19 @@ namespace BezierCurveZ.Editor
 			}
 
 			//Rect selection + Shift/Ctrl click
-			if (selectingMultiple && GUIUtility.hotControl == 0 && current.type == EventType.MouseDrag)
+			if (GetMouseDrag(0) && currentInternalTool == Tool.View)
 				WhileSelectingMultiple(current);
-			else if (selectingMultiple && GUIUtility.hotControl == 0 && mouseDownPosition == current.mousePosition)
+			if (GetMouseUp(0))
 			{
-				selectedPointIdexes.Clear();
-				selectedPoints.Clear();
-				WhileSelectingMultiple(current);
+				selectionRect = default;
+				if (current.shift)
+					WhileSelectingMultiple(current);
 			}
 			if (GetMouseDown(0))
 			{
+				if (GUIUtility.hotControl == 0 && !current.shift && closestIndex == -1)
+					ClearSelected();
 				mouseDownPosition = current.mousePosition;
-				selectingMultiple = true;
-			}
-			if ((selectingMultiple && current.type == EventType.MouseMove) || (GetMouseUp(0) || GUIUtility.hotControl != 0))
-			if (current.type == EventType.MouseDrag)
-			{
-				selectingMultiple = false;
-				mouseDownPosition = Vector2.zero;
 			}
 
 			//Context menu
@@ -242,25 +240,24 @@ namespace BezierCurveZ.Editor
 			bool GetKeyUp(KeyCode key) => current.type == EventType.KeyUp && current.keyCode == key;
 			bool GetMouseDown(int button) => current.type == EventType.MouseDown && current.button == button;
 			bool GetMouseUp(int button) => current.type == EventType.MouseUp && current.button == button;
+			bool GetMouseDrag(int button) => current.type == EventType.MouseDrag && current.button == button;
 		}
 
+		private void ClearSelected()
+		{
+			selectedPointIdexes.Clear();
+			selectedPoints.Clear();
+			CallAllSceneViewRepaint();
+		}
 		private void WhileSelectingMultiple(Event current)
 		{
-			if (GUIUtility.hotControl != 0)
-			{
-				selectingMultiple = false;
-				return;
-			}
 			if (!(current.type == EventType.Repaint || current.type == EventType.MouseDrag || current.type == EventType.MouseDown))
 				return;
-			if (!current.shift && !EditorGUI.actionKey)
-			{
-				selectedPointIdexes.Clear();
-				selectedPoints.Clear();
-			}
-
 			//Extend selection rect just enough to include points touching, this will also add clicked points
-			var rect = new Rect(mouseDownPosition, current.mousePosition - mouseDownPosition).Abs().Extend(18, 18);
+			var newSelectionRect = new Rect(mouseDownPosition, current.mousePosition - mouseDownPosition).Abs();
+			var repaint = newSelectionRect != selectionRect;
+			selectionRect = newSelectionRect;
+			var rect = selectionRect.Extend(18, 18);
 			for (int i = 0; i < curve.Points.Count; i++)
 			{
 				var point = curve.Points[i];
@@ -281,18 +278,30 @@ namespace BezierCurveZ.Editor
 				}
 			}
 
-			CallAllSceneViewRepaint();
+			if (repaint)
+				CallAllSceneViewRepaint();
 		}
 
 		private void DrawStuff(Event current)
 		{
+			DrawSelectionRect(current);
 			DrawCurve();
 			DrawCurveHandles();
 			DrawTools(current);
 			DrawHelp();
 		}
+		private void DrawSelectionRect(Event current)
+		{
+			if (selectionRect == default || current.type != EventType.Repaint) return;
+
+			Handles.BeginGUI();
+			EditorStyles.selectionRect.Draw(selectionRect, GUIContent.none, controlID);
+			Handles.EndGUI();
+		}
+
 		static Rect _helpBoxRect = new Rect(10, 10, 340, 100);
 		static bool _showHelpBox = true;
+
 		private void DrawHelp()
 		{
 			var rows = _helpBoxRect.Column(5);
@@ -360,12 +369,7 @@ namespace BezierCurveZ.Editor
 				}
 				else
 				{
-#if UNITY_2022
 					pos = Handles.FreeMoveHandle(editedPosition, HandleUtility.GetHandleSize(editedPosition) * .16f, Vector3.one * .2f, Handles.RectangleHandleCap);
-#else
-
-					pos = Handles.FreeMoveHandle(editedPosition, HandleUtility.GetHandleSize(editedPosition) * .16f, Vector3.one * .2f, Handles.RectangleHandleCap);
-#endif
 				}
 
 
@@ -374,7 +378,7 @@ namespace BezierCurveZ.Editor
 				{
 					Undo.RecordObject(targetObject, "Point position changed");
 
-					if (selectedPointIdexes.Count == 0)
+					if (selectedPointIdexes.Count <= 1)
 					{
 						var ind = closestPoint.IsLinear ? closestEndpointIndex : closestIndex;
 

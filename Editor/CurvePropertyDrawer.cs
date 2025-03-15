@@ -78,7 +78,7 @@ namespace BezierCurveZ.Editor
 			UnityEditor.EditorGUI.BeginProperty(position, label, property);
 
 			var posDivided = position.CutFromTop(EditorGUIUtility.singleLineHeight);
-			var firstLineButtonRects = posDivided[0].Row(new float[] { 0, 1, 0 }, new float[] { EditorGUIUtility.labelWidth, 0, 24 });
+			var firstLineButtonRects = posDivided[0].Row(new float[] { 0, 1, 1, 0 }, new float[] { EditorGUIUtility.labelWidth, 0, 0, 24 });
 
 			UnityEditor.EditorGUI.LabelField(firstLineButtonRects[0], label);
 
@@ -89,6 +89,7 @@ namespace BezierCurveZ.Editor
 				curve.IsInEditMode = edited;
 				if (edited)
 				{
+					AlternativeCurveEditor.Instance.Stop();
 					//OnPreviewOff(curve);
 					CurveEditor.Instance.Start(curve, property);
 				}
@@ -96,6 +97,23 @@ namespace BezierCurveZ.Editor
 				{
 					//OnPreviewOn(curve, property);
 					CurveEditor.Instance.Stop();
+				}
+			}
+			GUI.color = c;
+
+			if (curve.IsInAlternateEditMode) GUI.color = new Color(1, .3f, .3f);
+			edited = GUI.Toggle(firstLineButtonRects[2], curve.IsInAlternateEditMode, new GUIContent(editButtonText(curve.IsInAlternateEditMode)), "Button");
+			if (edited != curve.IsInAlternateEditMode)
+			{
+				curve.IsInAlternateEditMode = edited;
+				if (edited)
+				{
+					CurveEditor.Instance.Stop();
+					AlternativeCurveEditor.Instance.Start(curve, property);
+				}
+				else
+				{
+					AlternativeCurveEditor.Instance.Stop();
 				}
 			}
 			GUI.color = c;
@@ -115,7 +133,7 @@ namespace BezierCurveZ.Editor
 				curve.IsMouseOverProperty = mouseOverProperty;
 			}
 			//Thanks to hover preview it will always be on when clicking
-			curve.PreviewOn = GUI.Toggle(firstLineButtonRects[2], curve.PreviewOn, PreviewTexture(curve.PreviewOn), "Button");
+			curve.PreviewOn = GUI.Toggle(firstLineButtonRects[3], curve.PreviewOn, PreviewTexture(curve.PreviewOn), "Button");
 
 			if (curve.IsInEditMode)
 			{

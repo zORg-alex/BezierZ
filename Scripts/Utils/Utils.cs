@@ -30,5 +30,11 @@ namespace BezierZUtility
 #endif
 			action?.Invoke();
 		}
+
+		public static T SingletonGetNew<T>(ref T instance) where T : new()
+		{
+			if (instance == null) instance = new T();
+			return instance;
+		}
 	}
 }

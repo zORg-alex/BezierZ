@@ -281,59 +281,58 @@ namespace BezierCurveZ
 			var thisPoint = _points[index];
 			if (thisPoint.IsEndPoint)
 			{
-				var diff = position - thisPoint;
+				var oldPosition = thisPoint.position;
+				_points[index] = thisPoint.SetPosition(position);
+				var diff = position - oldPosition;
 
 				bool lastPoint = index == lastPointInd;
-				var leftIsLinear = false;
-				var rightIsLinear = false;
-				var leftIsAuto = false;
-				var rightIsAuto = false;
-				Point leftPoint = default(Point); Point rightPoint = default(Point);
-				var thisRotation = thisPoint.rotation;
-				if (index > 0 || IsClosed)
-				{
-					var i = GetLeftIndex(index);
-					leftIsLinear = _points[i].IsLinear;
-					leftIsAuto = _points[i].IsAutomatic;
-					//Vector3 endToLeft = _points[i] - _points[index];
-					//if (endToLeft == Vector3.zero) endToLeft = _points[i - 1] - _points[index];
-					leftPoint = leftIsLinear ? GetLinearHandle(i) : _points[i].SetPosition(_points[i] + diff)/*.SetRotation(Quaternion.LookRotation(endToLeft))*/;
-					_points[i] = leftPoint;
-					if (lastPoint)
-						thisRotation = Quaternion.LookRotation(_points[index] - _points[i], thisRotation * Vector3.up);
-				}
-				if (index < lastPointInd || IsClosed)
-				{
-					var i = GetRightIndex(index);
-					rightIsLinear = _points[i].IsLinear;
-					rightIsAuto = _points[i].IsAutomatic;
-					Vector3 endToRight = _points[i] - _points[index];
-					//if (endToRight == Vector3.zero) endToRight = _points[i + 1] - _points[index];
-					rightPoint = rightIsLinear ? GetLinearHandle(i) : _points[i].SetPosition(_points[i] + diff)/*.SetRotation(Quaternion.LookRotation(endToRight))*/;
-					_points[i] = rightPoint;
-					thisRotation = Quaternion.LookRotation(endToRight, thisRotation * Vector3.up);
-				}
-				if (rightIsAuto && leftIsLinear)
-				{
-					Vector3 endToRight = rightPoint - thisPoint;
-					_points[GetRightIndex(index)] = rightPoint.SetPosition(thisPoint + (thisPoint - leftPoint).normalized * endToRight.magnitude);
-					thisRotation = Quaternion.LookRotation(endToRight, thisRotation * Vector3.up);
-				}
-				if (leftIsAuto && rightIsLinear)
-				{
-					Vector3 endToLeft = leftPoint - thisPoint;
-					_points[GetLeftIndex(index)] = leftPoint.SetPosition(thisPoint + (thisPoint - rightPoint).normalized * endToLeft.magnitude);
-					if (lastPoint)
-						thisRotation = Quaternion.LookRotation(-endToLeft, thisRotation * Vector3.up);
-				}
-
-				_points[index] = thisPoint.SetPosition(position).SetRotation(thisRotation);
 
 				//Tie Closed Curve first and last Point positions
 				if (IsClosed && lastPoint)
 					_points[0] = _points[lastPointInd];
 				if (IsClosed && index == 0)
 					_points[lastPointInd] = _points[0];
+
+				var leftIsLinear = false;
+				var rightIsLinear = false;
+				var leftIsAuto = false;
+				var rightIsAuto = false;
+				Point leftPoint = default(Point); Point rightPoint = default(Point);
+				var thisRotation = thisPoint.rotation;
+				var leftInd = GetLeftIndex(index);
+				var rightInd = GetRightIndex(index);
+				if (index > 0 || IsClosed)
+				{
+					leftIsLinear = _points[leftInd].IsLinear;
+					leftIsAuto = _points[leftInd].IsAutomatic;
+					leftPoint = leftIsLinear ? GetLinearHandle(leftInd) : _points[leftInd].SetPosition(_points[leftInd] + diff);
+					_points[leftInd] = leftPoint;
+					if (lastPoint)
+						thisRotation = Quaternion.LookRotation(_points[index] - _points[leftInd], thisRotation * Vector3.up);
+				}
+				if (index < lastPointInd || IsClosed)
+				{
+					rightIsLinear = _points[rightInd].IsLinear;
+					rightIsAuto = _points[rightInd].IsAutomatic;
+					rightPoint = rightIsLinear ? GetLinearHandle(rightInd) : _points[rightInd].SetPosition(_points[rightInd] + diff);
+					_points[rightInd] = rightPoint;
+					thisRotation = Quaternion.LookRotation(_points[rightInd] - _points[index], thisRotation * Vector3.up);
+
+				}
+				if (rightIsAuto && leftIsLinear)
+				{
+					Vector3 endToRight = rightPoint - oldPosition;
+					_points[GetRightIndex(index)] = rightPoint.SetPosition(position + (position - leftPoint).normalized * endToRight.magnitude);
+					thisRotation = Quaternion.LookRotation(endToRight, thisRotation * Vector3.up);
+				}
+				if (leftIsAuto && rightIsLinear)
+				{
+					Vector3 endToLeft = leftPoint - oldPosition;
+					_points[GetLeftIndex(index)] = leftPoint.SetPosition(position + (position - rightPoint).normalized * endToLeft.magnitude);
+					if (lastPoint)
+						thisRotation = Quaternion.LookRotation(-endToLeft, thisRotation * Vector3.up);
+				}
+				_points[index] = thisPoint.SetRotation(thisRotation);
 			}
 			else
 			{
@@ -398,15 +397,9 @@ namespace BezierCurveZ
 				//TODO ?(aind + 3) % _points.Count
 				var b = _points[aind + 3 < _points.Count ? aind + 3 : GetPointIndex(segmentIndex + 1)];
 				var isRight = index == GetPointIndex(segmentIndex) + 1;
-				var otherInd = index + (isRight ? 1 : -1);
-				Vector3 otherPoint;
-				if (_points[otherInd].IsLinear)
-				{
-					otherInd += isRight ? 1 : -1;
-					if (recursive)
-						SetPointPosition((ushort)otherInd, _points[otherInd], false);
-				}
-				otherPoint = _points[otherInd];
+				var otherPoint = _points[index + (isRight ? 1 : -1)];
+				if (otherPoint.IsLinear)
+					otherPoint = _points[index + (isRight ? 2 : -2)];
 				var diff = a - b;
 				var tang = isRight ? otherPoint - a : otherPoint - b;
 				var pos = (isRight ? a : b) + tang.normalized * diff.magnitude * .3f;

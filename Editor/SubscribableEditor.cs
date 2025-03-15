@@ -13,7 +13,6 @@ namespace BezierCurveZ.Editor
 		public virtual void Start(T editable, SerializedProperty property)
 		{
 			Unsubscribe();
-			if (this.field != null) this.field.IsInEditMode = false;
 			this.field = editable;
 			this.property = property;
 			SceneView.duringSceneGui += EditorOnSceneGUI;
@@ -25,7 +24,8 @@ namespace BezierCurveZ.Editor
 		public void Stop(Scene sc) => Stop();
 		public virtual void Stop()
 		{
-			field.IsInEditMode = false;
+			if (field != null)
+				field.IsInEditMode = false;
 			field = null;
 			Unsubscribe();
 		}
