@@ -7,7 +7,6 @@ using System.Linq;
 using UnityEditorInternal;
 using System;
 using System.Reflection;
-using System.Collections;
 using System.Collections.Generic;
 using Sirenix.Utilities;
 
@@ -21,6 +20,11 @@ namespace BezierCurveZ.Editor
 		private Transform targetTransform;
 		private static Dictionary<Curve, PreviewCallbacks> _ActivePreviewSubscriptions = new Dictionary<Curve, PreviewCallbacks>();
 
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <param name="edit"></param>
+		/// <returns></returns>
 		GUIContent editButtonText(bool edit) => edit ? new GUIContent("Stop") : new GUIContent("Edit");
 		private static Texture2D isOpenTexture;
 		private static Texture2D isClosedTexture;

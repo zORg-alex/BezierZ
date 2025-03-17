@@ -1,12 +1,11 @@
 ﻿using BezierZUtility;
-using BezierZUtility.Editor;
-using RectEx;
-using System.Collections.Generic;
+using System;
 using System.Diagnostics;
 using System.Linq;
 using System.Security.Cryptography;
 using UnityEditor;
 using UnityEngine;
+using Object = UnityEngine.Object;
 
 namespace BezierCurveZ.Editor
 {
@@ -25,6 +24,13 @@ namespace BezierCurveZ.Editor
 		private SelectRectContext _selectEndPoints;
 		private SelectRectContext _selectAllPoints;
 		private float _handleSize = .2f;
+		private Tool _internalTool;
+
+		private int _closestIndex;
+		private bool _selectHandlesOnly;
+		private bool _blockClosePointsUpdate;
+
+		private bool _selectEndpointsOnly => _internalTool == Tool.Rotate || _selectAllPoints.Count > 1;
 
 		public override void Start(Curve curve, SerializedProperty property)
 		{
@@ -59,48 +65,44 @@ namespace BezierCurveZ.Editor
 			if (current.type == EventType.Layout)
 				//Magic thing to stop mouse from selecting other objects
 				HandleUtility.AddDefaultControl(_controlID);
+			//Prevent moving screen with ViewTool instead of selecting, prevent modifying parent Transform
+			if (Tools.current != Tool.None)
+			{
+				_internalTool = Tools.current;
+				Tools.current = Tool.None;
+			}
 
-			_selectEndPoints.DoSelectionRect(current, _curve.UniqueEndPoints.Select(p=>TransformPoint(p)), _controlID);
+			if (!_selectEndPoints.IsSelecting() && !_blockClosePointsUpdate)
+				CurveEditorUtility.ProcessClosestPoints(current, _curve, _selectEndpointsOnly, _selectHandlesOnly,
+					ref _closestIndex, _localToWorldMatrix);
+			ProcessInputs(current);
+
+			if (_closestIndex == -1)
+				_selectEndPoints.DoSelectionRect(current, _curve.UniqueEndPoints.Select(p => TransformPoint(p)), _controlID);
+			else
+				_selectEndPoints.Cancel();
+
+			_blockClosePointsUpdate = CurveEditorUtility.CurveTools(current, _internalTool, _curve, _targetObject,
+				_selectEndPoints.Count > 1, _selectEndPoints.Indexes.Select(i => i * 3), _closestIndex,
+				_localToWorldMatrix, _worldToLocalMatrix);
 
 			if (!current.IsRepaint()) return;
-			DrawPoints();
+
+			CurveEditorUtility.DrawPoints(_curve, EndpointsSelected, _localToWorldMatrix, _handleSize);
+
+
+
+			bool EndpointsSelected(int i) => _selectEndPoints.Indexes.Contains(i / 3);
 		}
 
-		private void DrawPoints()
+		private void ProcessInputs(Event current)
 		{
-			var cam = Camera.current;
-			var camPos = cam.transform.position;
-			Handles.color = Color.white * .8f;
-			for (int i = 0; i < _curve.PointCount; i++)
-			{
-				var point = _curve.Points[i];
-				var pos = TransformPoint(point);
-				float size = HandleUtility.GetHandleSize(pos) * _handleSize;
-				if (point.IsEndPoint)
-				{
-					GUIUtils.DrawCircle(pos, pos - camPos, size, _selectEndPoints.Indexes.Contains(i / 3), 1.5f, 24);
-					Handles.Label(pos, (i == _curve.PointCount - 1 && _curve.IsClosed ? "     / " : "  ") + i.ToString());
-				}
-				else
-				{
-					Point endpoint = point.isRightHandle ? _curve.Points[i - 1] : _curve.Points[i + 1];
-					Handles.DrawAAPolyLine(1.5f, GetHandleShapePoints(
-						pos, pos - camPos,
-						_localToWorldMatrix.rotation * endpoint.forward,
-						size));
-					Handles.DrawAAPolyLine(1.5f, TransformPoint(endpoint), pos);
-				}
-			}
-			Handles.color = Color.white;
-
-			Vector3[] GetHandleShapePoints(Vector3 pos, Vector3 normal, Vector3 forward, float size)
-			{
-				var cross = normal.normalized.Cross(forward).normalized;
-				Vector3 d1 = (cross + forward) * size;
-				Vector3 d2 = (cross - forward) * size;
-				return new Vector3[] { pos - d1, pos - d2, pos + d1, pos + d2, pos - d1 };
-			}
+			if (current.IsKeyDown(KeyCode.C))
+				_selectHandlesOnly = true;
+			else if (current.IsKeyUp(KeyCode.C))
+				_selectHandlesOnly = false;
 		}
+
 
 		private Vector3 InverseTransformPoint(Vector3 position) => _worldToLocalMatrix.MultiplyPoint3x4(position);
 		private Vector3 TransformPoint(Vector3 position) => _localToWorldMatrix.MultiplyPoint3x4(position);
@@ -113,60 +115,5 @@ namespace BezierCurveZ.Editor
 				_endPoints[i++] = p.position;
 			return _endPoints;
 		}
-	}
-
-	public class SelectRectContext
-	{
-		private Vector2 _mouseDownPos;
-
-		public IEnumerable<int> Indexes => _oldIndexes.Concat(_newIndexes);
-		private List<int> _oldIndexes = new();
-		private List<int> _newIndexes = new();
-
-		public void DoSelectionRect(Event current, IEnumerable<Vector3> points, int controlId)
-		{
-			if (current.IsMouseDown(0))
-			{
-				_mouseDownPos = current.mousePosition;
-				if (!current.shift) _oldIndexes.Clear();
-			}
-			if (current.IsMouseUp(0)) {
-				_mouseDownPos = default;
-				_oldIndexes.AddRange(_newIndexes);
-				_newIndexes.Clear();
-			}
-
-			if (!current.IsRepaint() || _mouseDownPos == default) return;
-			var rect = new Rect(_mouseDownPos, current.mousePosition - _mouseDownPos).Abs();
-
-			Handles.BeginGUI();
-			EditorStyles.selectionRect.Draw(rect, GUIContent.none, controlId);
-			Handles.EndGUI();
-
-			_newIndexes.Clear();
-			rect = rect.Extend(15, 15);
-			int i = 0;
-			foreach(var point in points)
-			{
-				if (rect.Contains(HandleUtility.WorldToGUIPoint(point)))
-				{
-					if (current.control)
-						_newIndexes.Remove(i);
-					else
-						_newIndexes.Add(i);
-				}
-				i++;
-			}
-		}
-	}
-	public static class EventExtensions
-	{
-		public static bool IsMouseDown(this Event e, int button) => e.type == EventType.MouseDown && e.button == button;
-		public static bool IsMouseUp(this Event e, int button) => e.type == EventType.MouseUp && e.button == button;
-		public static bool IsMouseDrag(this Event e, int button) => e.type == EventType.MouseDrag && e.button == button;
-		public static bool IsKeyDown(this Event e, KeyCode key) => e.type == EventType.KeyDown && e.keyCode == key;
-		public static bool IsKeyUp(this Event e, KeyCode key) => e.type == EventType.KeyUp && e.keyCode == key;
-		public static bool IsRepaint(this Event e) => e.type == EventType.Repaint;
-		public static bool IsLayout(this Event e) => e.type == EventType.Layout;
 	}
 }
