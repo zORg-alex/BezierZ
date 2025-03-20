@@ -82,9 +82,10 @@ namespace BezierCurveZ.Editor
 			else
 				_selectEndPoints.Cancel();
 
-			_blockClosePointsUpdate = CurveEditorUtility.CurveTools(current, _internalTool, _curve, _targetObject,
+			CurveEditorUtility.CurveTools(current, _internalTool, _curve, _targetObject,
 				_selectEndPoints.Count > 1, _selectEndPoints.Indexes.Select(i => i * 3), _closestIndex,
 				_localToWorldMatrix, _worldToLocalMatrix);
+			_blockClosePointsUpdate = GUIUtility.hotControl != 0;
 
 			if (!current.IsRepaint()) return;
 

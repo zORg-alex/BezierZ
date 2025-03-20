@@ -2,6 +2,7 @@
 using BezierZUtility.Editor;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Security.Cryptography;
 using UnityEditor;
 using UnityEngine;
@@ -31,11 +32,11 @@ namespace BezierCurveZ.Editor
 			}
 			Vector3 Transform(Vector3 pos) => localToWorldMatrix.MultiplyPoint3x4(pos);
 		}
-		internal static bool CurveTools(Event current, Tool tool, Curve curve, UnityEngine.Object targetObject,
+		internal static void CurveTools(Event current, Tool tool, Curve curve, UnityEngine.Object targetObject,
 			bool multipleSelected, IEnumerable<int> selectedIndexes,
-			int _closestIndex, Matrix4x4 localToWorldMatrix, Matrix4x4 worldToLocalMatrix)
+			int closestIndex, Matrix4x4 localToWorldMatrix, Matrix4x4 worldToLocalMatrix)
 		{
-			if (!hasClosestPoint()) return false;
+			if (!hasClosestPoint() || (multipleSelected && !selectedIndexes.Contains(closestIndex))) return;
 			Point point = closestPoint();
 			var editedPosition = localToWorldMatrix.MultiplyPoint3x4(point);
 			var editedRotation = localToWorldMatrix.rotation * point.rotation;
@@ -54,21 +55,21 @@ namespace BezierCurveZ.Editor
 					Undo.RecordObject(targetObject, "Point position changed");
 
 					if (!multipleSelected)
-						curve.SetPointPosition(_closestIndex, worldToLocalMatrix.MultiplyPoint3x4(pos));
+						curve.SetPointPosition(closestIndex, worldToLocalMatrix.MultiplyPoint3x4(pos));
 					else
 					{
 						var delta = worldToLocalMatrix.MultiplyVector(pos - editedPosition);
 						foreach (var ind in selectedIndexes)
 							curve.SetPointPosition(ind, curve.Points[ind] + delta);
 					}
-					return true;
+					return;
 				}
 			}
 
-			return false;
+			return;
 
-			bool hasClosestPoint() => _closestIndex != -1;
-			Point closestPoint() => hasClosestPoint() ? curve.Points[_closestIndex] : default;
+			bool hasClosestPoint() => closestIndex != -1;
+			Point closestPoint() => hasClosestPoint() ? curve.Points[closestIndex] : default;
 		}
 
 		/// <summary>
@@ -107,6 +108,13 @@ namespace BezierCurveZ.Editor
 				Vector3 d1 = (cross + forward) * size;
 				Vector3 d2 = (cross - forward) * size;
 				return new Vector3[] { pos - d1, pos - d2, pos + d1, pos + d2, pos - d1 };
+			}
+		}
+		private static void RepaintSceneViews()
+		{
+			foreach (SceneView sv in SceneView.sceneViews)
+			{
+				sv.Repaint();
 			}
 		}
 	}

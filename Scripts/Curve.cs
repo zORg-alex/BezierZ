@@ -305,6 +305,12 @@ namespace BezierCurveZ
 				if (IsClosed && index == 0)
 					_points[lastPointInd] = _points[0];
 
+				if (recursive)
+				{
+					UpdateNeighbourLinearEndpoint(index - 3, index - 2);
+					UpdateNeighbourLinearEndpoint(index + 3, index + 2);
+				}
+
 				var leftIsLinear = false;
 				var rightIsLinear = false;
 				var leftIsAuto = false;
@@ -318,7 +324,6 @@ namespace BezierCurveZ
 					leftIsLinear = _points[leftInd].IsLinear;
 					leftIsAuto = _points[leftInd].IsAutomatic;
 					leftPoint = leftIsLinear ? GetLinearHandle(leftInd) : _points[leftInd].SetPosition(_points[leftInd] + diff);
-					_points[leftInd] = leftPoint;
 					if (lastPoint)
 						thisRotation = Quaternion.LookRotation(_points[index] - _points[leftInd], thisRotation * Vector3.up);
 				}
@@ -327,24 +332,29 @@ namespace BezierCurveZ
 					rightIsLinear = _points[rightInd].IsLinear;
 					rightIsAuto = _points[rightInd].IsAutomatic;
 					rightPoint = rightIsLinear ? GetLinearHandle(rightInd) : _points[rightInd].SetPosition(_points[rightInd] + diff);
-					_points[rightInd] = rightPoint;
 					thisRotation = Quaternion.LookRotation(_points[rightInd] - _points[index], thisRotation * Vector3.up);
 
 				}
-				if (rightIsAuto && leftIsLinear)
+				if (leftIsLinear && rightIsAuto)
 				{
-					Vector3 endToRight = rightPoint - oldPosition;
-					_points[GetRightIndex(index)] = rightPoint.SetPosition(position + (position - leftPoint).normalized * endToRight.magnitude);
+					//rightPoint is already set, need to reposition it to linear handle
+					Vector3 endToRight = rightPoint - position;
+					rightPoint = rightPoint.SetPosition(position + (position - leftPoint).normalized * endToRight.magnitude);
 					thisRotation = Quaternion.LookRotation(endToRight, thisRotation * Vector3.up);
 				}
 				if (leftIsAuto && rightIsLinear)
 				{
-					Vector3 endToLeft = leftPoint - oldPosition;
-					_points[GetLeftIndex(index)] = leftPoint.SetPosition(position + (position - rightPoint).normalized * endToLeft.magnitude);
+					//rightPoint is already set, need to reposition it to linear handle
+					Vector3 endToLeft = leftPoint - position;
+					leftPoint = leftPoint.SetPosition(position + (position - rightPoint).normalized * endToLeft.magnitude);
 					if (lastPoint)
 						thisRotation = Quaternion.LookRotation(-endToLeft, thisRotation * Vector3.up);
 				}
 				_points[index] = thisPoint.SetRotation(thisRotation);
+				if (index < lastPointInd)
+					_points[rightInd] = rightPoint;
+				if (index > 0)
+					_points[leftInd] = leftPoint;
 			}
 			else
 			{
@@ -386,7 +396,7 @@ namespace BezierCurveZ
 						}
 					}
 				}
-				
+
 				if ((!outOfBounds || IsClosed) && (thisPoint.IsAutomatic && drivenHandle.IsLinear || thisPoint.IsProportional))
 					_points[index] = thisPoint.SetPosition(endPoint + ((endPoint - drivenHandle).normalized * (position - endPoint).magnitude));
 
@@ -417,7 +427,13 @@ namespace BezierCurveZ
 				var pos = (isRight ? a : b) + tang.normalized * diff.magnitude * .3f;
 				return new Point(pos, isRight ? Point.Type.Right : Point.Type.Left, Point.Mode.Linear);
 			}
+			void UpdateNeighbourLinearEndpoint(int endpointIndex, int handleIndex)
+			{
+				if (endpointIndex >= 0 && endpointIndex <= PointCount && _points[handleIndex].IsLinear)
+					SetPointPosition(endpointIndex, _points[endpointIndex], false);
+			}
 		}
+
 
 		/// <summary>
 		/// Set EndPoint rotation and rotate handles
