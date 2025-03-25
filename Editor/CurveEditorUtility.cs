@@ -3,7 +3,6 @@ using BezierZUtility.Editor;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Security.Cryptography;
 using UnityEditor;
 using UnityEngine;
 
@@ -15,7 +14,8 @@ namespace BezierCurveZ.Editor
 			ref int closestIndex, Matrix4x4 localToWorldMatrix)
 		{
 			Vector2 mousePos = current.mousePosition;
-			var minDist = 50f;
+			//distance to point in screen pixels when tools will show up
+			var minDist = 100f;
 			closestIndex = -1;
 			int len = curve.PointCount - (curve.IsClosed ? 3 : 0);
 			for (int i = 0; i < len; i++)
@@ -34,21 +34,25 @@ namespace BezierCurveZ.Editor
 		}
 		internal static void CurveTools(Event current, Tool tool, Curve curve, UnityEngine.Object targetObject,
 			bool multipleSelected, IEnumerable<int> selectedIndexes,
-			int closestIndex, Matrix4x4 localToWorldMatrix, Matrix4x4 worldToLocalMatrix)
+			int closestIndex, ref Vector3 moveOriginalPosition, Matrix4x4 localToWorldMatrix, Matrix4x4 worldToLocalMatrix)
 		{
 			if (!hasClosestPoint() || (multipleSelected && !selectedIndexes.Contains(closestIndex))) return;
 			Point point = closestPoint();
 			var editedPosition = localToWorldMatrix.MultiplyPoint3x4(point);
-			var editedRotation = localToWorldMatrix.rotation * point.rotation;
+			var editedRotation = point.IsEndPoint ? localToWorldMatrix.rotation * point.rotation : curve.GetClosestEndPoint(closestIndex).rotation;
 
 			if (tool == Tool.Move)
 			{
+				var wasMouseDown = current.IsMouseDown(0);
 				EditorGUI.BeginChangeCheck();
 				var pos = Vector3.zero;
 				if (current.shift)
 					pos = Handles.FreeMoveHandle(editedPosition, HandleUtility.GetHandleSize(editedPosition) * .16f, Vector3.one * .2f, Handles.RectangleHandleCap);
 				else
 					pos = Handles.DoPositionHandle(editedPosition, editedRotation);
+
+				if (wasMouseDown && GUIUtility.hotControl != 0)
+					moveOriginalPosition = editedPosition;
 
 				if (EditorGUI.EndChangeCheck())
 				{
@@ -65,11 +69,52 @@ namespace BezierCurveZ.Editor
 					return;
 				}
 			}
+			else if (tool == Tool.Rotate)
+			{
+				EditorGUI.BeginChangeCheck();
+				float handleSize = HandleUtility.GetHandleSize(editedPosition);
+				//get delta rotation in curve space
+				var delta = worldToLocalMatrix.rotation.Inverted() * editedRotation.Inverted() *
+					Handles.DoRotationHandle(editedRotation, editedPosition);
+
+				if (multipleSelected)
+					foreach (var ind in selectedIndexes)
+					{
+						float size = HandleUtility.GetHandleSize(TransformPoint(curve.Points[ind]));
+						GUIUtils.DrawAxes(TransformPoint(curve.Points[ind]), localToWorldMatrix.rotation * curve.Points[ind].rotation, size, 3f);
+					}
+				else
+					GUIUtils.DrawAxes(editedPosition, localToWorldMatrix.rotation * curve.Points[closestIndex].rotation, handleSize, 3f);
+
+				if (EditorGUI.EndChangeCheck())
+				{
+					Undo.RecordObject(targetObject, "Point rotation changed");
+
+					if (multipleSelected)
+					{
+						Vector3 localEditedPosition = InverseTransformPoint(editedPosition);
+						foreach (var ind in selectedIndexes)
+						{
+							var pos = delta * (curve.Points[ind] - localEditedPosition) + localEditedPosition;
+							curve.SetPointPosition(ind, pos);
+							curve.AddEPRotation(curve.GetSegmentIndex(ind), delta);
+						}
+					}
+					else
+					{
+						curve.AddEPRotation(curve.GetSegmentIndex(closestIndex), delta);
+					}
+					return;
+				}
+			}
 
 			return;
 
 			bool hasClosestPoint() => closestIndex != -1;
 			Point closestPoint() => hasClosestPoint() ? curve.Points[closestIndex] : default;
+			Vector3 InverseTransformPoint(Vector3 position) => worldToLocalMatrix.MultiplyPoint3x4(position);
+			Vector3 TransformPoint(Vector3 position) => localToWorldMatrix.MultiplyPoint3x4(position);
+
 		}
 
 		/// <summary>

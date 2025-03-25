@@ -141,6 +141,12 @@ namespace BezierCurveZ
 		[DebuggerStepThrough]
 		public bool IsEndPoint(int index) => _points[index].IsEndPoint;
 
+		[DebuggerStepThrough]
+		public Point GetClosestEndPoint(int index) => _points[GetClosestEndpointIndex(index)];
+
+		[DebuggerStepThrough]
+		public static int GetClosestEndpointIndex(int index) => index + (index % 3 switch { 0 => 0, 1 => -1, _ => +1 });
+
 		// Cached arrays
 
 		private int _sVersion;
@@ -643,7 +649,7 @@ namespace BezierCurveZ
 		/// <param name="segmentIndex"></param>
 		public void DissolveEP(int segmentIndex)
 		{
-			if (segmentIndex <= 0 && segmentIndex >= SegmentCount) return;
+			if (segmentIndex <= 0 || segmentIndex > SegmentCount) return;
 
 			if ((segmentIndex == 0 || segmentIndex == SegmentCount) && IsClosed)
 			{
@@ -660,13 +666,14 @@ namespace BezierCurveZ
 			}
 		}
 
+		public void Remove(int index) => RemoveMany(Enumerable.Repeat(index, 1));
 		/// <summary>
 		/// Removes Endpoints and its respective handles.
 		/// </summary>
 		/// <param name="indexes"></param>
 		public void RemoveMany(IEnumerable<int> indexes)
 		{
-			foreach (var index in indexes.Where(i => IsEndPoint(i)).OrderByDescending(i => i))
+			foreach (var index in indexes.Where(i => IsEndPoint(i)).OrderBy(i => -i))
 			{
 				if (PointCount <= (IsClosed ? 7 : 4))
 				{
@@ -682,8 +689,6 @@ namespace BezierCurveZ
 				}
 				else
 				{
-					//Cancel if not a control point
-					//if (!IsEndPoint(index)) return;
 					//First just remove that point
 					_points.RemoveRange(index - 1, 3);
 

@@ -1,14 +1,10 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 using BezierCurveZ;
 using Sirenix.OdinInspector;
 using System;
-using System.Linq;
 using BezierCurveZ.MeshGeneration;
-using UnityEditor;
 using BezierZUtility;
-using Sirenix.OdinInspector.Editor;
 
 //TODO Editor add one list for all things, add settings for node to update Transform/BendMeshes,
 //that will know if there are any MeshColliders or not
@@ -105,7 +101,7 @@ public class MeshBenderScript : MonoBehaviour, IHaveCurve
 	public void Generate()
 	{
 #if UNITY_EDITOR
-		Undo.RecordObject(this, nameof(Generate));
+		UnityEditor.Undo.RecordObject(this, nameof(Generate));
 #endif
 		float curveLength = _curve.VertexData.CurveLength();
 		var lengthCoef = _bendLength / curveLength;

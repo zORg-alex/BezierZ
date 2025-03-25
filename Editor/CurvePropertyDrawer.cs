@@ -129,7 +129,7 @@ namespace BezierCurveZ.Editor
 			if (current.type == EventType.Repaint)
 			{
 				var mouseOverProperty = position.Contains(current.mousePosition);
-				if (curve.IsMouseOverProperty && !mouseOverProperty && !curve.PreviewOn && !curve.IsInEditMode)
+				if (curve.IsMouseOverProperty && !mouseOverProperty && !curve.PreviewOn && !curve.IsInAnyEditMode)
 					OnPreviewOff(curve);
 				if (!curve.IsMouseOverProperty && mouseOverProperty && !curve.PreviewOn)
 					OnPreviewOn(curve, property);
