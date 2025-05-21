@@ -86,6 +86,18 @@ namespace BezierCurveZ
 		public int GetSegmentIndex(int index) => GetSegmentIndex((ushort)index);
 		[DebuggerStepThrough]
 		public int GetSegmentIndex(ushort index) => (index / 3) % EndPointCount;
+		public Point[] GetSegmentPoints(int segmentIndex) => GetSegmentPoints((ushort)segmentIndex);
+		public Point[] GetSegmentPoints(ushort segmentIndex)
+		{
+			var i = GetPointIndex(segmentIndex);
+			return new Point[] { _points[i], _points[i + 1], _points[i + 2], _points[i + 3] };
+		}
+		public Vector3[] GetSegmentPositions(int segmentIndex) => GetSegmentPositions((ushort)segmentIndex);
+		public Vector3[] GetSegmentPositions(ushort segmentIndex)
+		{
+			var i = GetPointIndex(segmentIndex);
+			return new Vector3[] { _points[i], _points[i + 1], _points[i + 2], _points[i + 3] };
+		}
 		[DebuggerStepThrough]
 		public int GetPointIndex(int segmentIndex) => GetPointIndex((ushort)segmentIndex);
 		[DebuggerStepThrough]
@@ -513,7 +525,7 @@ namespace BezierCurveZ
 		/// </summary>
 		public Point SplitCurveAt(Vector3 point)
 		{
-			var t = GetClosestPointTimeSegment(point, out var segmentIndex);
+			GetClosestPointTimeSegment(point, out var t, out var segmentIndex);
 
 			SplitCurveAt(segmentIndex, t);
 			return _points[segmentIndex];
@@ -531,7 +543,7 @@ namespace BezierCurveZ
 
 		public VertexData GetClosestPoint(Vector3 position)
 		{
-			var t = GetClosestPointTimeSegment(position, out var segmentIndex);
+			GetClosestPointTimeSegment(position, out var t, out var segmentIndex);
 			return VertexData.GetPointFromTime(segmentIndex + t);
 		}
 
@@ -541,31 +553,38 @@ namespace BezierCurveZ
 		/// <param name="position"></param>
 		/// <param name="segmentIndex"></param>
 		/// <returns></returns>
-		public float GetClosestPointTimeSegment(Vector3 position, out int segmentIndex)
+		public void GetClosestPointTimeSegment(Vector3 position, out float time, out int segmentIndex)
 		{
-			var vpair = VertexData.Take(2).ToArray();
+
 			float minDist = float.MaxValue;
-			foreach (var v in VertexData.Skip(1))
+			float bestTime = 0f;
+			int bestSegment = 0;
+
+			for (int i = 0; i < _vertexData.Length - 1; i++)
 			{
-				var dist = (position - v.Position).magnitude;
+				UpdateVertexData();
+				var a = _vertexData[i];
+				var b = _vertexData[i + 1];
+
+				Vector3 ab = b.Position - a.Position;
+				float abLenSq = ab.sqrMagnitude;
+				if (abLenSq < 1e-8f)
+					continue;
+
+				float t = Mathf.Clamp01(Vector3.Dot(position - a.Position, ab) / abLenSq);
+				float curveT = Mathf.Lerp(a.cumulativeTime, b.cumulativeTime, t);
+
+				Vector3 closest = CurveUtils.Evaluate(curveT, GetSegmentPositions(a.segmentInd));// Vector3.Lerp(a.Position, b.Position, t);
+				float dist = (position - closest).sqrMagnitude;
+
 				if (dist < minDist)
 				{
-					vpair[1] = vpair[0];
-					vpair[0] = v;
 					minDist = dist;
+					bestTime = curveT;
 				}
 			}
-			var a = vpair[0].cumulativeTime < vpair[1].cumulativeTime ? vpair[0] : vpair[1];
-			var b = vpair[0].cumulativeTime > vpair[1].cumulativeTime ? vpair[0] : vpair[1];
-			Vector3 dir = b.Position - a.Position;
-			float mag = dir.magnitude;
-			dir.Normalize();
-			var locPos = position - a.Position;
-			var dot = Mathf.Clamp(Vector3.Dot(dir, locPos), 0, mag) / mag;
-			var timeDist = b.cumulativeTime - a.cumulativeTime;
-			float t = a.cumulativeTime + dot * timeDist;
-			segmentIndex = Mathf.Min(SegmentCount - 1, Mathf.FloorToInt(t));
-			return t - segmentIndex;
+			segmentIndex = Mathf.FloorToInt(bestTime);
+			time = bestTime - segmentIndex;
 		}
 
 		/// <summary>
