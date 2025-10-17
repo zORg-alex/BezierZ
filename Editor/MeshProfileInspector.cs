@@ -2,9 +2,8 @@
 using System.Reflection;
 using UnityEditor;
 using UnityEngine;
-using BezierZUtility;
-using BezierZUtility.Editor;
 #if UNITY_EDITOR
+using BezierZUtility.Editor;
 #endif
 
 namespace BezierCurveZ.MeshGeneration

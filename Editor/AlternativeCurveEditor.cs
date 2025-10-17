@@ -15,7 +15,6 @@ namespace BezierCurveZ.Editor
 
 		private Object _targetObject;
 		private Transform _targetTransform;
-		private bool _targetIsGameObject;
 		private int _controlID;
 		private Curve _curve;
 		private Matrix4x4 _worldToLocalMatrix;
@@ -45,7 +44,6 @@ namespace BezierCurveZ.Editor
 			if ((Component)_targetObject is Component c)
 			{
 				_targetTransform = c.transform;
-				_targetIsGameObject = true;
 			}
 			_curve = curve;
 			_worldToLocalMatrix = _targetTransform.worldToLocalMatrix;
